@@ -4,9 +4,9 @@ type: project-docs
 profile: "STANDARD"
 version: 0.1.0
 created: "2026-07-11"
-updated: "2026-07-11"
-reason_last_change: "Neutrale Extraktion aus BACH-ProSync"
-last_verified: "2026-07-11"
+updated: "2026-08-01"
+reason_last_change: "Maintainer-Verifikation und Status-Readback"
+last_verified: "2026-08-01"
 author: "Lukas Geiger / ellmos / BACH Contributors"
 anthropic_compatible: true
 description: |

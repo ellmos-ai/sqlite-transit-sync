@@ -1,6 +1,6 @@
 # STATE.md
 
-**Stand:** 2026-07-11  
+**Stand:** 2026-08-01
 **Phase:** Alpha / neutrale Extraktion abgeschlossen
 
 ## Funktionsfähig
@@ -24,3 +24,9 @@
 
 - 2026-07-11: `README.md` und `README_de.md` um den vollständigen Vergleich mit
   Distributed SQL, Vor-/Nachteile, Use Cases und Entscheidungshilfe ergänzt.
+
+## Letzte Verifikation
+
+- 2026-08-01: `python -m unittest discover -s tests -v` — 26/26 bestanden.
+- 2026-08-01: `python -m pytest -q -ra` — 26/26 bestanden; `compileall` und
+  der CLI-Smoke (`init --help`, Version `0.2.0`) ebenfalls erfolgreich.

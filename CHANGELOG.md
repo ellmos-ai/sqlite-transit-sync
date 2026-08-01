@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Maintainer-Verifikation am 2026-08-01: `unittest discover` und Pytest mit
+  26/26 bestanden, `compileall` sowie CLI-Help und Versions-Smoke erfolgreich;
+  `llms.txt`-Prüfdatum aktualisiert. Keine Release-Gate- oder Cloud-Aktion.
 - Close every backup into `DELETE` journal mode before publication and remove the
   complete temporary SQLite artifact family on backup, redaction, credential-scan,
   verification, or manifest failure. WAL source databases can no longer leave
