@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Maintainer-Verifikation am 2026-08-10: `unittest discover` und Pytest mit
+  jeweils 26/26 bestanden, `compileall` und Ruff bestanden; CLI-Help
+  (`--help`, `init --help`) sowie der Paket-Versions-Smoke
+  (`__version__ == 0.2.0`) erfolgreich. Die CLI definiert keinen globalen
+  `--version`-Schalter. Keine Live-Datenbank-, Transport-, Release- oder
+  Cloud-Aktion.
 - Maintainer-Verifikation am 2026-08-01: `unittest discover` und Pytest mit
   26/26 bestanden, `compileall` sowie CLI-Help und Versions-Smoke erfolgreich;
   `llms.txt`-Prüfdatum aktualisiert. Keine Release-Gate- oder Cloud-Aktion.

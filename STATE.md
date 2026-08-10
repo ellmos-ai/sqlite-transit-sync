@@ -1,6 +1,6 @@
 # STATE.md
 
-**Stand:** 2026-08-08
+**Stand:** 2026-08-10
 **Phase:** Alpha / neutrale Extraktion abgeschlossen
 
 ## Funktionsfähig
@@ -22,11 +22,20 @@
 
 ## Letzte Dokumentationsänderung
 
+- 2026-08-10: Lokale Maintainer-Verifikation in `STATE.md`, `llms.txt` und
+  `CHANGELOG.md` fortgeschrieben.
 - 2026-07-11: `README.md` und `README_de.md` um den vollständigen Vergleich mit
   Distributed SQL, Vor-/Nachteile, Use Cases und Entscheidungshilfe ergänzt.
 
 ## Letzte Verifikation
 
+- 2026-08-10: `python -m unittest discover -s tests -v` und
+  `python -m pytest -q -ra` — jeweils 26/26 bestanden; `compileall` und Ruff
+  bestanden ebenfalls. CLI-Help (`python -m sqlite_transit_sync --help` und
+  `init --help`) sowie der Paket-Versions-Smoke (`__version__ == 0.2.0`)
+  bestanden. Der globale CLI-Aufruf `--version` ist nicht definiert und wird
+  nicht als unterstütztes Feature behauptet; keine Live-Datenbank oder kein
+  Transport wurde verwendet.
 - 2026-08-08: `python -m unittest discover -s tests -v` — 26/26 bestanden;
   der Arbeitsbaum blieb sauber. Pytest, `compileall` und der CLI-Smoke wurden
   in diesem Lauf nicht erneut ausgeführt.
