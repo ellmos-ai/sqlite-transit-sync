@@ -38,6 +38,8 @@
   als bestanden gewertet: sein SHA-256 stimmt, aber der aktuelle
   `modules-meta`-Commit ist `89834a01d6d340d74aac96490f92dfd8706b10b9` statt
   des autorisierten Commits `d8475c29c4da7a0008853e2755e1b6a012c9b791`.
+  Der getestete Code-Commit ist
+  `c946ea787b36c8c8caad5315c8ef88cd37f357cb`.
   Keine Live-Datenbank, kein Transport, kein Release und kein Cloud-Upload.
 - 2026-08-08: `python -m unittest discover -s tests -v` — 26/26 bestanden;
   der Arbeitsbaum blieb sauber. Pytest, `compileall` und der CLI-Smoke wurden
