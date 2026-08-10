@@ -39,8 +39,8 @@ sign-off.
 |---|---|---|---|
 | 1 | Metadata/version/status contract | PASS after current readback | `METADATA_CONTRACT.md`, `tests/test_metadata.py` |
 | 2 | Manifest/snapshot transit containment | PASS after current readback | `tests/test_sync.py`, `SECURITY.md`, `ARCHITECTURE.md` |
-| 3 | Public static/privacy hygiene | PENDING current receipt | pinned external helper and tracked-file scan |
-| 4 | Full test and CLI gate | PENDING current receipt | current commit-bound report below |
+| 3 | Public static/privacy hygiene | PENDING external helper authorization | pinned external helper and tracked-file scan |
+| 4 | Full test and CLI gate | PASS for tested code commit | current commit-bound report below |
 | 5 | Responsible sign-off | NOT GRANTED | required before `UNLOCKED` |
 
 ## Current gate receipt
@@ -50,27 +50,25 @@ commit. It must contain the commit, date, exact commands, exit codes, collected
 test count and complete output or a linked immutable receipt. An older 8/8,
 19/19 or 26/26 result is historical evidence and cannot unlock this gate.
 
-### Receipt 2026-08-10 (tested code commit `c946ea787b36c8c8caad5315c8ef88cd37f357cb`)
+### Receipt 2026-08-10 (tested code commit `0dc9935f5e2298e3b1867ef163a6dd4f478dd12c`)
 
-This 34-test receipt is historical and is superseded by the 45-test
-authentication/state/tombstone bundle. A new commit-bound receipt is written
-after that implementation is committed; the gate remains locked in the
-meantime.
-
-The local readback was run from that clean code commit (the untracked
-TASKSOLVER lock is not part of the commit):
+The local readback was run from the TASKSOLVER implementation commit (the
+untracked TASKSOLVER lock is not part of the commit). This receipt covers the
+authentication, state/transit separation and opt-in tombstone bundle:
 
 | Command | Exit | Output/readback |
 |---|---:|---|
-| `python -m unittest discover -s tests -v` | 0 | `Ran 34 tests in 22.057s` / `OK` |
-| `python -m pytest -q -ra` | 0 | `.................................. [100%]` |
-| `python -m pytest --collect-only -q` | 0 | `tests/test_cli.py: 2`; `tests/test_metadata.py: 6`; `tests/test_sync.py: 26` |
+| `python -m unittest discover -s tests -v` | 0 | `Ran 45 tests in 7.931s` / `OK` |
+| `python -m pytest -q -ra` | 0 | `............................................. [100%]` |
+| `python -m pytest --collect-only -q` | 0 | `tests/test_auth.py: 4`; `tests/test_cli.py: 3`; `tests/test_metadata.py: 6`; `tests/test_sync.py: 29`; `tests/test_tombstone.py: 3` |
 | `python -m compileall -q sqlite_transit_sync tests` | 0 | no output |
 | `python -m ruff check sqlite_transit_sync tests` | 0 | `All checks passed!` |
 | `python -m sqlite_transit_sync --help` | 0 | usage for `init,status,push,pull,sync,verify,list` |
-| `python -m sqlite_transit_sync init --help` | 0 | usage with required `--config`, `--database`, `--transit` |
+| `python -m sqlite_transit_sync init --help` | 0 | usage with required `--config`, `--database`, `--transit` and optional `--state` |
+| `git diff --check` | 0 | no whitespace errors |
+| tracked-file secret/path scan | 0 | `TRACKED_ARTIFACTS=0`; `PERSONAL_PATH_FINDINGS=0`; no private-key pattern findings |
 
-The synthetic CLI roundtrip is included in the 34-test collection and covers
+The synthetic CLI roundtrip is included in the 45-test collection and covers
 `init/status/push/list/verify/pull --dry-run`; no live database or transport was
 used. The tracked-file readback found `TRACKED_ARTIFACTS=0` and
 `PERSONAL_PATH_FINDINGS=0`.
@@ -84,8 +82,12 @@ HELPER_SHA256=6AB2EB4012E4CE7F0E5EFE7516A5CC285844FE8F7FF0DBEB2C882138BA425965
 EXTERNAL_HELPER_GATE=FAIL_COMMIT_MISMATCH (exit 2)
 ```
 
-Therefore checklist items 3 and 4 remain pending for the final receipt and
-the gate stays `LOCKED`; no upload, tag or visibility change was performed.
+The helper's matching SHA does not override its commit mismatch, so checklist
+item 3 remains pending. The local test/CLI gate (item 4) passes, but the gate
+stays `LOCKED`; no upload, tag or visibility change was performed.
+
+The preceding 34-test receipt on `c946ea787b36c8c8caad5315c8ef88cd37f357cb`
+is historical only.
 
 ### Remote push gate
 

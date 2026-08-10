@@ -42,9 +42,10 @@
   als bestanden gewertet: sein SHA-256 stimmt, aber der aktuelle
   `modules-meta`-Commit ist `89834a01d6d340d74aac96490f92dfd8706b10b9` statt
   des autorisierten Commits `d8475c29c4da7a0008853e2755e1b6a012c9b791`.
-  Der frühere 34-Test-Receipt bezog sich auf den Code-Commit
-  `c946ea787b36c8c8caad5315c8ef88cd37f357cb`; ein neuer Commit-gebundener
-  Receipt folgt nach dem Adapter-Bündel.
+  Der aktuelle 45-Test-Receipt ist an den Implementierungs-Commit
+  `0dc9935f5e2298e3b1867ef163a6dd4f478dd12c` gebunden; der frühere
+  34-Test-Receipt auf `c946ea787b36c8c8caad5315c8ef88cd37f357cb` ist nur noch
+  historische Evidenz.
   Der direkte Push-Versuch wurde nach Readback von `origin/main` mit
   `non-fast-forward` (Exit 1) abgewiesen; wegen der divergierenden fremden
   Historie wurden weder Pull, Merge, Rebase noch Force-Push ausgeführt. Keine
