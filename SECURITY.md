@@ -6,6 +6,16 @@ Use the module only with local live databases and a transport whose participants
 trusted. Keep node state outside the shared transport. Restrict filesystem access to
 database, state and transit paths.
 
+### Transit path and manifest boundary
+
+Readers accept only a direct regular manifest in the canonical transit
+directory. The manifest may name exactly one relative snapshot filename;
+absolute paths, traversal components, nested paths, symlinks and Windows
+reparse points fail closed before hashing, SQLite `quick_check` or merge. A
+successful SHA-256 check therefore means that the bytes match the manifest,
+not that the sender or transport is authenticated. Add signatures or an
+authenticated transport when the transit is not fully trusted.
+
 ## Required application review
 
 Before deployment, define:

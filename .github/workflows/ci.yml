@@ -8,9 +8,11 @@ on:
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
+        os: [ubuntu-latest, windows-latest]
         python-version: ["3.10", "3.11", "3.12", "3.13"]
 
     steps:
@@ -28,4 +30,16 @@ jobs:
 
       - name: Run test suite
         run: |
-          pytest
+          python -m unittest discover -s tests -v
+          python -m pytest -q -ra
+          python -m pytest --collect-only -q
+
+      - name: Run static and package checks
+        run: |
+          python -m compileall -q sqlite_transit_sync tests
+          python -m ruff check sqlite_transit_sync tests
+
+      - name: Run JSON CLI help smoke
+        run: |
+          python -m sqlite_transit_sync --help
+          python -m sqlite_transit_sync init --help

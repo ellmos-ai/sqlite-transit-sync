@@ -2,11 +2,13 @@
 name: "sqlite-transit-sync"
 type: project-docs
 profile: "STANDARD"
-version: 0.1.0
+version: 0.2.0
 created: "2026-07-11"
-updated: "2026-08-01"
-reason_last_change: "Maintainer-Verifikation und Status-Readback"
-last_verified: "2026-08-01"
+updated: "2026-08-10"
+reason_last_change: "Version-/Statusvertrag, Release-Gate und Manifestpfad-Readback"
+last_verified: "2026-08-10"
+release_status: "development"
+visibility: "public-candidate"
 author: "Lukas Geiger / ellmos / BACH Contributors"
 anthropic_compatible: true
 description: |
@@ -24,7 +26,9 @@ Transit-Snapshots und anpassbare Merge-Policies.
 
 1. `START.md`, `STATE.md` und `TODO.md` lesen.
 2. Aktive `LOCK*.txt` beachten.
-3. `python -m unittest discover -s tests -v` vor und nach Änderungen ausführen.
+3. `python -m unittest discover -s tests -v` und `python -m pytest -q -ra`
+   vor und nach Änderungen ausführen; die synthetischen JSON-CLI-Smokes gehören
+   zur Testsuite.
 
 ## Harte Regeln
 

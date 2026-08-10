@@ -4,18 +4,22 @@
 
 - Last-checked: 2026-08-10
 - Version: 0.2.0
+- Module status: `development`; visibility projection: `public-candidate`; release gate: `LOCKED`.
+- Metadata contract: `METADATA_CONTRACT.md` (version, status and verification authority).
 - Architecture: Local-First / Zero-Dependency / Snapshot-based Transit
 - Module Family: `dev-bricks/sync-master` companion (`sync.database`)
 
 ## System Overview
 
-`sqlite-transit-sync` is a Python 3.10+ zero-dependency library and CLI for synchronizing local SQLite databases across untrusted or asynchronous file transports (shared folders, object-store mounts, removable drives, or sync-master yards). Current local readback on 2026-08-10: `unittest discover` and Pytest passed 26/26, `compileall` and Ruff passed, CLI help (`--help`, `init --help`) passed, and the package version smoke reported `__version__ == 0.2.0`. The CLI has no global `--version` option; no live SQLite database or transport was used in this readback.
+`sqlite-transit-sync` is a Python 3.10+ zero-dependency library and CLI for synchronizing local SQLite databases across untrusted or asynchronous file transports (shared folders, object-store mounts, removable drives, or sync-master yards). Current local readback on 2026-08-10: `unittest discover` and Pytest passed 34/34, `compileall` and Ruff passed, JSON CLI help and synthetic init/status/push/list/verify/pull smokes passed, and the package version smoke reported `__version__ == 0.2.0`. The CLI has no global `--version` option; no live SQLite database or transport was used in this readback.
 
 It avoids live SQLite database locking over file sync by using:
 1. Online consistent snapshots via SQLite Backup API (`sqlite3.Connection.backup`).
 2. Closed rollback-journal snapshots with fail-closed temporary sidecar cleanup,
    followed by atomic publication using `os.replace`.
 3. Pre-merge integrity checks via `PRAGMA quick_check` and SHA-256 manifest verification.
+   Manifest and snapshot paths must be direct regular files in the canonical
+   transit directory; traversal, absolute paths, symlinks and reparse points fail closed.
 4. Deterministic, transactional row-level merge policies (Last-Write-Wins per PK for timestamped tables, shared-column merge for schema drift).
 
 ## Key Features

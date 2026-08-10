@@ -8,6 +8,7 @@ import os
 import re
 import socket
 import sqlite3
+import stat
 import tempfile
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
@@ -73,6 +74,57 @@ def _safe_identifier(value: str, fallback: str) -> str:
     if "__" in cleaned:
         cleaned = cleaned.replace("__", "-")
     return cleaned[:80]
+
+
+def _is_reparse_or_symlink(path: Path) -> bool:
+    """Return true for links/reparse points, including dangling targets."""
+    try:
+        if path.is_symlink():
+            return True
+        attributes = getattr(path.lstat(), "st_file_attributes", 0)
+        return bool(attributes & getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0x400))
+    except FileNotFoundError:
+        return False
+    except OSError:
+        # An unreadable path must not be treated as a safe regular file.
+        return True
+
+
+def _assert_transit_regular_file(path: Path, transit: Path, label: str) -> None:
+    """Fail closed unless ``path`` is a direct, regular file in ``transit``."""
+    candidate = Path(path)
+    root = Path(transit).resolve()
+    if ".." in candidate.parts:
+        raise SyncError(f"{label} contains a traversal component")
+    if _is_reparse_or_symlink(candidate):
+        raise SyncError(f"{label} is a symlink or reparse point")
+    try:
+        if candidate.parent.resolve() != root:
+            raise SyncError(f"{label} escapes the transit directory")
+        canonical = candidate.resolve(strict=False)
+    except OSError as error:
+        raise SyncError(f"{label} path cannot be resolved safely") from error
+    if canonical.parent != root:
+        raise SyncError(f"{label} escapes the transit directory")
+    if not candidate.is_file():
+        raise SyncError(f"{label} is not a regular file")
+
+
+def _validated_snapshot_name(value: Any) -> str:
+    """Accept only a single relative filename from a transit manifest."""
+    if not isinstance(value, str) or not value or "\x00" in value:
+        raise SyncError("Manifest snapshot name is invalid")
+    candidate = Path(value)
+    if (
+        candidate.is_absolute()
+        or candidate.drive
+        or candidate.name != value
+        or "/" in value
+        or "\\" in value
+        or value in {".", ".."}
+    ):
+        raise SyncError("Manifest snapshot path must be a single relative filename")
+    return value
 
 
 def _utc_token() -> str:
@@ -651,10 +703,13 @@ class TransitSync:
         )
 
     def _read_snapshot(self, manifest_path: Path, verify: bool = True) -> Snapshot:
+        _assert_transit_regular_file(manifest_path, self.config.transit, "Manifest")
         try:
             manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
         except (OSError, json.JSONDecodeError) as error:
             raise SyncError(f"Invalid manifest {manifest_path}: {error}") from error
+        if not isinstance(manifest, dict):
+            raise SyncError(f"Invalid manifest {manifest_path}: expected an object")
         required = {"protocol", "namespace", "node_id", "created_at", "snapshot", "sha256", "size"}
         if not required.issubset(manifest):
             raise SyncError(f"Incomplete manifest: {manifest_path}")
@@ -662,9 +717,9 @@ class TransitSync:
             raise SyncError(f"Unsupported protocol in {manifest_path}")
         if manifest["namespace"] != self.config.namespace:
             raise SyncError(f"Wrong namespace in {manifest_path}")
-        snapshot_path = manifest_path.parent / manifest["snapshot"]
-        if snapshot_path.parent.resolve() != self.config.transit.resolve():
-            raise SyncError(f"Snapshot escapes transit directory: {snapshot_path}")
+        snapshot_name = _validated_snapshot_name(manifest["snapshot"])
+        snapshot_path = self.config.transit / snapshot_name
+        _assert_transit_regular_file(snapshot_path, self.config.transit, "Snapshot")
         snapshot = Snapshot(
             path=snapshot_path,
             manifest_path=manifest_path,

@@ -22,20 +22,23 @@
 
 ## Letzte Dokumentationsänderung
 
-- 2026-08-10: Lokale Maintainer-Verifikation in `STATE.md`, `llms.txt` und
-  `CHANGELOG.md` fortgeschrieben.
+- 2026-08-10: Version-/Status-/Verifikationsvertrag, gesperrtes Release-Gate
+  und fail-closed Manifest-/Snapshot-Containment in Code, Tests und
+  Maintainer-Dokumenten fortgeschrieben.
 - 2026-07-11: `README.md` und `README_de.md` um den vollständigen Vergleich mit
   Distributed SQL, Vor-/Nachteile, Use Cases und Entscheidungshilfe ergänzt.
 
 ## Letzte Verifikation
 
 - 2026-08-10: `python -m unittest discover -s tests -v` und
-  `python -m pytest -q -ra` — jeweils 26/26 bestanden; `compileall` und Ruff
-  bestanden ebenfalls. CLI-Help (`python -m sqlite_transit_sync --help` und
-  `init --help`) sowie der Paket-Versions-Smoke (`__version__ == 0.2.0`)
-  bestanden. Der globale CLI-Aufruf `--version` ist nicht definiert und wird
-  nicht als unterstütztes Feature behauptet; keine Live-Datenbank oder kein
-  Transport wurde verwendet.
+  `python -m pytest -q -ra` — jeweils 34/34 bestanden; `python -m pytest
+  --collect-only -q` sammelte 34 Tests. `compileall` und Ruff bestanden;
+  CLI-Help und synthetische JSON-Smokes für init/status/push/list/verify/pull
+  bestanden ebenfalls. Der vorgeschriebene externe Hygiene-Helper wurde nicht
+  als bestanden gewertet: sein SHA-256 stimmt, aber der aktuelle
+  `modules-meta`-Commit ist `89834a01d6d340d74aac96490f92dfd8706b10b9` statt
+  des autorisierten Commits `d8475c29c4da7a0008853e2755e1b6a012c9b791`.
+  Keine Live-Datenbank, kein Transport, kein Release und kein Cloud-Upload.
 - 2026-08-08: `python -m unittest discover -s tests -v` — 26/26 bestanden;
   der Arbeitsbaum blieb sauber. Pytest, `compileall` und der CLI-Smoke wurden
   in diesem Lauf nicht erneut ausgeführt.

@@ -12,7 +12,7 @@
 
 | Category | Status | Notes |
 |----------|--------|-------|
-| Secrets | :green_circle: | No secrets in tracked files (final_gate_check.py) |
+| Secrets | :yellow_circle: | Local tracked-file checks pass; pinned external helper receipt is pending because its authorized commit is not current |
 | Private Data (PII) | :green_circle: | No PII patterns found |
 | .gitignore | :green_circle: | Minimum entries present |
 | Language (English) | :green_circle: | README.md in English; README_de.md as companion |
@@ -20,8 +20,10 @@
 | Database Files | :green_circle: | No .db files tracked |
 | README.md | :green_circle: | Present, English |
 | LICENSE | :green_circle: | MIT |
-| **Overall** | **READY** | |
+| **Overall** | **LOCKED** | Current local gates must be re-read against the final commit; no public release or sign-off is implied. |
 
-**Audit Date:** 2026-07-23
-**Gate Check Exit Code:** `0`
+**Audit Date:** 2026-08-10
+**Gate Check Exit Code:** `PENDING` — authorized helper commit mismatch
+(current `89834a01d6d340d74aac96490f92dfd8706b10b9`, required
+`d8475c29c4da7a0008853e2755e1b6a012c9b791`).
 

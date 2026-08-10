@@ -8,11 +8,15 @@
 [![License](https://img.shields.io/github/license/dev-bricks/sqlite-transit-sync)](LICENSE)
 [![Python Version](https://img.shields.io/badge/python->=3.10-blue.svg)](https://www.python.org/)
 [![Architecture](https://img.shields.io/badge/architecture-local--first-success.svg)](#part-of-the-ellmos-stack-family)
-[![Tests](https://img.shields.io/badge/tests-26%2F26%20passed-brightgreen.svg)](#tests)
+[![Tests](https://img.shields.io/badge/tests-34%2F34%20passed-brightgreen.svg)](#tests)
 [![llms.txt](https://img.shields.io/badge/llms.txt-available-informational.svg)](llms.txt)
 
 > [!NOTE]
 > **LLM & AI Agent Context**: A structured machine-readable sitemap, architectural overview, and API guide is available at [`llms.txt`](llms.txt).
+
+Version, module status, visibility and verification-date authority are defined
+in [`METADATA_CONTRACT.md`](METADATA_CONTRACT.md); they do not constitute a
+release or public-upload approval.
 
 Local-first synchronization for independent SQLite databases through verified
 snapshots and application-selectable merge policies. It is extracted from the
@@ -66,6 +70,9 @@ application-selectable merge policies.
 - atomic publication using a temporary file and `os.replace`;
 - closed, rollback-journal snapshots with fail-closed cleanup of every temporary
   SQLite sidecar before publication;
+- manifest and snapshot paths are restricted to direct regular files in the
+  canonical transit directory; traversal, absolute paths, symlinks and reparse
+  points fail closed before hashing or merge;
 - SHA-256 manifest and `PRAGMA quick_check` verification;
 - per-node local pull state and idempotent replay;
 - row-level last-write-wins per primary key for timestamped tables;
@@ -300,6 +307,8 @@ across several permanently operated nodes.
 ## Safety and limits
 
 - Never open a live SQLite database from a network or cloud-sync folder.
+- Manifest reads accept one relative snapshot filename only; path containment
+  and link/reparse checks happen before SHA-256, SQLite verification or merge.
 - SHA-256 detects corruption but does not authenticate a hostile transport.
 - Default LWW assumes comparable timestamps and does not infer deletions.
 - Equal timestamps converge through a deterministic content tie-breaker; this is a
@@ -341,7 +350,13 @@ For AI agents, LLMs, and automated tools, a structured sitemap and API index is 
 
 ```bash
 python -m unittest discover -s tests -v
+python -m pytest -q -ra
+python -m pytest --collect-only -q
 ```
+
+The suite uses only synthetic databases and temporary transit directories. The
+CLI help and JSON init/status/push/list/verify/pull smoke are part of the same
+34-test collection; no live database or external transport is used.
 
 ## Provenance
 

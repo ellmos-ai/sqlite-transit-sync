@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+- 2026-08-10: Version-, Status- und Verifikationsvertrag in
+  `METADATA_CONTRACT.md` vereinheitlicht; Manifest-/Snapshot-Pfade werden vor
+  Hash, SQLite-Prüfung und Merge auf direkten regulären Transit-Dateien
+  begrenzt (inklusive Traversal-, Symlink- und Reparse-Regressionstests).
+  Release-Gate, CI-Matrix und synthetische JSON-CLI-Smokes sind reproduzierbar
+  beschrieben; der Gate-Status bleibt `LOCKED`, weil der vorgeschriebene
+  externe Helper aktuell nicht auf dem autorisierten Commit steht.
+- Maintainer-Verifikation am 2026-08-10: `unittest discover` und Pytest mit
+  jeweils 34/34 bestanden, `pytest --collect-only` sammelte 34 Tests,
+  `compileall` und Ruff bestanden; CLI-Help sowie synthetische
+  init/status/push/list/verify/pull-Smokes erfolgreich. Keine Live-Datenbank-,
+  Transport-, Release- oder Cloud-Aktion.
 - Maintainer-Verifikation am 2026-08-10: `unittest discover` und Pytest mit
   jeweils 26/26 bestanden, `compileall` und Ruff bestanden; CLI-Help
   (`--help`, `init --help`) sowie der Paket-Versions-Smoke
@@ -31,7 +43,7 @@
   Complements `snapshot_exclude_tables`, which can only drop a table you already know about —
   the scan catches credentials pasted into free-text columns (notes, logs, session summaries).
   Patterns are vendor-prefixed (OpenAI, Anthropic, OpenRouter, GitHub, GitLab, Google, Slack,
-  npm, AWS, PEM private-key blocks); checksums, UUIDs and git SHAs deliberately do **not** match.
+  npm, AWS and PEM key blocks); checksums, UUIDs and git SHAs deliberately do **not** match.
   New config keys: `scan_snapshot_for_secrets`, `secret_scan_extra_patterns`,
   `secret_scan_skip_tables`, `secret_patterns_file`. Rationale in `DECISIONS.md` (ADR-005).
 - **Triggers are data, not code.** Patterns now live in

@@ -8,11 +8,15 @@
 [![License](https://img.shields.io/github/license/dev-bricks/sqlite-transit-sync)](LICENSE)
 [![Python Version](https://img.shields.io/badge/python->=3.10-blue.svg)](https://www.python.org/)
 [![Architecture](https://img.shields.io/badge/architecture-local--first-success.svg)](#teil-der-ellmos-stack-familie)
-[![Tests](https://img.shields.io/badge/tests-26%2F26%20passed-brightgreen.svg)](#tests)
+[![Tests](https://img.shields.io/badge/tests-34%2F34%20passed-brightgreen.svg)](#tests)
 [![llms.txt](https://img.shields.io/badge/llms.txt-available-informational.svg)](llms.txt)
 
 > [!NOTE]
 > **Kontext für LLMs und KI-Agenten**: Ein strukturierter maschinenlesbarer Verzeichnisbaum, ein Architekturüberblick und ein API-Leitfaden stehen unter [`llms.txt`](llms.txt) bereit.
+
+Die Autorität für Version, Modulstatus, Sichtbarkeit und Prüfdatum steht in
+[`METADATA_CONTRACT.md`](METADATA_CONTRACT.md); daraus folgt keine Freigabe
+für Veröffentlichung oder Upload.
 
 Local-first-Synchronisierung für unabhängige SQLite-Datenbanken über geprüfte
 Snapshots und von der Anwendung wählbare Merge-Policies. Das Modul wurde aus der
@@ -67,6 +71,9 @@ geprüfte Snapshots mit von der Anwendung wählbaren Merge-Policies.
 - atomare Veröffentlichung über eine temporäre Datei und `os.replace`;
 - geschlossene Snapshots im Rollback-Journal-Modus mit Fail-closed-Bereinigung aller
   temporären SQLite-Sidecars vor der Veröffentlichung;
+- Manifest- und Snapshot-Pfade sind auf direkte reguläre Dateien im kanonischen
+  Transit-Verzeichnis begrenzt; Traversierung, absolute Pfade, Symlinks und
+  Reparse-Punkte werden vor Hash, Prüfung und Merge fail-closed abgewiesen;
 - SHA-256-Manifest und Prüfung mit `PRAGMA quick_check`;
 - lokaler Pull-Zustand je Knoten und idempotente Wiederholung;
 - zeilenweises Last-write-wins pro Primärschlüssel für Tabellen mit Zeitstempel;
@@ -310,6 +317,9 @@ Ausfall einzelner Server über mehrere dauerhaft betriebene Knoten überstehen m
 
 - Eine aktive SQLite-Datenbank niemals aus einem Netzwerk- oder
   Cloud-Synchronisierungsordner öffnen.
+- Manifeste dürfen nur einen einzelnen relativen Snapshot-Dateinamen nennen;
+  Containment- und Link-/Reparse-Prüfungen laufen vor SHA-256, SQLite-Prüfung
+  und Merge.
 - SHA-256 erkennt Beschädigung, authentifiziert aber keinen feindlichen Transport.
 - Das standardmäßige LWW setzt vergleichbare Zeitstempel voraus und leitet keine
   Löschungen ab.
@@ -361,7 +371,14 @@ ein strukturierter Verzeichnisbaum mit API-Index bereit.
 
 ```bash
 python -m unittest discover -s tests -v
+python -m pytest -q -ra
+python -m pytest --collect-only -q
 ```
+
+Die Suite verwendet ausschließlich synthetische Datenbanken und temporäre
+Transit-Verzeichnisse. Hilfe sowie der JSON-Smoke für init/status/push/list/
+verify/pull gehören zur selben Sammlung mit 34 Tests; keine echte Datenbank und
+kein externer Transport werden verwendet.
 
 ## Herkunft
 

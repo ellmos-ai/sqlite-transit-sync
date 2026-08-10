@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 import sqlite3
 import tempfile
 import unittest
@@ -13,6 +14,7 @@ from sqlite_transit_sync import (
     TransitSync,
     load_secret_patterns,
 )
+from sqlite_transit_sync import core
 
 
 SCHEMA = """
@@ -133,6 +135,68 @@ class TransitSyncTests(unittest.TestCase):
         with self.assertRaises(SyncError):
             self.b.pull()
         self.assertFalse((self.root / "b-state.json").exists())
+
+    def test_manifest_traversal_and_absolute_snapshot_paths_fail_closed(self) -> None:
+        snapshot = self.a.push()
+        original = snapshot.manifest_path.read_bytes()
+        manifest = json.loads(original.decode("utf-8"))
+        outside = self.root / "outside.sqlite-snapshot"
+        outside.write_bytes(snapshot.path.read_bytes())
+        try:
+            for value in ("../outside.sqlite-snapshot", str(outside)):
+                manifest["snapshot"] = value
+                snapshot.manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+                with self.assertRaisesRegex(SyncError, "relative filename|traversal"):
+                    self.b.pull()
+                self.assertFalse((self.root / "b-state.json").exists())
+        finally:
+            snapshot.manifest_path.write_bytes(original)
+
+    def test_manifest_symlink_is_rejected_before_hash_or_sqlite_read(self) -> None:
+        snapshot = self.a.push()
+        link = self.transit / f"{snapshot.manifest_path.stem}-link.json"
+        try:
+            try:
+                os.symlink(snapshot.manifest_path, link)
+                reparse_patch = mock.patch.object(core, "_is_reparse_or_symlink", wraps=core._is_reparse_or_symlink)
+            except OSError:
+                # Windows developer mode is not required for this suite. The
+                # same fail-closed branch is exercised with a reparse signal.
+                reparse_patch = mock.patch.object(
+                    core,
+                    "_is_reparse_or_symlink",
+                    side_effect=lambda path: Path(path) == link,
+                )
+            with reparse_patch, self.assertRaisesRegex(SyncError, "symlink or reparse"):
+                self.b._read_snapshot(link, verify=True)
+            self.assertFalse((self.root / "b-state.json").exists())
+        finally:
+            link.unlink(missing_ok=True)
+
+    def test_snapshot_symlink_is_rejected_before_pull_state_changes(self) -> None:
+        snapshot = self.a.push()
+        original = snapshot.manifest_path.read_bytes()
+        manifest = json.loads(original.decode("utf-8"))
+        link_name = f"{snapshot.path.stem}-link.sqlite-snapshot"
+        link = self.transit / link_name
+        manifest["snapshot"] = link_name
+        snapshot.manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+        try:
+            try:
+                os.symlink(snapshot.path, link)
+                reparse_patch = mock.patch.object(core, "_is_reparse_or_symlink", wraps=core._is_reparse_or_symlink)
+            except OSError:
+                reparse_patch = mock.patch.object(
+                    core,
+                    "_is_reparse_or_symlink",
+                    side_effect=lambda path: Path(path) == link,
+                )
+            with reparse_patch, self.assertRaisesRegex(SyncError, "symlink or reparse"):
+                self.b.pull()
+            self.assertFalse((self.root / "b-state.json").exists())
+        finally:
+            snapshot.manifest_path.write_bytes(original)
+            link.unlink(missing_ok=True)
 
     def test_config_roundtrip_and_relative_paths(self) -> None:
         config_path = self.root / "config" / "node.json"

@@ -14,6 +14,14 @@ switched to SQLite's `DELETE` journal mode and checked for adjacent sidecars.
 A live database, WAL, SHM, rollback-journal or other unmanifested SQLite file is
 never opened through or left in the transport.
 
+On read, the manifest itself must be a direct regular file in the canonical
+transit directory. Its `snapshot` value is restricted to one relative filename;
+absolute paths, `..` components, nested paths, symlinks and Windows reparse
+points are rejected before checksum verification, `quick_check` or merge. The
+opened snapshot is checked again against the same canonical directory. These
+checks protect the filesystem boundary; SHA-256 still verifies bytes and does
+not authenticate who supplied a manifest.
+
 ## Components
 
 - `SyncConfig`: resolves paths and defines node, namespace, timestamps and exclusions.

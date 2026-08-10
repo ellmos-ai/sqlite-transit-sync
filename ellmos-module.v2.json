@@ -2,10 +2,12 @@
   "schema": "ellmos.module.v2",
   "id": "sqlite-transit-sync",
   "display_name": "sqlite-transit-sync",
+  "version": "0.2.0",
   "category": "sync",
   "kind": "library",
   "status": "development",
   "visibility": "public-candidate",
+  "last_verified": "2026-08-10",
   "provides": [
     "sync.database",
     "sync.database.sqlite",

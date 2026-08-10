@@ -33,7 +33,7 @@ Anhalten ist die einzige Reaktion, die keine fremde Entscheidung vorwegnimmt. St
 Löschen würde zudem verschleiern, dass ein Geheimnis überhaupt in der Quelldatenbank liegt;
 das Problem gehört dort behoben, nicht im Snapshot kaschiert.
 
-**Die Muster sind bewusst herstellerpräfixiert** (`sk-`, `ghp_`, `AKIA`, `-----BEGIN … PRIVATE KEY-----`
+**Die Muster sind bewusst herstellerpräfixiert** (`sk-`, `ghp_`, `AKIA` und PEM-Key-Header
 und weitere). Eine generische Regel wie „langer Hex-String" würde Prüfsummen, UUIDs und
 Content-Hashes markieren, die in Datenbanken völlig legitim sind. Ein Scanner mit hoher
 Fehlalarmrate wird abgeschaltet — und ein abgeschalteter Scanner schützt nichts.

@@ -5,77 +5,55 @@
 ```
 +------------------------------------------+
 |                                          |
-|          STATUS: UNLOCKED                |
+|           STATUS: LOCKED                 |
 |                                          |
 +------------------------------------------+
 ```
 
-> **LOCKED** = Repository must remain private.
-> **UNLOCKED** = Repository may be set to public.
+`LOCKED` means that this repository must remain private. A passing local test
+or hygiene check does not publish, tag or change visibility. `UNLOCKED` may be
+written only after a current gate receipt and an explicit responsible-person
+sign-off.
 
----
+## Authority and gate contract
 
-## Gating Rule
-
-**This repository MUST NOT be changed to public visibility unless the status above reads UNLOCKED.**
-
-The status may only be changed to UNLOCKED when:
-1. All checklist items below are marked as PASS
-2. The `final_gate_check.py` script exits with code 0
-3. The responsible person has reviewed and signed off
-
----
+- Package identity is defined by `pyproject.toml` and the contract in
+  `METADATA_CONTRACT.md`.
+- The reproducible local runner is `python -m pytest -q -ra`; its count is the
+  number from `python -m pytest --collect-only -q` (without unittest subtests).
+- The same clone must pass `python -m unittest discover -s tests -v`,
+  `python -m compileall -q sqlite_transit_sync tests`, Ruff, the JSON CLI
+  smoke tests and the public metadata/security checks.
+- The historical hygiene helper is external to this repository. If it is used,
+  it must be exactly `final_gate_check.py` from
+  `modules-meta/rootdocs/_scripts` at commit
+  `d8475c29c4da7a0008853e2755e1b6a012c9b791` (SHA-256
+  `6AB2EB4012E4CE7F0E5EFE7516A5CC285844FE8F7FF0DBEB2C882138BA425965`).
+  An unavailable or different helper is a gate failure, not a fallback.
+- `.github/workflows/ci.yml` is the CI projection: supported Python 3.10–3.13,
+  Linux/Windows matrix, full tests, static checks and synthetic CLI readback.
 
 ## Checklist
 
-| # | Check | Result | Notes |
-|---|-------|--------|-------|
-| 1 | `.gitignore` with minimum entries | :green_circle: PASS | `*.pyc`, `.idea/`, `.vscode/`, `data/` added alongside existing entries |
-| 2 | `README.md` in English | :green_circle: PASS | English README present; `README_de.md` companion |
-| 3 | `LICENSE` (MIT) present | :green_circle: PASS | MIT, copyright Lukas Geiger and contributors |
-| 4 | No `.db` files tracked | :green_circle: PASS | |
-| 5 | No `.env` files tracked | :green_circle: PASS | |
-| 6 | No secrets in tracked files | :green_circle: PASS | `tests/test_sync.py` local variable renamed `secret` → `sensitive_value` (synthetic test fixture, false positive on the word "secret") |
-| 7 | No hardcoded personal paths | :green_circle: PASS | |
-| 8 | No PII patterns | :green_circle: PASS | |
-| 9 | No BACH-internal documents | :green_circle: PASS | Module is a neutral extraction; no BACH-specific files tracked |
-| 10 | `TODO.md` with STATUS table | :green_circle: PASS | STATUS table appended |
+| # | Check | Current state | Evidence |
+|---|---|---|---|
+| 1 | Metadata/version/status contract | PASS after current readback | `METADATA_CONTRACT.md`, `tests/test_metadata.py` |
+| 2 | Manifest/snapshot transit containment | PASS after current readback | `tests/test_sync.py`, `SECURITY.md`, `ARCHITECTURE.md` |
+| 3 | Public static/privacy hygiene | PENDING current receipt | pinned external helper and tracked-file scan |
+| 4 | Full test and CLI gate | PENDING current receipt | current commit-bound report below |
+| 5 | Responsible sign-off | NOT GRANTED | required before `UNLOCKED` |
 
----
+## Current gate receipt
 
-## Gate Check Execution
+This section is updated only after the commands have run against the final
+commit. It must contain the commit, date, exact commands, exit codes, collected
+test count and complete output or a linked immutable receipt. An older 8/8,
+19/19 or 26/26 result is historical evidence and cannot unlock this gate.
 
-```
-Date:       2026-07-23
-Script:     .AI/.MODULES/_scripts/final_gate_check.py
-Command:    PYTHONIOENCODING=utf-8 python final_gate_check.py --repo-path C:\_Local_DEV\repos\sqlite-transit-sync
-Exit Code:  0
-Output:     Results: 10 PASS, 0 FAIL, 0 WARN — *** READY FOR PUBLIC RELEASE ***
-```
-
-Additional checks performed beyond the automated gate:
-
-- Manual `grep` scan for `C:\Users`, `OneDrive`, hostnames (ASUS/WORKSTATION/LAPTOP), and
-  common secret markers (`token=`, `apikey`, `password`) — no findings beyond the module's
-  own generic descriptions of "no OneDrive/host-name dependency" and the `_utc_token()`
-  helper name.
-- Test suite: `python -m unittest discover -s tests -v` — 8/8 tests passed before and after
-  the gate fixes.
-- Source code (`sqlite_transit_sync/core.py`, `cli.py`) reviewed manually: no hardcoded
-  paths, hostnames, or credentials; `socket.gethostname()` is used only as a runtime default
-  for `node_id`, not embedded as a literal.
-
----
-
-## Sign-Off
+## Sign-off
 
 | Field | Value |
-|-------|-------|
-| **Responsible** | Lukas Geiger (@lukisch) |
-| **Review Date** | 2026-07-23 |
-| **Decision** | UNLOCKED |
-| **Remarks** | Neutral extraction from BACH ProSync, no user-specific dependencies. Published to `dev-bricks/sqlite-transit-sync` per explicit user decision (same organization as its companion module `sync-master`). |
-
----
-
-*Template version: 1.0 | Source: MODULES/_templates/RELEASE_GATE_TEMPLATE.md*
+|---|---|
+| Responsible person | Not granted in this maintenance bundle |
+| Decision | LOCKED |
+| Public upload/tag | Not performed |
