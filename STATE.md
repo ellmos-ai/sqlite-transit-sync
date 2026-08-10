@@ -46,9 +46,11 @@
   `0dc9935f5e2298e3b1867ef163a6dd4f478dd12c` gebunden; der frühere
   34-Test-Receipt auf `c946ea787b36c8c8caad5315c8ef88cd37f357cb` ist nur noch
   historische Evidenz.
-  Der direkte Push-Versuch wurde nach Readback von `origin/main` mit
-  `non-fast-forward` (Exit 1) abgewiesen; wegen der divergierenden fremden
-  Historie wurden weder Pull, Merge, Rebase noch Force-Push ausgeführt. Keine
+  Nach frischem Fetch stand der lokale Branch `ahead 9, behind 14` gegenüber
+  `origin/main` `7648a20b11ca958e9622d2b5d8a13fd02613e92a`; der direkte Push-
+  Versuch wurde mit `non-fast-forward` (Exit 1) abgewiesen. Wegen der
+  divergierenden fremden Historie wurden weder Pull, Merge, Rebase noch
+  Force-Push ausgeführt. Keine
   Live-Datenbank, kein Transport, kein Release und kein Cloud-Upload.
 - 2026-08-08: `python -m unittest discover -s tests -v` — 26/26 bestanden;
   der Arbeitsbaum blieb sauber. Pytest, `compileall` und der CLI-Smoke wurden

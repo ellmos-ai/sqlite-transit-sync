@@ -91,11 +91,11 @@ is historical only.
 
 ### Remote push gate
 
-After a fresh `git fetch --prune origin main`, the local branch was `ahead 5,
+After a fresh `git fetch --prune origin main`, the local branch was `ahead 9,
 behind 14` and `origin/main` read back as `7648a20b11ca958e9622d2b5d8a13fd02613e92a`.
-The one allowed non-forcing push attempt, `git push origin main`, returned exit
-1 (`non-fast-forward`). No pull, merge, rebase or force push was performed, so
-the foreign remote history remains untouched.
+The one allowed non-forcing push attempt for this bundle, `git push origin
+main`, returned exit 1 (`non-fast-forward`). No pull, merge, rebase or force
+push was performed, so the foreign remote history remains untouched.
 
 ## Sign-off
 
