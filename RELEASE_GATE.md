@@ -66,7 +66,7 @@ authentication, state/transit separation and opt-in tombstone bundle:
 | `python -m sqlite_transit_sync --help` | 0 | usage for `init,status,push,pull,sync,verify,list` |
 | `python -m sqlite_transit_sync init --help` | 0 | usage with required `--config`, `--database`, `--transit` and optional `--state` |
 | `git diff --check` | 0 | no whitespace errors |
-| tracked-file secret/path scan | 0 | `TRACKED_ARTIFACTS=0`; `PERSONAL_PATH_FINDINGS=0`; no private-key pattern findings |
+| tracked-file secret/path scan | 0 | `TRACKED_ARTIFACTS=0`; `PERSONAL_PATH_FINDINGS=0`; no credential-pattern findings |
 
 The synthetic CLI roundtrip is included in the 45-test collection and covers
 `init/status/push/list/verify/pull --dry-run`; no live database or transport was
