@@ -12,13 +12,16 @@
 - Schema-Drift über gemeinsame Spalten
 - Merge-Ausschlüsse und Snapshot-Redaktion
 - Credential-Scan des Snapshot-Inhalts vor Veröffentlichung (fail-closed, ADR-005)
+- optionaler HMAC-Snapshot-Authenticator mit kanonischem Manifest und Key-Rotation
+- explizite State-/Transit-Trennung beim Config-/CLI-Aufbau
+- TombstoneMergePolicy als opt-in Referenz für fachliche Löschungen
 - eigenständige synthetische Tests
 
 ## Noch nicht integriert
 
 - BACH nutzt weiterhin seine bewährte interne ProSync-Implementierung.
-- Es gibt noch keinen Signatur-/Authentifizierungsadapter.
-- Retention und Tombstones bleiben anwendungsspezifisch.
+- Retention, Schlüsselablage, Frische und fachliche Tombstone-Aufbewahrung bleiben
+  anwendungsspezifisch.
 
 ## Letzte Dokumentationsänderung
 
@@ -31,15 +34,17 @@
 ## Letzte Verifikation
 
 - 2026-08-10: `python -m unittest discover -s tests -v` und
-  `python -m pytest -q -ra` — jeweils 34/34 bestanden; `python -m pytest
-  --collect-only -q` sammelte 34 Tests. `compileall` und Ruff bestanden;
-  CLI-Help und synthetische JSON-Smokes für init/status/push/list/verify/pull
-  bestanden ebenfalls. Der vorgeschriebene externe Hygiene-Helper wurde nicht
+  `python -m pytest -q -ra` — jeweils 45/45 bestanden; `python -m pytest
+  --collect-only -q` sammelte 45 Tests (Auth 4, CLI 3, Metadaten 6, Sync 29,
+  Tombstone 3). `compileall` und Ruff bestanden; CLI-Help, synthetische
+  JSON-Smokes, State-/Transit-Fehlerfälle und die Multi-Node-Tombstone-/Auth-
+  Fälle bestanden ebenfalls. Der vorgeschriebene externe Hygiene-Helper wurde nicht
   als bestanden gewertet: sein SHA-256 stimmt, aber der aktuelle
   `modules-meta`-Commit ist `89834a01d6d340d74aac96490f92dfd8706b10b9` statt
   des autorisierten Commits `d8475c29c4da7a0008853e2755e1b6a012c9b791`.
-  Der getestete Code-Commit ist
-  `c946ea787b36c8c8caad5315c8ef88cd37f357cb`.
+  Der frühere 34-Test-Receipt bezog sich auf den Code-Commit
+  `c946ea787b36c8c8caad5315c8ef88cd37f357cb`; ein neuer Commit-gebundener
+  Receipt folgt nach dem Adapter-Bündel.
   Der direkte Push-Versuch wurde nach Readback von `origin/main` mit
   `non-fast-forward` (Exit 1) abgewiesen; wegen der divergierenden fremden
   Historie wurden weder Pull, Merge, Rebase noch Force-Push ausgeführt. Keine

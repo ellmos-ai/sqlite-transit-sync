@@ -6,6 +6,11 @@ Use the module only with local live databases and a transport whose participants
 trusted. Keep node state outside the shared transport. Restrict filesystem access to
 database, state and transit paths.
 
+`SyncConfig` rejects a state path equal to or below the canonical transit directory
+before `TransitSync` creates either directory. The same rule applies to absolute and
+config-file-relative paths and to CLI `init`; there is no silent migration of an
+existing state file.
+
 ### Transit path and manifest boundary
 
 Readers accept only a direct regular manifest in the canonical transit
@@ -15,6 +20,30 @@ reparse points fail closed before hashing, SQLite `quick_check` or merge. A
 successful SHA-256 check therefore means that the bytes match the manifest,
 not that the sender or transport is authenticated. Add signatures or an
 authenticated transport when the transit is not fully trusted.
+
+### Optional authentication adapter
+
+`TransitSync(..., authenticator=...)` is an opt-in API boundary. The bundled
+`HMACSnapshotAuthenticator` signs a canonical JSON payload containing protocol,
+namespace, sender/node, snapshot filename, SHA-256, size, redaction list and
+the algorithm/key/sender/trust-source header. It uses an application-owned in-memory key
+ring; no secret is written to a manifest, transit file, log or JSON config.
+Keep old key IDs available to verifiers during rotation and change only the
+active signing key. A configured verifier rejects missing, malformed, unknown,
+foreign or mismatched envelopes before checksum/SQLite verification or merge.
+Without an adapter, the module remains compatible but makes no authenticity
+claim. Duplicate delivery after `last_pulled` is an idempotent state behavior,
+not a freshness or anti-replay service.
+
+### Tombstone reference policy
+
+`TombstoneMergePolicy` is deliberately opt-in and requires the integrating
+application to create `__sqlite_transit_tombstones` with
+`ensure_tombstone_table()`. Each row identifies a target table, a canonical JSON
+array of primary-key values and a `deleted_at` version. Tombstones win ties and
+older rows; a later row version may resurrect a key. Missing rows never imply a
+delete, unknown target tables are not guessed, and tombstones are never pruned
+automatically. Retention, clocks and schema migration remain application duties.
 
 ## Required application review
 

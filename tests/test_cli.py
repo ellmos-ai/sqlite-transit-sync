@@ -85,6 +85,39 @@ class CliSmokeTests(unittest.TestCase):
             dry_run = self.run_cli("pull", "--config", str(config), "--dry-run")
             self.assertEqual([], dry_run["result"])
 
+    def test_init_rejects_state_inside_transit_without_writing(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            config = root / "node.json"
+            database = root / "node.db"
+            transit = root / "transit"
+            state = transit / "state.json"
+            completed = subprocess.run(
+                [
+                    sys.executable,
+                    "-m",
+                    "sqlite_transit_sync",
+                    "init",
+                    "--config",
+                    str(config),
+                    "--database",
+                    str(database),
+                    "--transit",
+                    str(transit),
+                    "--state",
+                    str(state),
+                ],
+                cwd=ROOT,
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                check=False,
+            )
+            self.assertEqual(1, completed.returncode)
+            self.assertIn("state must be outside", completed.stdout)
+            self.assertFalse(config.exists())
+            self.assertFalse(transit.exists())
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -239,6 +239,42 @@ class TransitSyncTests(unittest.TestCase):
         self.assertEqual("neutral-node", config.node_id)
         self.assertEqual("sample-app", config.namespace)
 
+    def test_state_equal_or_nested_in_transit_is_rejected_before_use(self) -> None:
+        transit = self.root / "new-transit"
+        for state in (transit, transit / "nested" / "state.json"):
+            with self.assertRaisesRegex(ValueError, "state must be outside"):
+                SyncConfig(self.root / "new.db", transit, state, "node", "demo")
+        self.assertFalse(transit.exists())
+
+    def test_config_file_and_bytes_reject_state_inside_relative_transit(self) -> None:
+        config_path = self.root / "config" / "node.json"
+        config_path.parent.mkdir()
+        payload = json.dumps(
+            {
+                "database": "../a.db",
+                "transit": "../bad-transit",
+                "state": "../bad-transit/state.json",
+                "node_id": "node",
+                "namespace": "demo",
+            }
+        ).encode("utf-8")
+        config_path.write_bytes(payload)
+        with self.assertRaisesRegex(ValueError, "state must be outside"):
+            SyncConfig.from_file(config_path)
+        with self.assertRaisesRegex(ValueError, "state must be outside"):
+            SyncConfig.from_bytes(payload, source_path=config_path)
+        self.assertFalse((self.root / "bad-transit").exists())
+
+    def test_state_in_neighbor_directory_remains_valid(self) -> None:
+        config = SyncConfig(
+            self.root / "new.db",
+            self.root / "neighbor" / "transit",
+            self.root / "neighbor" / "state.json",
+            "node",
+            "demo",
+        )
+        self.assertEqual((self.root / "neighbor" / "state.json").resolve(), config.state)
+
     def test_wal_source_push_publishes_one_closed_snapshot_without_sidecars(self) -> None:
         connection = sqlite3.connect(self.a_db)
         try:

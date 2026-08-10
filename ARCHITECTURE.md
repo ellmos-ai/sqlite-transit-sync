@@ -22,13 +22,21 @@ opened snapshot is checked again against the same canonical directory. These
 checks protect the filesystem boundary; SHA-256 still verifies bytes and does
 not authenticate who supplied a manifest.
 
+An application may inject `SnapshotAuthenticator` into `TransitSync`. The
+reference `HMACSnapshotAuthenticator` signs a canonical manifest envelope
+including the protocol version, sender/node, snapshot name, SHA-256, size,
+redaction metadata and trust-source identifier. This is opt-in shared-key authentication; key storage,
+rotation and freshness remain outside the module.
+
 ## Components
 
 - `SyncConfig`: resolves paths and defines node, namespace, timestamps and exclusions.
 - `TransitSync`: publishes, discovers, verifies, pulls and records local state.
 - `Snapshot`: immutable reference to a database snapshot and its manifest.
+- `SnapshotAuthenticator`: optional canonical-manifest authentication boundary.
 - `MergePolicy`: application extension point.
 - `TimestampMergePolicy`: safe generic baseline for timestamped rows with primary keys.
+- `TombstoneMergePolicy`: opt-in explicit deletion reference policy.
 - `cli.py`: JSON interface for humans, agents and automations.
 
 ## Default merge semantics
@@ -43,6 +51,13 @@ so two nodes converge instead of retaining different values.
 
 This deliberately avoids guessing deletion, schema migration or conflict intent.
 Applications can provide a custom `MergePolicy` for those decisions.
+
+The opt-in `TombstoneMergePolicy` is a reference deletion contract rather than
+a change to the default LWW policy. Applications explicitly create
+`__sqlite_transit_tombstones` with `ensure_tombstone_table()`. Its canonical
+primary-key JSON and `deleted_at` version make deletion ordering deterministic:
+equal/older rows stay deleted, while a later row version may resurrect the key.
+The policy does not infer missing-row deletion or prune retained tombstones.
 
 ## Trust boundary
 

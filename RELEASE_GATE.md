@@ -52,6 +52,11 @@ test count and complete output or a linked immutable receipt. An older 8/8,
 
 ### Receipt 2026-08-10 (tested code commit `c946ea787b36c8c8caad5315c8ef88cd37f357cb`)
 
+This 34-test receipt is historical and is superseded by the 45-test
+authentication/state/tombstone bundle. A new commit-bound receipt is written
+after that implementation is committed; the gate remains locked in the
+meantime.
+
 The local readback was run from that clean code commit (the untracked
 TASKSOLVER lock is not part of the commit):
 

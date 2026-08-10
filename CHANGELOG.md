@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+- 2026-08-10: Optionalen `HMACSnapshotAuthenticator` mit kanonischer
+  Manifest-Nutzlast, Sender-/Key-ID-Prüfung, Rotation und fail-closed
+  Authentifizierungsfehlern ergänzt. `SyncConfig` weist State-Pfade im oder
+  gleich dem Transit vor jedem Write zurück. `TombstoneMergePolicy` und die
+  explizite `__sqlite_transit_tombstones`-Referenz mit Versions-/Retention-
+  Vertrag bleiben von der Standard-LWW-Policy getrennt.
+- Neue synthetische Adapter-, State-/CLI- und Multi-Node-Tombstone-Tests erhöhen
+  die autoritative Sammlung auf 45; keine echten Schlüssel, Datenbanken,
+  Transporte oder Veröffentlichungsaktionen verwendet.
 - 2026-08-10: Version-, Status- und Verifikationsvertrag in
   `METADATA_CONTRACT.md` vereinheitlicht; Manifest-/Snapshot-Pfade werden vor
   Hash, SQLite-Prüfung und Merge auf direkten regulären Transit-Dateien
@@ -9,11 +18,8 @@
   Release-Gate, CI-Matrix und synthetische JSON-CLI-Smokes sind reproduzierbar
   beschrieben; der Gate-Status bleibt `LOCKED`, weil der vorgeschriebene
   externe Helper aktuell nicht auf dem autorisierten Commit steht.
-- Maintainer-Verifikation am 2026-08-10: `unittest discover` und Pytest mit
-  jeweils 34/34 bestanden, `pytest --collect-only` sammelte 34 Tests,
-  `compileall` und Ruff bestanden; CLI-Help sowie synthetische
-  init/status/push/list/verify/pull-Smokes erfolgreich. Keine Live-Datenbank-,
-  Transport-, Release- oder Cloud-Aktion.
+- Vor dem Adapter-Bündel lag die Maintainer-Verifikation am 2026-08-10 bei
+  34/34 Tests; sie ist durch den aktuellen 45-Test-Readback oben ersetzt.
 - Maintainer-Verifikation am 2026-08-10: `unittest discover` und Pytest mit
   jeweils 26/26 bestanden, `compileall` und Ruff bestanden; CLI-Help
   (`--help`, `init --help`) sowie der Paket-Versions-Smoke

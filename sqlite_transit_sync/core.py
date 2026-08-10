@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import hmac
 import json
 import os
 import re
@@ -13,11 +14,14 @@ import tempfile
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Protocol, Sequence
+from typing import Any, Iterable, Mapping, Protocol, Sequence
 
 
 PROTOCOL_VERSION = 1
 SNAPSHOT_SUFFIX = ".sqlite-snapshot"
+TOMBSTONE_TABLE = "__sqlite_transit_tombstones"
+AUTH_PROTOCOL_VERSION = 1
+HMAC_ALGORITHM = "HMAC-SHA256"
 _SAFE_ID = re.compile(r"[^A-Za-z0-9._-]+")
 _DEFAULT_TIMESTAMP_COLUMNS = ("updated_at", "modified_at", "created_at")
 _DEFAULT_EXCLUDE_TABLES = ("secrets", "sqlite_sequence")
@@ -197,6 +201,177 @@ def _remove_manifest_artifacts(path: Path) -> None:
         raise SyncError(f"Could not clean snapshot manifest artifacts: {details}")
 
 
+class SnapshotAuthenticator(Protocol):
+    """Optional authentication adapter for canonical snapshot manifests."""
+
+    def sign(self, manifest: Mapping[str, Any]) -> Mapping[str, Any]:
+        """Return an authentication envelope for a manifest without ``auth``."""
+        ...
+
+    def verify(self, manifest: Mapping[str, Any], envelope: Mapping[str, Any]) -> None:
+        """Raise ``SyncError`` when the manifest is not authenticated."""
+        ...
+
+
+@dataclass(frozen=True, slots=True)
+class HMACKey:
+    """One shared key in an application-owned key ring.
+
+    The secret is deliberately an in-memory API value. It is never serialized
+    into a manifest, transit file, log or example configuration.
+    """
+
+    sender: str
+    secret: bytes
+
+    def __post_init__(self) -> None:
+        if (
+            not isinstance(self.sender, str)
+            or not self.sender
+            or not isinstance(self.secret, bytes)
+            or not self.secret
+        ):
+            raise ValueError("HMAC keys require a sender and non-empty bytes")
+
+
+def _canonical_auth_payload(
+    manifest: Mapping[str, Any], envelope: Mapping[str, Any]
+) -> bytes:
+    """Serialize exactly the signed manifest and authentication header."""
+    signed_manifest = {key: value for key, value in manifest.items() if key != "auth"}
+    signed_header = {
+        key: envelope[key]
+        for key in ("version", "algorithm", "key_id", "sender", "trust_source")
+        if key in envelope
+    }
+    try:
+        encoded = json.dumps(
+            {"auth": signed_header, "manifest": signed_manifest},
+            ensure_ascii=False,
+            sort_keys=True,
+            separators=(",", ":"),
+            allow_nan=False,
+        )
+    except (TypeError, ValueError) as error:
+        raise SyncError("Snapshot authentication payload is not canonical JSON") from error
+    return encoded.encode("utf-8")
+
+
+class HMACSnapshotAuthenticator:
+    """Reference authenticator using an application-owned HMAC-SHA256 key ring.
+
+    This is shared-key authentication, not non-repudiating public-key
+    signatures. The manifest protocol, sender, key identifier and snapshot
+    SHA-256 are all covered by the canonical payload. Keep old keys in the
+    verifier key ring during rotation and change only ``active_key_id`` for
+    newly published snapshots.
+    """
+
+    algorithm = HMAC_ALGORITHM
+
+    def __init__(
+        self,
+        *,
+        keys: Mapping[str, HMACKey],
+        active_key_id: str,
+        trusted_senders: Iterable[str] | None = None,
+        trust_source: str = "application-key-ring",
+    ) -> None:
+        self._keys = dict(keys)
+        if not self._keys or active_key_id not in self._keys:
+            raise ValueError("HMAC authenticator requires an active key in the key ring")
+        if any(not key_id or not isinstance(key_id, str) for key_id in self._keys):
+            raise ValueError("HMAC key identifiers must be non-empty strings")
+        if any(not isinstance(key, HMACKey) for key in self._keys.values()):
+            raise ValueError("HMAC key ring values must be HMACKey instances")
+        if not isinstance(trust_source, str) or not trust_source:
+            raise ValueError("HMAC authenticator requires a trust source identifier")
+        self.active_key_id = active_key_id
+        self.trust_source = trust_source
+        self.trusted_senders = (
+            frozenset(trusted_senders)
+            if trusted_senders is not None
+            else frozenset(key.sender for key in self._keys.values())
+        )
+        if not self.trusted_senders:
+            raise ValueError("HMAC authenticator requires at least one trusted sender")
+
+    def sign(self, manifest: Mapping[str, Any]) -> Mapping[str, Any]:
+        key = self._keys[self.active_key_id]
+        if manifest.get("node_id") != key.sender:
+            raise SyncError("Snapshot authentication sender does not match manifest")
+        envelope: dict[str, Any] = {
+            "version": AUTH_PROTOCOL_VERSION,
+            "algorithm": self.algorithm,
+            "key_id": self.active_key_id,
+            "sender": key.sender,
+            "trust_source": self.trust_source,
+        }
+        signature = hmac.new(
+            key.secret,
+            _canonical_auth_payload(manifest, envelope),
+            hashlib.sha256,
+        ).hexdigest()
+        envelope["signature"] = signature
+        return envelope
+
+    def verify(self, manifest: Mapping[str, Any], envelope: Mapping[str, Any]) -> None:
+        if not isinstance(envelope, Mapping):
+            raise SyncError("Snapshot authentication envelope is invalid")
+        required = {
+            "version",
+            "algorithm",
+            "key_id",
+            "sender",
+            "trust_source",
+            "signature",
+        }
+        if not required.issubset(envelope):
+            raise SyncError("Snapshot authentication envelope is incomplete")
+        if envelope["version"] != AUTH_PROTOCOL_VERSION:
+            raise SyncError("Unsupported snapshot authentication version")
+        if envelope["algorithm"] != self.algorithm:
+            raise SyncError("Unsupported snapshot authentication algorithm")
+        if envelope["trust_source"] != self.trust_source:
+            raise SyncError("Snapshot authentication trust source is not trusted")
+        key_id = envelope["key_id"]
+        sender = envelope["sender"]
+        signature = envelope["signature"]
+        if not isinstance(key_id, str) or not isinstance(sender, str) or not isinstance(signature, str):
+            raise SyncError("Snapshot authentication envelope has invalid fields")
+        key = self._keys.get(key_id)
+        if key is None:
+            raise SyncError(f"Unknown snapshot authentication key: {key_id}")
+        if sender not in self.trusted_senders or key.sender != sender:
+            raise SyncError("Snapshot authentication sender is not trusted")
+        if manifest.get("node_id") != sender:
+            raise SyncError("Snapshot authentication sender does not match manifest")
+        try:
+            supplied = bytes.fromhex(signature)
+        except ValueError as error:
+            raise SyncError("Snapshot authentication signature is not hexadecimal") from error
+        expected = hmac.new(
+            key.secret,
+            _canonical_auth_payload(manifest, envelope),
+            hashlib.sha256,
+        ).digest()
+        if not hmac.compare_digest(supplied, expected):
+            raise SyncError("Snapshot authentication signature mismatch")
+
+
+def ensure_tombstone_table(connection: sqlite3.Connection) -> None:
+    """Create the reference tombstone table explicitly in an application DB."""
+    connection.execute(
+        f"""CREATE TABLE IF NOT EXISTS {_quote_identifier(TOMBSTONE_TABLE)} (
+            table_name TEXT NOT NULL,
+            primary_key TEXT NOT NULL,
+            deleted_at TEXT NOT NULL,
+            PRIMARY KEY (table_name, primary_key)
+        )"""
+    )
+    connection.commit()
+
+
 @dataclass(slots=True)
 class SyncConfig:
     """Portable configuration for one node participating in a transit."""
@@ -229,6 +404,8 @@ class SyncConfig:
             self.secret_patterns_file = Path(self.secret_patterns_file).expanduser().resolve()
         if self.database == self.transit or self.transit in self.database.parents:
             raise ValueError("The live database must not be inside the transit directory")
+        if self.state == self.transit or self.transit in self.state.parents:
+            raise ValueError("The sync state must be outside the transit directory")
 
     @classmethod
     def from_file(cls, path: str | Path) -> "SyncConfig":
@@ -314,6 +491,7 @@ class MergeReport:
     inserted: int = 0
     updated: int = 0
     unchanged: int = 0
+    deleted: int = 0
     skipped_tables: list[str] = field(default_factory=list)
     tables: dict[str, dict[str, int]] = field(default_factory=dict)
 
@@ -460,15 +638,270 @@ class TimestampMergePolicy:
         return report
 
 
+class TombstoneMergePolicy:
+    """Reference merge policy for an explicit tombstone table.
+
+    Applications create :data:`TOMBSTONE_TABLE` with
+    :func:`ensure_tombstone_table` and retain one row per deleted primary key.
+    ``deleted_at`` is the tombstone version. A tombstone wins ties and older
+    rows; a later row timestamp may deliberately resurrect the key. The policy
+    never prunes tombstones, so retention must cover the application's maximum
+    offline interval.
+    """
+
+    def __init__(
+        self,
+        timestamp_columns: Sequence[str] = _DEFAULT_TIMESTAMP_COLUMNS,
+        exclude_tables: Sequence[str] = _DEFAULT_EXCLUDE_TABLES,
+        tombstone_table: str = TOMBSTONE_TABLE,
+    ) -> None:
+        self.timestamp_columns = tuple(timestamp_columns)
+        self.exclude_tables = set(exclude_tables)
+        self.tombstone_table = tombstone_table
+
+    @staticmethod
+    def _tables(conn: sqlite3.Connection) -> set[str]:
+        rows = conn.execute(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'"
+        ).fetchall()
+        return {row[0] for row in rows}
+
+    @staticmethod
+    def _table_info(conn: sqlite3.Connection, table: str) -> list[sqlite3.Row]:
+        return conn.execute(f"PRAGMA table_info({_quote_identifier(table)})").fetchall()
+
+    @staticmethod
+    def _canonical_key(values: Sequence[Any]) -> str:
+        try:
+            return json.dumps(
+                list(values),
+                ensure_ascii=False,
+                sort_keys=True,
+                default=str,
+                separators=(",", ":"),
+                allow_nan=False,
+            )
+        except (TypeError, ValueError) as error:
+            raise SyncError("Tombstone primary key is not canonical JSON") from error
+
+    @staticmethod
+    def _at_least(candidate: Any, current: Any) -> bool:
+        if current is None:
+            return True
+        if candidate is None:
+            return False
+        try:
+            return candidate >= current
+        except TypeError:
+            return str(candidate) >= str(current)
+
+    def _load_tombstones(self, connection: sqlite3.Connection) -> dict[tuple[str, str], str]:
+        if self.tombstone_table not in self._tables(connection):
+            return {}
+        table_sql = _quote_identifier(self.tombstone_table)
+        try:
+            rows = connection.execute(
+                f"SELECT table_name, primary_key, deleted_at FROM {table_sql}"
+            ).fetchall()
+        except sqlite3.Error as error:
+            raise SyncError("Tombstone table has an incompatible schema") from error
+        result: dict[tuple[str, str], str] = {}
+        for table_name, primary_key, deleted_at in rows:
+            if (
+                not isinstance(table_name, str)
+                or not table_name
+                or table_name.startswith("sqlite_")
+                or not isinstance(primary_key, str)
+                or not isinstance(deleted_at, str)
+                or not deleted_at
+            ):
+                raise SyncError("Tombstone row has invalid table, key or version")
+            try:
+                decoded = json.loads(primary_key)
+            except json.JSONDecodeError as error:
+                raise SyncError("Tombstone primary key is not valid JSON") from error
+            if not isinstance(decoded, list) or self._canonical_key(decoded) != primary_key:
+                raise SyncError("Tombstone primary key is not canonical JSON")
+            key = (table_name, primary_key)
+            current = result.get(key)
+            if current is None or self._at_least(deleted_at, current):
+                result[key] = deleted_at
+        return result
+
+    @staticmethod
+    def _decode_key(primary_key: str, primary_keys: Sequence[str]) -> tuple[Any, ...]:
+        try:
+            values = json.loads(primary_key)
+        except json.JSONDecodeError as error:
+            raise SyncError("Tombstone primary key is not valid JSON") from error
+        if not isinstance(values, list) or len(values) != len(primary_keys):
+            raise SyncError("Tombstone primary key does not match the target schema")
+        return tuple(values)
+
+    def _semantics(
+        self,
+        local: sqlite3.Connection,
+        remote: sqlite3.Connection,
+        table: str,
+    ) -> tuple[list[str], str | None, list[str]]:
+        local_info = self._table_info(local, table)
+        remote_info = self._table_info(remote, table)
+        local_columns = [row[1] for row in local_info]
+        remote_columns = {row[1] for row in remote_info}
+        shared = [column for column in local_columns if column in remote_columns]
+        primary_keys = [
+            row[1] for row in sorted(local_info, key=lambda row: row[5]) if row[5] > 0
+        ]
+        timestamp = next((name for name in self.timestamp_columns if name in shared), None)
+        return primary_keys, timestamp, shared
+
+    def merge(
+        self,
+        local: sqlite3.Connection,
+        remote: sqlite3.Connection,
+        snapshot: Snapshot,
+    ) -> MergeReport:
+        local.row_factory = sqlite3.Row
+        remote.row_factory = sqlite3.Row
+        report = MergeReport(snapshot=snapshot.path.name, source_node=snapshot.node_id)
+        local_tables = self._tables(local)
+        remote_tables = self._tables(remote)
+        if self.tombstone_table in remote_tables and self.tombstone_table not in local_tables:
+            raise SyncError(
+                f"Tombstone policy requires {self.tombstone_table!r} in the local schema"
+            )
+
+        local_tombstones = self._load_tombstones(local)
+        remote_tombstones = self._load_tombstones(remote)
+        merged_tombstones = dict(local_tombstones)
+        if self.tombstone_table in local_tables or self.tombstone_table in remote_tables:
+            report.skipped_tables.append(self.tombstone_table)
+        if self.tombstone_table in remote_tables:
+            table_sql = _quote_identifier(self.tombstone_table)
+            for (table_name, primary_key), deleted_at in remote_tombstones.items():
+                current = merged_tombstones.get((table_name, primary_key))
+                if current is None:
+                    local.execute(
+                        f"INSERT INTO {table_sql} (table_name, primary_key, deleted_at) VALUES (?, ?, ?)",
+                        (table_name, primary_key, deleted_at),
+                    )
+                    merged_tombstones[(table_name, primary_key)] = deleted_at
+                elif self._at_least(deleted_at, current) and deleted_at != current:
+                    local.execute(
+                        f"UPDATE {table_sql} SET deleted_at = ? WHERE table_name = ? AND primary_key = ?",
+                        (deleted_at, table_name, primary_key),
+                    )
+                    merged_tombstones[(table_name, primary_key)] = deleted_at
+
+        for (table_name, primary_key), deleted_at in merged_tombstones.items():
+            if table_name not in local_tables or table_name in self.exclude_tables:
+                continue
+            if table_name == self.tombstone_table:
+                continue
+            if table_name in remote_tables:
+                primary_keys, timestamp, _shared = self._semantics(
+                    local, remote, table_name
+                )
+            else:
+                primary_keys, timestamp, _shared = [], None, []
+            if not primary_keys or not timestamp:
+                continue
+            key_values = self._decode_key(primary_key, primary_keys)
+            where = " AND ".join(f"{_quote_identifier(key)} = ?" for key in primary_keys)
+            table_sql = _quote_identifier(table_name)
+            local_row = local.execute(
+                f"SELECT {_quote_identifier(timestamp)} FROM {table_sql} WHERE {where}",
+                key_values,
+            ).fetchone()
+            if local_row is not None and self._at_least(deleted_at, local_row[timestamp]):
+                local.execute(f"DELETE FROM {table_sql} WHERE {where}", key_values)
+                report.deleted += 1
+
+        common_tables = sorted((local_tables & remote_tables) - {self.tombstone_table})
+        for table in common_tables:
+            if table in self.exclude_tables:
+                report.skipped_tables.append(table)
+                continue
+            primary_keys, timestamp, shared = self._semantics(local, remote, table)
+            if not primary_keys or not timestamp or not all(key in shared for key in primary_keys):
+                report.skipped_tables.append(table)
+                continue
+            table_sql = _quote_identifier(table)
+            columns_sql = ", ".join(_quote_identifier(column) for column in shared)
+            placeholders = ", ".join("?" for _ in shared)
+            where = " AND ".join(f"{_quote_identifier(key)} = ?" for key in primary_keys)
+            update_columns = [column for column in shared if column not in primary_keys]
+            update_sql = ", ".join(
+                f"{_quote_identifier(column)} = ?" for column in update_columns
+            )
+            table_stats = {"inserted": 0, "updated": 0, "unchanged": 0}
+            for remote_row in remote.execute(f"SELECT {columns_sql} FROM {table_sql}"):
+                key_values = tuple(remote_row[key] for key in primary_keys)
+                key_json = self._canonical_key(key_values)
+                tombstone = merged_tombstones.get((table, key_json))
+                if tombstone is not None and self._at_least(
+                    tombstone, remote_row[timestamp]
+                ):
+                    table_stats["unchanged"] += 1
+                    continue
+                local_row = local.execute(
+                    f"SELECT {columns_sql} FROM {table_sql} WHERE {where}", key_values
+                ).fetchone()
+                if local_row is None:
+                    local.execute(
+                        f"INSERT INTO {table_sql} ({columns_sql}) VALUES ({placeholders})",
+                        tuple(remote_row[column] for column in shared),
+                    )
+                    table_stats["inserted"] += 1
+                    continue
+                remote_fingerprint = json.dumps(
+                    [remote_row[column] for column in shared],
+                    ensure_ascii=False,
+                    default=str,
+                    separators=(",", ":"),
+                )
+                local_fingerprint = json.dumps(
+                    [local_row[column] for column in shared],
+                    ensure_ascii=False,
+                    default=str,
+                    separators=(",", ":"),
+                )
+                if TimestampMergePolicy._remote_wins(
+                    remote_row[timestamp],
+                    local_row[timestamp],
+                    remote_fingerprint,
+                    local_fingerprint,
+                ):
+                    if update_columns:
+                        local.execute(
+                            f"UPDATE {table_sql} SET {update_sql} WHERE {where}",
+                            tuple(remote_row[column] for column in update_columns) + key_values,
+                        )
+                    table_stats["updated"] += 1
+                else:
+                    table_stats["unchanged"] += 1
+            report.tables[table] = table_stats
+            report.inserted += table_stats["inserted"]
+            report.updated += table_stats["updated"]
+            report.unchanged += table_stats["unchanged"]
+        return report
+
+
 class TransitSync:
     """Coordinates verified snapshots between independent local SQLite writers."""
 
-    def __init__(self, config: SyncConfig, policy: MergePolicy | None = None) -> None:
+    def __init__(
+        self,
+        config: SyncConfig,
+        policy: MergePolicy | None = None,
+        authenticator: SnapshotAuthenticator | None = None,
+    ) -> None:
         self.config = config
         self.policy = policy or TimestampMergePolicy(
             timestamp_columns=config.timestamp_columns,
             exclude_tables=config.exclude_tables,
         )
+        self.authenticator = authenticator
         self.config.transit.mkdir(parents=True, exist_ok=True)
         self.config.state.parent.mkdir(parents=True, exist_ok=True)
 
@@ -683,6 +1116,11 @@ class TransitSync:
             "redacted_tables": redacted_tables,
         }
         try:
+            if self.authenticator is not None:
+                authentication = self.authenticator.sign(manifest)
+                if not isinstance(authentication, Mapping):
+                    raise SyncError("Snapshot authenticator returned an invalid envelope")
+                manifest["auth"] = dict(authentication)
             _atomic_json_write(manifest_path, manifest)
         except Exception as error:
             try:
@@ -717,6 +1155,16 @@ class TransitSync:
             raise SyncError(f"Unsupported protocol in {manifest_path}")
         if manifest["namespace"] != self.config.namespace:
             raise SyncError(f"Wrong namespace in {manifest_path}")
+        if self.authenticator is not None:
+            authentication = manifest.get("auth")
+            if not isinstance(authentication, Mapping):
+                raise SyncError("Snapshot authentication is required for this reader")
+            try:
+                self.authenticator.verify(manifest, authentication)
+            except SyncError:
+                raise
+            except Exception as error:
+                raise SyncError("Snapshot authentication failed") from error
         snapshot_name = _validated_snapshot_name(manifest["snapshot"])
         snapshot_path = self.config.transit / snapshot_name
         _assert_transit_regular_file(snapshot_path, self.config.transit, "Snapshot")

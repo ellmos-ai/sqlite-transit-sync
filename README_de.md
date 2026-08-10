@@ -8,7 +8,7 @@
 [![License](https://img.shields.io/github/license/dev-bricks/sqlite-transit-sync)](LICENSE)
 [![Python Version](https://img.shields.io/badge/python->=3.10-blue.svg)](https://www.python.org/)
 [![Architecture](https://img.shields.io/badge/architecture-local--first-success.svg)](#teil-der-ellmos-stack-familie)
-[![Tests](https://img.shields.io/badge/tests-34%2F34%20passed-brightgreen.svg)](#tests)
+[![Tests](https://img.shields.io/badge/tests-45%2F45%20passed-brightgreen.svg)](#tests)
 [![llms.txt](https://img.shields.io/badge/llms.txt-available-informational.svg)](llms.txt)
 
 > [!NOTE]
@@ -75,8 +75,12 @@ geprüfte Snapshots mit von der Anwendung wählbaren Merge-Policies.
   Transit-Verzeichnis begrenzt; Traversierung, absolute Pfade, Symlinks und
   Reparse-Punkte werden vor Hash, Prüfung und Merge fail-closed abgewiesen;
 - SHA-256-Manifest und Prüfung mit `PRAGMA quick_check`;
+- optionale, per API injizierte HMAC-SHA256-Authentifizierung über kanonisches
+  Manifest, Senderidentität, Protokollversion und Snapshot-Hash mit Schlüssel-IDs;
 - lokaler Pull-Zustand je Knoten und idempotente Wiederholung;
 - zeilenweises Last-write-wins pro Primärschlüssel für Tabellen mit Zeitstempel;
+- eine optionale Referenz-Policy `TombstoneMergePolicy` für ausdrücklich
+  gespeicherte Löschungen;
 - Merge gemeinsamer Spalten für grundlegende Toleranz gegenüber Schema-Drift;
 - konfigurierbare Tabellenausschlüsse und Snapshot-Redaktion mit anschließendem
   `VACUUM`;
@@ -138,7 +142,10 @@ zu einer Anwendung gehören.
 ```
 
 Relative Pfade werden vom Speicherort der Konfigurationsdatei aus aufgelöst. Die
-aktive Datenbank darf niemals innerhalb des Transit-Verzeichnisses liegen.
+aktive Datenbank darf niemals innerhalb des Transit-Verzeichnisses liegen; die
+Zustandsdatei muss außerhalb des Transitbaums liegen. `SyncConfig`,
+`from_file`, `from_bytes` und CLI-`init` weisen einen ungültigen Zustandspfad
+vor jeder Transit- oder Zustandsdatei zurück und führen keine Migration aus.
 
 Anwendungen, die einen Audit-Hash für genau die eingelesene Konfiguration benötigen,
 können die Bytes einmal lesen und mit demselben quellrelativen Parser verwenden,
@@ -267,6 +274,42 @@ print(snapshot.sha256, [report.as_dict() for report in reports])
 Wenn Timestamp-LWW nicht ausreicht, kann `TransitSync` ein Objekt erhalten, das
 `MergePolicy.merge(local, remote, snapshot)` implementiert.
 
+### Optionale authentifizierte Manifeste
+
+Eine integrierende Anwendung kann einen eigenen Authenticator injizieren; JSON-
+Konfiguration und CLI transportieren niemals Schlüsselmaterial:
+
+```python
+from sqlite_transit_sync import HMACKey, HMACSnapshotAuthenticator, TransitSync
+
+auth = HMACSnapshotAuthenticator(
+    keys={"node-a-v2": HMACKey(sender="node-a", secret=key_store.read_bytes())},
+    active_key_id="node-a-v2",
+    trusted_senders={"node-a"},
+)
+sync = TransitSync(config, authenticator=auth)
+```
+
+Die Referenzimplementierung nutzt Shared-Key-HMAC-SHA256, keine nicht
+abstreitbaren Public-Key-Signaturen. Die kanonische Nutzlast umfasst Protokoll,
+Namespace, Knoten, Snapshotname, SHA-256, Größe, Redaktionsliste sowie
+Algorithmus-/Schlüssel-/Sender-/Vertrauensquellen-Header. Alte Schlüssel bleiben während einer
+Rotation im Verifier-Keyring. Ein konfigurierter Verifier weist fehlende,
+fehlerhafte, fremde oder nicht passende Signaturen vor Prüfung/Merge zurück;
+ein bereits gepullter Replay ist über den State ein No-op, aber keine
+Frischegarantie. Ein Leser ohne Adapter behauptet keine Authentizität.
+
+### Tombstone-Referenz-Policy
+
+Für fachliche Löschungen richtet die Anwendung mit `ensure_tombstone_table()`
+explizit das Schema ein und verwendet `TombstoneMergePolicy`. Die reservierte
+Tabelle speichert `table_name`, ein kanonisches JSON-Array der Primärschlüsselwerte
+und `deleted_at` als Löschversion. Ein Tombstone gewinnt bei Gleichstand und gegen
+ältere Zeilen; ein späterer Zeitstempel darf den Schlüssel wiederbeleben. Die
+Policy leitet niemals aus einer fehlenden Zeile eine Löschung ab und bereinigt
+Tombstones nicht automatisch. Aufbewahrung muss daher das maximale Offline-
+Intervall abdecken; Schema-Migrationen werden nicht geraten.
+
 ## Vergleich mit Distributed SQL
 
 | Aspekt | `sqlite-transit-sync` | Distributed SQL, zum Beispiel CockroachDB oder YugabyteDB |
@@ -317,12 +360,19 @@ Ausfall einzelner Server über mehrere dauerhaft betriebene Knoten überstehen m
 
 - Eine aktive SQLite-Datenbank niemals aus einem Netzwerk- oder
   Cloud-Synchronisierungsordner öffnen.
+- Zustandsdateien bleiben außerhalb des gemeinsamen Transits; gleiche oder
+  untergeordnete Pfade werden vor jedem Verzeichnis-/Dateischreibzugriff
+  zurückgewiesen.
 - Manifeste dürfen nur einen einzelnen relativen Snapshot-Dateinamen nennen;
   Containment- und Link-/Reparse-Prüfungen laufen vor SHA-256, SQLite-Prüfung
   und Merge.
 - SHA-256 erkennt Beschädigung, authentifiziert aber keinen feindlichen Transport.
+- HMAC ist eine optionale Shared-Key-Identitätsprüfung, kein Secret-Manager,
+  Frischeprotokoll oder Ersatz für Public-Key-Signaturen.
 - Das standardmäßige LWW setzt vergleichbare Zeitstempel voraus und leitet keine
   Löschungen ab.
+- Tombstone-Aufbewahrung, Uhren, Schlüsselablage und Anwendungsmigrationen
+  bleiben Integrationsverantwortung.
 - Gleiche Zeitstempel konvergieren über einen deterministischen Inhaltsvergleich.
   Dieser technische Fallback ersetzt keine fachlichen Konfliktregeln.
 - Tabellen ohne Primärschlüssel oder Zeitstempelspalte werden übersprungen.
@@ -377,7 +427,7 @@ python -m pytest --collect-only -q
 
 Die Suite verwendet ausschließlich synthetische Datenbanken und temporäre
 Transit-Verzeichnisse. Hilfe sowie der JSON-Smoke für init/status/push/list/
-verify/pull gehören zur selben Sammlung mit 34 Tests; keine echte Datenbank und
+verify/pull gehören zur selben Sammlung mit 45 Tests; keine echte Datenbank und
 kein externer Transport werden verwendet.
 
 ## Herkunft

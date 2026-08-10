@@ -8,7 +8,7 @@
 [![License](https://img.shields.io/github/license/dev-bricks/sqlite-transit-sync)](LICENSE)
 [![Python Version](https://img.shields.io/badge/python->=3.10-blue.svg)](https://www.python.org/)
 [![Architecture](https://img.shields.io/badge/architecture-local--first-success.svg)](#part-of-the-ellmos-stack-family)
-[![Tests](https://img.shields.io/badge/tests-34%2F34%20passed-brightgreen.svg)](#tests)
+[![Tests](https://img.shields.io/badge/tests-45%2F45%20passed-brightgreen.svg)](#tests)
 [![llms.txt](https://img.shields.io/badge/llms.txt-available-informational.svg)](llms.txt)
 
 > [!NOTE]
@@ -74,8 +74,11 @@ application-selectable merge policies.
   canonical transit directory; traversal, absolute paths, symlinks and reparse
   points fail closed before hashing or merge;
 - SHA-256 manifest and `PRAGMA quick_check` verification;
+- optional API-injected HMAC-SHA256 authentication over the canonical manifest,
+  sender identity, protocol version and snapshot hash, with explicit key IDs;
 - per-node local pull state and idempotent replay;
 - row-level last-write-wins per primary key for timestamped tables;
+- an opt-in `TombstoneMergePolicy` reference adapter for explicit deletions;
 - shared-column merge for basic schema drift tolerance;
 - configurable table exclusion and snapshot redaction with post-delete VACUUM;
 - a content-level credential scan that aborts publication when a snapshot still
@@ -134,7 +137,10 @@ secrets, local tables or migrations belong to an application.
 ```
 
 Relative paths are resolved from the config file. The live database must never
-be located inside the transit directory.
+be located inside the transit directory, and the state file must be outside the
+transit tree. `SyncConfig`, `from_file`, `from_bytes` and CLI `init` reject an
+invalid state path before creating transit or state directories; no migration is
+performed automatically.
 
 Applications that need an audit hash for exactly the parsed configuration can
 read the bytes once and use the same source-relative parser without a second
@@ -255,6 +261,42 @@ reports = sync.pull()
 print(snapshot.sha256, [report.as_dict() for report in reports])
 ```
 
+### Optional authenticated manifests
+
+An integrating application can inject an application-owned authenticator; the
+JSON config and CLI never carry key material:
+
+```python
+from sqlite_transit_sync import HMACKey, HMACSnapshotAuthenticator, TransitSync
+
+auth = HMACSnapshotAuthenticator(
+    keys={"node-a-v2": HMACKey(sender="node-a", secret=key_store.read_bytes())},
+    active_key_id="node-a-v2",
+    trusted_senders={"node-a"},
+)
+sync = TransitSync(config, authenticator=auth)
+```
+
+The reference adapter uses shared-key HMAC-SHA256, not non-repudiating public
+signatures. Its canonical payload covers protocol, namespace, node, snapshot
+name, SHA-256, size, redaction list and the algorithm/key/sender/trust-source header. Keep
+old keys in the verifier key ring during rotation. A configured verifier rejects
+missing, malformed, foreign or mismatched signatures before verification/merge;
+an already-pulled replay is a state-backed no-op, not a freshness guarantee. An
+unconfigured reader makes no authenticity claim. Freshness and key storage
+remain application concerns.
+
+### Tombstone reference policy
+
+For applications that need deletions, call `ensure_tombstone_table()` during
+their own schema setup and use `TombstoneMergePolicy`. The reserved table stores
+`table_name`, a canonical JSON array of primary-key values, and `deleted_at` as
+the deletion version. A tombstone wins ties and older rows; a later row timestamp
+may resurrect the key. The adapter never infers deletion from a missing row and
+never prunes tombstones, so retention must cover the maximum offline interval.
+Unknown tables and schema mismatches are left protected or fail closed; no
+automatic migration is attempted.
+
 Pass an object implementing `MergePolicy.merge(local, remote, snapshot)` to
 `TransitSync` when timestamp LWW is not sufficient.
 
@@ -307,10 +349,16 @@ across several permanently operated nodes.
 ## Safety and limits
 
 - Never open a live SQLite database from a network or cloud-sync folder.
+- Keep per-node state outside the shared transit; invalid equal/child paths are
+  rejected before any directory or state write.
 - Manifest reads accept one relative snapshot filename only; path containment
   and link/reparse checks happen before SHA-256, SQLite verification or merge.
 - SHA-256 detects corruption but does not authenticate a hostile transport.
+- HMAC authentication is optional shared-key identity checking, not a key
+  distribution service, freshness protocol or public-key signature.
 - Default LWW assumes comparable timestamps and does not infer deletions.
+- Tombstone retention, clocks, key storage and application migrations remain
+  integration responsibilities.
 - Equal timestamps converge through a deterministic content tie-breaker; this is a
   technical fallback, not a substitute for domain conflict rules.
 - Tables without a primary key or timestamp column are skipped.
@@ -356,7 +404,7 @@ python -m pytest --collect-only -q
 
 The suite uses only synthetic databases and temporary transit directories. The
 CLI help and JSON init/status/push/list/verify/pull smoke are part of the same
-34-test collection; no live database or external transport is used.
+45-test collection; no live database or external transport is used.
 
 ## Provenance
 

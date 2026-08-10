@@ -47,3 +47,32 @@ die Prüfung schützen soll.
 SHA-256 und Manifest erkennen Übertragungsfehler. Ein feindlicher Transport benötigt
 zusätzlich Signaturen oder einen authentifizierten Kanal.
 
+## ADR-006: Optionale kanonische Snapshot-Authentifizierung
+
+Die Baseline bleibt ohne Authenticator kompatibel und behauptet keine
+Senderauthentizität. Anwendungen können `HMACSnapshotAuthenticator` in
+`TransitSync` injizieren. Er signiert eine kanonische JSON-Nutzlast aus
+Protokoll-/Manifestfeldern und einem Header aus Algorithmus, Schlüssel-ID und
+Sender sowie Vertrauensquellen-ID. Der SHA-256-Wert ist dadurch Bestandteil der authentifizierten Aussage;
+eine manipulierte Nutzlast, ein fremder Sender, eine unbekannte Schlüssel-ID oder
+eine andere Authentifizierungs-Version wird vor Hash-/SQLite-Prüfung und Merge
+fail-closed abgewiesen.
+
+HMAC ist bewusst als Shared-Key-Referenzadapter benannt und ersetzt keine
+Public-Key-Signatur, keinen Secret-Manager und kein Frischeprotokoll. Die
+Anwendung verwaltet Schlüsselmaterial und Rotation: alte Schlüssel bleiben
+während der Übergangszeit im Verifier-Keyring, nur die aktive ID signiert neue
+Manifeste. Ein wiederholtes bereits gepulltes Manifest bleibt über den lokalen
+Pull-State idempotent, nicht durch eine behauptete globale Replay-Uhr.
+
+## ADR-007: Explizite Tombstones statt impliziter Löschung
+
+Die Standard-`TimestampMergePolicy` leitet weiterhin niemals aus einer fehlenden
+Zeile eine Löschung ab. Die optionale `TombstoneMergePolicy` definiert dafür die
+Referenztabelle `__sqlite_transit_tombstones` mit `table_name`, kanonischem JSON-
+Array der Primärschlüssel und `deleted_at` als Versionszeitpunkt. Ein Tombstone
+gewinnt bei Gleichstand und gegen ältere Zeilen; ein späterer Zeilenzeitpunkt
+darf wiederbeleben. Tombstones werden nicht automatisch bereinigt, weil ihre
+Aufbewahrung das maximale Offline-Intervall und die fachliche Retention kennen
+muss. Fehlende Tabellen oder unbekannte Ziele werden nicht erraten.
+
