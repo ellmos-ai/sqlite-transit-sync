@@ -204,3 +204,9 @@ liefert. Pfade, Manifestnamen, Duplikate und nicht mehr ausstehende Namen werden
 Änderung abgelehnt. Der ausgewählte Snapshot durchläuft anschließend exakt dieselbe Verifikation,
 Merge-Transaktion und State-Fortschreibung wie `pull()`. Die Auswahl ist Anwendungspolitik; die
 Datenmechanik bleibt beim Carrier.
+
+**Nachtrag (2026-08-12):** Die Pfad-Ablehnung prüfte ursprünglich nur `Path(name).name != name`.
+`pathlib` behandelt `\` als Separator ausschließlich unter Windows — auf einem POSIX-Runner blieb
+ein Name wie `..\foo.sqlite-snapshot` dadurch unerkannt und fiel erst später (als „nicht
+ausstehend“, `SyncError` statt `ValueError`) auf. Die Prüfung testet jetzt zusätzlich explizit auf
+`/` und `\`, damit die Ablehnung plattformunabhängig identisch greift.

@@ -950,7 +950,16 @@ class TransitSync:
         if len(requested) != len(set(requested)):
             raise ValueError("snapshot_names must not contain duplicates")
         for name in requested:
-            if Path(name).name != name or not name.endswith(SNAPSHOT_SUFFIX):
+            # Check both separators explicitly rather than relying solely on
+            # Path(name).name: pathlib only treats "\\" as a separator on
+            # Windows, so a POSIX runner would let a "..\\name" traversal
+            # attempt straight through this basename gate.
+            if (
+                "/" in name
+                or "\\" in name
+                or Path(name).name != name
+                or not name.endswith(SNAPSHOT_SUFFIX)
+            ):
                 raise ValueError(f"Invalid snapshot basename: {name!r}")
 
         pending = self.pending(verify=True)
