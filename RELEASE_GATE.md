@@ -50,7 +50,7 @@ commit. It must contain the commit, date, exact commands, exit codes, collected
 test count and complete output or a linked immutable receipt. An older 8/8,
 19/19 or 26/26 result is historical evidence and cannot unlock this gate.
 
-### Receipt 2026-08-13 (tested code commit `e5db0b1`)
+### Receipt 2026-08-13 (tested code commit `4ba9be1`)
 
 The local readback covers the opt-in retention policy, synthetic BACH golden
 comparison, documentation and the existing authentication/state/tombstone
@@ -69,7 +69,7 @@ was used.
 | `python scripts/compare_bach_golden.py --output golden/bach_compatibility_report.json` | 0 | `blocked_no_authorized_bach_golden`, 7 scenarios |
 | `git diff --check` | 0 | no whitespace errors |
 
-The local branch after this commit is `ahead 11, behind 14` relative to the
+The local branch after this commit is `ahead 12, behind 14` relative to the
 divergent `origin/main`; no pull, merge, rebase, push or release action was
 performed. The external hygiene helper remains a separate locked-gate
 dependency and was not substituted.
