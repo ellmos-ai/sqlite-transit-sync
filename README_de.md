@@ -8,7 +8,7 @@
 [![License](https://img.shields.io/github/license/dev-bricks/sqlite-transit-sync)](LICENSE)
 [![Python Version](https://img.shields.io/badge/python->=3.10-blue.svg)](https://www.python.org/)
 [![Architecture](https://img.shields.io/badge/architecture-local--first-success.svg)](#teil-der-ellmos-stack-familie)
-[![Tests](https://img.shields.io/badge/tests-45%2F45%20passed-brightgreen.svg)](#tests)
+[![Tests](https://img.shields.io/badge/tests-53%2F53%20passed-brightgreen.svg)](#tests)
 [![llms.txt](https://img.shields.io/badge/llms.txt-available-informational.svg)](llms.txt)
 
 > [!NOTE]
@@ -310,6 +310,52 @@ Policy leitet niemals aus einer fehlenden Zeile eine Löschung ab und bereinigt
 Tombstones nicht automatisch. Aufbewahrung muss daher das maximale Offline-
 Intervall abdecken; Schema-Migrationen werden nicht geraten.
 
+### Opt-in-Aufbewahrung von Snapshots
+
+Die Aufbewahrung ist ausdrücklich und standardmäßig ein Dry-Run. Eine Löschung
+wird nie aus einem Dateinamen abgeleitet: Nur ein geprüfter Snapshot im
+konfigurierten Namespace, im Besitz des aktuellen Knotens, nicht mehr pending
+und durch den Callback `acknowledge` bestätigt, kann löschbar werden. Fremde,
+unbekannte, unvollständige, ungeprüfte und nicht bestätigte Artefakte bleiben
+erhalten. Die Altersgrenze ist strikt (`Alter > max_age`); `keep_latest` und
+`max_age` dürfen kombiniert werden.
+
+```python
+from datetime import timedelta
+from sqlite_transit_sync import SnapshotRetentionPolicy
+
+policy = SnapshotRetentionPolicy(
+    max_age=timedelta(days=30),
+    keep_latest=3,
+    acknowledge=lambda snapshot: application_has_acked(snapshot),
+)
+report = sync.apply_retention(policy, dry_run=True, audit_path="retention-report.json")
+# Erst nach Prüfung der exakten Pfade und Gründe mutieren:
+report = sync.apply_retention(policy, dry_run=False, audit_path="retention-report.json")
+```
+
+Vor jeder geplanten Löschung wird das Paar erneut gelesen und geprüft. Gelöscht
+werden nur die beiden exakten Dateien; Fehler werden protokolliert, aber es gibt
+keine breite Bereinigung. Wiederholte Läufe sind idempotent. Sidecars und
+unvollständige Artefakte bleiben erhalten. Das ist ein neutraler Kernvertrag
+und kein BACH-Retention-Adapter.
+
+### Golden-Vergleich für BACH-Kompatibilität
+
+Vor jedem BACH-Kompatibilitätsadapter wird der synthetische, versionierte
+Vergleich ausgeführt:
+
+```bash
+python scripts/compare_bach_golden.py --output golden/bach_compatibility_report.json
+```
+
+Die sieben Fixtures decken geschlossenen Backup, Manifest-/Integritätsfehler,
+Redaktion/Secret-Abbruch, Timestamp-/Schema-Merge, Pull-Bestätigung,
+Rollback und Retention-Eigentum ab. Der Bericht bleibt bewusst
+`blocked_no_authorized_bach_golden`, bis für jedes Szenario ein autorisiertes
+BACH-Referenzergebnis vorliegt. Daraus folgt weder ein Adapter noch eine
+Kompatibilitätsbehauptung.
+
 ## Vergleich mit Distributed SQL
 
 | Aspekt | `sqlite-transit-sync` | Distributed SQL, zum Beispiel CockroachDB oder YugabyteDB |
@@ -426,9 +472,10 @@ python -m pytest --collect-only -q
 ```
 
 Die Suite verwendet ausschließlich synthetische Datenbanken und temporäre
-Transit-Verzeichnisse. Hilfe sowie der JSON-Smoke für init/status/push/list/
-verify/pull gehören zur selben Sammlung mit 45 Tests; keine echte Datenbank und
-kein externer Transport werden verwendet.
+Transit-Verzeichnisse. Hilfe, Retention-Vertrag, Golden-Vergleich sowie der
+JSON-Smoke für init/status/push/list/verify/pull gehören zur selben Sammlung
+mit 53 Tests; keine echte Datenbank, BACH-Laufzeit oder externer Transport
+werden verwendet.
 
 ## Herkunft
 

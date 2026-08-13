@@ -2,6 +2,20 @@
 
 ## Unreleased
 
+- 2026-08-13: `SnapshotRetentionPolicy` und der versionierte
+  `retention-report.v1`-Auditvertrag ergänzt. Die Policy ist opt-in und
+  standardmäßig Dry-Run; nur verifizierte, eigene, nicht ausstehende und
+  ausdrücklich bestätigte Snapshot-Paare können nach Alters-/Count-Regel
+  geplant werden. Fremde, unbekannte, unvollständige und ungeprüfte Artefakte
+  bleiben erhalten; Mutationen verifizieren direkt vor dem Löschen und sind
+  idempotent. Synthetische Tests decken Grenzwerte, Restart, Audit und
+  Löschfehler ab.
+- 2026-08-13: Sieben synthetische BACH-Golden-Szenarien und der reproduzierbare
+  Vergleich `scripts/compare_bach_golden.py` ergänzt. Der Bericht ist bis zu
+  autorisierten BACH-Referenzergebnissen absichtlich
+  `blocked_no_authorized_bach_golden`; kein Adapter oder BACH-Runtime-Zugriff
+  wurde implementiert. Die lokale Sammlung umfasst 53 Tests.
+
 - 2026-08-10: Optionalen `HMACSnapshotAuthenticator` mit kanonischer
   Manifest-Nutzlast, Sender-/Key-ID-Prüfung, Rotation und fail-closed
   Authentifizierungsfehlern ergänzt. `SyncConfig` weist State-Pfade im oder

@@ -1,0 +1,135 @@
+{
+  "adapter_recommendation": "do_not_implement",
+  "fixture_count": 7,
+  "migration_recommendation": "Obtain an authorized BACH golden result for every scenario, compare exact semantics, and resolve all differences before implementing an adapter.",
+  "scenarios": [
+    {
+      "expected_bach_semantics": {
+        "statement": "BACH snapshot-close and publication semantics require an authorized reference result.",
+        "status": "awaiting_authorized_reference"
+      },
+      "input_contract": {
+        "manifest": "protocol, namespace, node, timestamp, hash and size",
+        "snapshot": "closed SQLite backup"
+      },
+      "intentional_deviation": "No BACH-specific lifecycle hook is inferred.",
+      "migration_risk": "A lifecycle or sidecar difference could publish an incompatible snapshot.",
+      "name": "closed_snapshot_backup",
+      "standalone_result": {
+        "statement": "The standalone core closes a backup, checks sidecars, scans, hashes and writes a manifest.",
+        "status": "neutral_core_behavior"
+      },
+      "status": "blocked_no_authorized_bach_golden"
+    },
+    {
+      "expected_bach_semantics": {
+        "statement": "BACH rejection and audit semantics require an authorized reference result.",
+        "status": "awaiting_authorized_reference"
+      },
+      "input_contract": {
+        "manifest": "changed hash, size or malformed JSON",
+        "verification": "read-only integrity boundary"
+      },
+      "intentional_deviation": "No BACH error taxonomy or audit destination is claimed.",
+      "migration_risk": "Different rejection timing could leave incompatible pending state.",
+      "name": "manifest_integrity_failure",
+      "standalone_result": {
+        "statement": "The standalone verifier rejects the manifest or checksum before pull state advances.",
+        "status": "neutral_core_behavior"
+      },
+      "status": "blocked_no_authorized_bach_golden"
+    },
+    {
+      "expected_bach_semantics": {
+        "statement": "BACH redaction and credential-abort behavior require an authorized reference result.",
+        "status": "awaiting_authorized_reference"
+      },
+      "input_contract": {
+        "content": "credential-looking value in a synthetic row",
+        "redaction": "configured table exclusion and content scan"
+      },
+      "intentional_deviation": "No BACH secret store, trigger list or alert channel is imported.",
+      "migration_risk": "A trigger or redaction mismatch could expose or silently omit data.",
+      "name": "redaction_credential_abort",
+      "standalone_result": {
+        "statement": "The standalone core redacts configured tables and aborts publication on a scan finding.",
+        "status": "neutral_core_behavior"
+      },
+      "status": "blocked_no_authorized_bach_golden"
+    },
+    {
+      "expected_bach_semantics": {
+        "statement": "BACH merge tie-break and schema policy require an authorized reference result.",
+        "status": "awaiting_authorized_reference"
+      },
+      "input_contract": {
+        "rows": "primary-key rows with timestamp columns",
+        "schema": "overlapping and extra tables/columns"
+      },
+      "intentional_deviation": "No application-specific BACH conflict or migration rule is assumed.",
+      "migration_risk": "Tie-break or schema differences could produce divergent rows.",
+      "name": "timestamp_schema_merge",
+      "standalone_result": {
+        "statement": "The standalone baseline merges shared timestamped primary-key rows and skips unsupported tables.",
+        "status": "neutral_core_behavior"
+      },
+      "status": "blocked_no_authorized_bach_golden"
+    },
+    {
+      "expected_bach_semantics": {
+        "statement": "BACH pull acknowledgement and replay semantics require an authorized reference result.",
+        "status": "awaiting_authorized_reference"
+      },
+      "input_contract": {
+        "remote": "verified snapshot from another node",
+        "state": "last-pulled timestamp"
+      },
+      "intentional_deviation": "No BACH heartbeat, lease or replay clock is inferred.",
+      "migration_risk": "Acknowledgement timing differences could replay or skip a snapshot.",
+      "name": "pull_state_acknowledgement",
+      "standalone_result": {
+        "statement": "The standalone core writes last-pulled state only after a successful local transaction.",
+        "status": "neutral_core_behavior"
+      },
+      "status": "blocked_no_authorized_bach_golden"
+    },
+    {
+      "expected_bach_semantics": {
+        "statement": "BACH rollback and recovery semantics require an authorized reference result.",
+        "status": "awaiting_authorized_reference"
+      },
+      "input_contract": {
+        "operation": "merge that raises before commit",
+        "state": "pre-operation pull state"
+      },
+      "intentional_deviation": "No BACH retry queue or operator notification is claimed.",
+      "migration_risk": "Recovery differences could lose work or repeat side effects.",
+      "name": "failure_rollback",
+      "standalone_result": {
+        "statement": "The standalone core rolls back the local transaction and leaves pull state unchanged.",
+        "status": "neutral_core_behavior"
+      },
+      "status": "blocked_no_authorized_bach_golden"
+    },
+    {
+      "expected_bach_semantics": {
+        "statement": "BACH retention ownership and pending-snapshot semantics require an authorized reference result.",
+        "status": "awaiting_authorized_reference"
+      },
+      "input_contract": {
+        "inventory": "verified, foreign, pending and unknown synthetic artifacts",
+        "policy": "explicit owner, namespace, acknowledgement and age/count criterion"
+      },
+      "intentional_deviation": "No BACH-specific retention adapter or deletion authority is imported.",
+      "migration_risk": "A retention mismatch could delete data still needed by an offline node.",
+      "name": "retention_foreign_pending",
+      "standalone_result": {
+        "statement": "The standalone policy retains foreign, pending, unverified and unacknowledged artifacts by default.",
+        "status": "neutral_core_behavior"
+      },
+      "status": "blocked_no_authorized_bach_golden"
+    }
+  ],
+  "schema": "sqlite-transit-sync.bach-compatibility-report.v1",
+  "status": "blocked_no_authorized_bach_golden"
+}

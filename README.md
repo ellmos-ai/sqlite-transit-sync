@@ -8,7 +8,7 @@
 [![License](https://img.shields.io/github/license/dev-bricks/sqlite-transit-sync)](LICENSE)
 [![Python Version](https://img.shields.io/badge/python->=3.10-blue.svg)](https://www.python.org/)
 [![Architecture](https://img.shields.io/badge/architecture-local--first-success.svg)](#part-of-the-ellmos-stack-family)
-[![Tests](https://img.shields.io/badge/tests-45%2F45%20passed-brightgreen.svg)](#tests)
+[![Tests](https://img.shields.io/badge/tests-53%2F53%20passed-brightgreen.svg)](#tests)
 [![llms.txt](https://img.shields.io/badge/llms.txt-available-informational.svg)](llms.txt)
 
 > [!NOTE]
@@ -300,6 +300,48 @@ automatic migration is attempted.
 Pass an object implementing `MergePolicy.merge(local, remote, snapshot)` to
 `TransitSync` when timestamp LWW is not sufficient.
 
+### Opt-in snapshot retention
+
+Retention is explicit and dry-run by default. It never infers deletion from a
+filename: only a verified snapshot in the configured namespace, owned by the
+current node, no longer pending, and accepted by the caller's `acknowledge`
+callback can be eligible. Foreign, unknown, incomplete, unverified and
+unacknowledged artifacts are retained. Age boundaries are strict (`age >
+max_age`); `keep_latest` and `max_age` may be combined.
+
+```python
+from datetime import timedelta
+from sqlite_transit_sync import SnapshotRetentionPolicy
+
+policy = SnapshotRetentionPolicy(
+    max_age=timedelta(days=30),
+    keep_latest=3,
+    acknowledge=lambda snapshot: application_has_acked(snapshot),
+)
+report = sync.apply_retention(policy, dry_run=True, audit_path="retention-report.json")
+# Apply only after reviewing exact planned paths and reasons.
+report = sync.apply_retention(policy, dry_run=False, audit_path="retention-report.json")
+```
+
+The mutation re-reads and verifies every planned pair, deletes only its exact
+snapshot and manifest, records errors without broad cleanup, and is safe to
+repeat. Sidecars and incomplete artifacts stay retained. This is a neutral
+core contract, not a BACH retention adapter.
+
+### BACH compatibility golden comparison
+
+Before any BACH compatibility adapter, run the committed synthetic comparison:
+
+```bash
+python scripts/compare_bach_golden.py --output golden/bach_compatibility_report.json
+```
+
+The seven fixtures cover closed backup, manifest/integrity failure,
+redaction/credential abort, timestamp/schema merge, pull acknowledgement,
+rollback and retention ownership. The report intentionally remains
+`blocked_no_authorized_bach_golden` until an authorized BACH reference result
+exists for every scenario; no adapter or compatibility claim follows.
+
 ## Comparison with distributed SQL
 
 | Aspect | `sqlite-transit-sync` | Distributed SQL, for example CockroachDB or YugabyteDB |
@@ -403,8 +445,9 @@ python -m pytest --collect-only -q
 ```
 
 The suite uses only synthetic databases and temporary transit directories. The
-CLI help and JSON init/status/push/list/verify/pull smoke are part of the same
-45-test collection; no live database or external transport is used.
+CLI help, retention contract, golden comparison and JSON
+init/status/push/list/verify/pull smoke are part of the same 53-test
+collection; no live database, BACH runtime or external transport is used.
 
 ## Provenance
 

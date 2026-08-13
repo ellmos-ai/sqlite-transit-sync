@@ -37,6 +37,8 @@ rotation and freshness remain outside the module.
 - `MergePolicy`: application extension point.
 - `TimestampMergePolicy`: safe generic baseline for timestamped rows with primary keys.
 - `TombstoneMergePolicy`: opt-in explicit deletion reference policy.
+- `SnapshotRetentionPolicy`: opt-in, ownership-aware age/count planning that
+  retains foreign, pending, unknown and unverified artifacts by default.
 - `cli.py`: JSON interface for humans, agents and automations.
 
 ## Default merge semantics
@@ -59,6 +61,20 @@ primary-key JSON and `deleted_at` version make deletion ordering deterministic:
 equal/older rows stay deleted, while a later row version may resurrect the key.
 The policy does not infer missing-row deletion or prune retained tombstones.
 
+### Snapshot retention contract
+
+`SnapshotRetentionPolicy` consumes the fail-closed inventory exposed by
+`TransitSync.retention_inventory()`. A caller must provide an age and/or count
+criterion and an explicit acknowledgement callback. Eligibility requires the
+configured namespace, the current owner node, a verified manifest/snapshot
+pair, a non-pending pull state and a positive acknowledgement. Age expiry is
+strict; count retention keeps the newest acknowledged entries. Every other
+artifact is retained with an inspectable reason. `apply_retention()` defaults
+to a dry-run and emits a versioned JSON report with exact paths, planned
+reasons, deletions and errors. A mutating run re-verifies the pair immediately
+before deleting the snapshot and manifest, never sidecars or a globbed set, and
+can be safely repeated. Audit files must be outside transit.
+
 ## Trust boundary
 
 Manifests and SHA-256 protect against partial transfer and accidental corruption.
@@ -69,5 +85,7 @@ add signatures or an authenticated transport before accepting snapshots.
 
 BACH remains the production integration and owns BACH-specific table semantics,
 startup/exit hooks, heartbeat, retention and secret handling. This module is the
-neutral reusable core. A future BACH adapter can replace duplicated generic mechanics
-only after compatibility and migration tests.
+neutral reusable core. The committed synthetic golden comparison is blocked
+until an authorized BACH result exists; a future adapter can replace duplicated
+generic mechanics only after every scenario's compatibility and migration tests
+pass. No BACH runtime or private implementation is imported here.

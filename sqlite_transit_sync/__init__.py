@@ -16,6 +16,14 @@ from .core import (
     ensure_tombstone_table,
     load_secret_patterns,
 )
+from .retention import (
+    RetentionDecision,
+    RetentionEntry,
+    RetentionPolicy,
+    RetentionReport,
+    SnapshotRetentionPolicy,
+    apply_retention,
+)
 
 __all__ = [
     "HMACKey",
@@ -32,6 +40,12 @@ __all__ = [
     "TransitSync",
     "ensure_tombstone_table",
     "load_secret_patterns",
+    "RetentionDecision",
+    "RetentionEntry",
+    "RetentionPolicy",
+    "RetentionReport",
+    "SnapshotRetentionPolicy",
+    "apply_retention",
 ]
 
 __version__ = "0.2.0"

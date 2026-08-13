@@ -15,15 +15,20 @@
 - optionaler HMAC-Snapshot-Authenticator mit kanonischem Manifest und Key-Rotation
 - explizite State-/Transit-Trennung beim Config-/CLI-Aufbau
 - TombstoneMergePolicy als opt-in Referenz für fachliche Löschungen
+- SnapshotRetentionPolicy als opt-in, eigentumsgebundener Dry-Run-/Audit-Vertrag
+- Synthetischer BACH-Golden-Vergleich mit absichtlich blockiertem Adapterstatus
 - eigenständige synthetische Tests
 
 ## Noch nicht integriert
 
 - BACH nutzt weiterhin seine bewährte interne ProSync-Implementierung.
-- Retention, Schlüsselablage, Frische und fachliche Tombstone-Aufbewahrung bleiben
-  anwendungsspezifisch.
+- BACH-Kompatibilitätsadapter, autorisierte Golden-Referenzen, Schlüsselablage,
+  Frische und fachliche Tombstone-Aufbewahrung bleiben anwendungsspezifisch.
 
 ## Letzte Dokumentationsänderung
+
+- 2026-08-13: Eigentumsgebundene Retention, Golden-Vergleich und die
+  53-Test-Verifikation dokumentiert; das Release-Gate bleibt LOCKED.
 
 - 2026-08-10: Version-/Status-/Verifikationsvertrag, gesperrtes Release-Gate
   und fail-closed Manifest-/Snapshot-Containment in Code, Tests und
@@ -32,6 +37,11 @@
   Distributed SQL, Vor-/Nachteile, Use Cases und Entscheidungshilfe ergänzt.
 
 ## Letzte Verifikation
+
+- 2026-08-13: Retention-/Golden-Bundle synthetisch implementiert; die finale
+  Test-, Ruff-, Compileall-, CLI- und Git-Readback-Verifikation ist an den
+  folgenden TASKSOLVER-Commit gebunden. Kein BACH-Lauf, keine Live-Datenbank,
+  kein Transport und kein Push.
 
 - 2026-08-10: `python -m unittest discover -s tests -v` und
   `python -m pytest -q -ra` — jeweils 45/45 bestanden; `python -m pytest

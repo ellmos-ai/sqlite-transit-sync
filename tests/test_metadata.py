@@ -44,7 +44,7 @@ class TestMetadata(unittest.TestCase):
 
         for filename in ("README.md", "README_de.md"):
             text = (ROOT / filename).read_text(encoding="utf-8")
-            self.assertIn("tests-45%2F45%20passed", text)
+            self.assertIn("tests-53%2F53%20passed", text)
             self.assertIn("METADATA_CONTRACT.md", text)
         llms = (ROOT / "llms.txt").read_text(encoding="utf-8")
         self.assertIn(f"- Version: {VERSION}", llms)

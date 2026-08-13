@@ -1185,6 +1185,157 @@ class TransitSync:
             self._quick_check(snapshot.path)
         return snapshot
 
+    def retention_inventory(self) -> list[Any]:
+        """Return a fail-closed inventory for the opt-in retention policy.
+
+        Every transit item is represented.  Only a manifest that belongs to
+        this configured namespace and passes the normal snapshot verifier can
+        become eligible for deletion; foreign, incomplete, unknown and
+        unverified artifacts are retained by policy.
+        """
+        from .retention import RetentionEntry
+
+        state = self._load_state()
+        last_pulled = state.get("last_pulled", {})
+        if not isinstance(last_pulled, Mapping):
+            last_pulled = {}
+        entries: list[RetentionEntry] = []
+        manifest_suffix = f"{SNAPSHOT_SUFFIX}.json"
+
+        def artifact(path: Path, reason: str = "unrecognized-artifact") -> RetentionEntry:
+            return RetentionEntry(
+                manifest_path=path,
+                snapshot_path=None,
+                namespace=None,
+                node_id=None,
+                created_at=None,
+                verified=False,
+                reason=reason,
+            )
+
+        for path in sorted(self.config.transit.iterdir(), key=lambda item: item.name):
+            if not path.name.endswith(manifest_suffix):
+                entries.append(artifact(path))
+                continue
+            if _is_reparse_or_symlink(path) or not path.is_file():
+                entries.append(artifact(path, "invalid-manifest"))
+                continue
+            try:
+                raw = json.loads(path.read_text(encoding="utf-8"))
+            except (OSError, json.JSONDecodeError):
+                entries.append(artifact(path, "invalid-manifest"))
+                continue
+            if not isinstance(raw, Mapping):
+                entries.append(artifact(path, "invalid-manifest"))
+                continue
+
+            namespace = raw.get("namespace")
+            node_id = raw.get("node_id")
+            created_at = raw.get("created_at")
+            snapshot_path: Path | None = None
+            try:
+                if isinstance(raw.get("snapshot"), str):
+                    snapshot_path = self.config.transit / _validated_snapshot_name(raw["snapshot"])
+            except SyncError:
+                snapshot_path = None
+
+            # A manifest from another namespace is foreign by construction.
+            # Do not ask the configured verifier to interpret or delete it.
+            if isinstance(namespace, str) and namespace != self.config.namespace:
+                entries.append(
+                    RetentionEntry(
+                        manifest_path=path,
+                        snapshot_path=snapshot_path,
+                        namespace=namespace,
+                        node_id=node_id if isinstance(node_id, str) else None,
+                        created_at=created_at if isinstance(created_at, str) else None,
+                        verified=False,
+                        reason="foreign-namespace",
+                    )
+                )
+                continue
+
+            required = {
+                "protocol",
+                "namespace",
+                "node_id",
+                "created_at",
+                "snapshot",
+                "sha256",
+                "size",
+            }
+            if (
+                not required.issubset(raw)
+                or namespace != self.config.namespace
+                or not isinstance(node_id, str)
+                or not isinstance(created_at, str)
+                or snapshot_path is None
+            ):
+                entries.append(
+                    RetentionEntry(
+                        manifest_path=path,
+                        snapshot_path=snapshot_path,
+                        namespace=namespace if isinstance(namespace, str) else None,
+                        node_id=node_id if isinstance(node_id, str) else None,
+                        created_at=created_at if isinstance(created_at, str) else None,
+                        verified=False,
+                        reason="invalid-manifest",
+                    )
+                )
+                continue
+
+            try:
+                snapshot = self._read_snapshot(path, verify=True)
+            except (SyncError, OSError, TypeError, ValueError, OverflowError):
+                entries.append(
+                    RetentionEntry(
+                        manifest_path=path,
+                        snapshot_path=snapshot_path,
+                        namespace=namespace,
+                        node_id=node_id,
+                        created_at=created_at,
+                        verified=False,
+                        reason="unverified",
+                    )
+                )
+                continue
+            pending = (
+                snapshot.node_id != self.config.node_id
+                and snapshot.created_at > str(last_pulled.get(snapshot.node_id, ""))
+            )
+            entries.append(
+                RetentionEntry(
+                    manifest_path=path,
+                    snapshot_path=snapshot.path,
+                    namespace=snapshot.namespace,
+                    node_id=snapshot.node_id,
+                    created_at=snapshot.created_at,
+                    verified=True,
+                    pending=pending,
+                    snapshot=snapshot,
+                )
+            )
+        return entries
+
+    def apply_retention(
+        self,
+        policy: Any,
+        *,
+        dry_run: bool = True,
+        now: datetime | None = None,
+        audit_path: str | Path | None = None,
+    ) -> Any:
+        """Plan or apply an explicit retention policy for this transit."""
+        from .retention import apply_retention
+
+        return apply_retention(
+            self,
+            policy,
+            dry_run=dry_run,
+            now=now,
+            audit_path=audit_path,
+        )
+
     def snapshots(self, verify: bool = False) -> list[Snapshot]:
         manifests = self.config.transit.glob(
             f"{self.config.namespace}__*__*{SNAPSHOT_SUFFIX}.json"

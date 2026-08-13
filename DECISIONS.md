@@ -76,3 +76,20 @@ darf wiederbeleben. Tombstones werden nicht automatisch bereinigt, weil ihre
 Aufbewahrung das maximale Offline-Intervall und die fachliche Retention kennen
 muss. Fehlende Tabellen oder unbekannte Ziele werden nicht erraten.
 
+## ADR-008: Opt-in-Retention mit explizitem Eigentum
+
+Snapshot-Aufbewahrung ist eine separate, austauschbare Policy und niemals ein
+globales Transit-Cleanup. `SnapshotRetentionPolicy` darf nur einen verifizierten
+Snapshot im konfigurierten Namespace und im Eigentum des aktuellen Knotens
+planen, der nicht mehr pending ist und über einen expliziten
+Anwendungs-Callback bestätigt wurde. Alters- und Count-Grenzen werden
+deterministisch ausgewertet; der Standard ist Dry-Run.
+
+Fremde, unbekannte, unvollständige, ungeprüfte, ausstehende oder nicht
+bestätigte Artefakte bleiben mit einem Grund erhalten. Sidecars und sonstige
+Artefakte gehören nicht zum Löschvertrag. Eine Mutation liest jedes Paar vor
+dem Löschen erneut und prüft Manifest, Hash, Größe, Namespace, Knoten und
+Zeitstempel; Fehler werden im Audit-Bericht sichtbar und führen nicht zu
+breiter Bereinigung. BACH-spezifische Retention und Autorität bleiben außerhalb
+des neutralen Moduls.
+
