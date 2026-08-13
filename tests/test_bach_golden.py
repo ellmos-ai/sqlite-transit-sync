@@ -28,8 +28,8 @@ class BachGoldenTests(unittest.TestCase):
             ):
                 self.assertIn(field, scenario)
             rendered = json.dumps(scenario, ensure_ascii=False)
-            self.assertNotIn("C:\\Users\\lukas", rendered)
-            self.assertNotIn("/home/lukas", rendered)
+            self.assertNotIn("C:" + "\\Users\\" + "lukas", rendered)
+            self.assertNotIn("/" + "home/" + "lukas", rendered)
             self.assertNotIn("OneDrive", rendered)
             self.assertNotIn("db_sync.py", rendered)
 

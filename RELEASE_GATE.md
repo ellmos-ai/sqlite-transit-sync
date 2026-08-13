@@ -50,6 +50,30 @@ commit. It must contain the commit, date, exact commands, exit codes, collected
 test count and complete output or a linked immutable receipt. An older 8/8,
 19/19 or 26/26 result is historical evidence and cannot unlock this gate.
 
+### Receipt 2026-08-13 (tested code commit `e5db0b1`)
+
+The local readback covers the opt-in retention policy, synthetic BACH golden
+comparison, documentation and the existing authentication/state/tombstone
+contracts. No live database, BACH runtime, external transport or remote write
+was used.
+
+| Command | Exit | Output/readback |
+|---|---:|---|
+| `python -m unittest discover -s tests -v` | 0 | `Ran 53 tests in 11.987s` / `OK` |
+| `python -m pytest -q -ra` | 0 | `..................................................... [100%]` |
+| `python -m pytest --collect-only -q` | 0 | Auth 4; BACH golden 2; CLI 3; metadata 6; retention 6; sync 29; tombstone 3 |
+| `python -m compileall -q sqlite_transit_sync tests scripts` | 0 | no output |
+| `python -m ruff check sqlite_transit_sync tests scripts` | 0 | `All checks passed!` |
+| `python -m sqlite_transit_sync --help` | 0 | usage for `init,status,push,pull,sync,verify,list` |
+| `python -m sqlite_transit_sync init --help` | 0 | required config/database/transit options shown |
+| `python scripts/compare_bach_golden.py --output golden/bach_compatibility_report.json` | 0 | `blocked_no_authorized_bach_golden`, 7 scenarios |
+| `git diff --check` | 0 | no whitespace errors |
+
+The local branch after this commit is `ahead 11, behind 14` relative to the
+divergent `origin/main`; no pull, merge, rebase, push or release action was
+performed. The external hygiene helper remains a separate locked-gate
+dependency and was not substituted.
+
 ### Receipt 2026-08-10 (tested code commit `0dc9935f5e2298e3b1867ef163a6dd4f478dd12c`)
 
 The local readback was run from the TASKSOLVER implementation commit (the

@@ -39,8 +39,8 @@
 ## Letzte Verifikation
 
 - 2026-08-13: Retention-/Golden-Bundle synthetisch implementiert; die finale
-  Test-, Ruff-, Compileall-, CLI- und Git-Readback-Verifikation ist an den
-  folgenden TASKSOLVER-Commit gebunden. Kein BACH-Lauf, keine Live-Datenbank,
+  Test-, Ruff-, Compileall-, CLI- und Git-Readback-Verifikation ist an
+  TASKSOLVER-Commit `e5db0b1` gebunden. Kein BACH-Lauf, keine Live-Datenbank,
   kein Transport und kein Push.
 
 - 2026-08-10: `python -m unittest discover -s tests -v` und
