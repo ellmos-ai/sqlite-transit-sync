@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-from contextlib import redirect_stdout
 import hashlib
 import io
 import json
 import sqlite3
 import tempfile
 import unittest
+from contextlib import redirect_stdout
 from pathlib import Path
 from unittest import mock
 
@@ -16,8 +16,8 @@ from sqlite_transit_sync import (
     TransitSync,
     load_secret_patterns,
 )
-from sqlite_transit_sync.cli import build_parser, main as cli_main
-
+from sqlite_transit_sync.cli import build_parser
+from sqlite_transit_sync.cli import main as cli_main
 
 SCHEMA = """
 CREATE TABLE items (
@@ -657,9 +657,8 @@ class TransitSyncTests(unittest.TestCase):
                 raise PermissionError("synthetic delete failure")
             return real_unlink(path, *args, **kwargs)
 
-        with mock.patch.object(Path, "unlink", fail_snapshot_unlink):
-            with self.assertRaises(SyncError):
-                self.a.cleanup(keep_days=7, keep_per_node=0, dry_run=False)
+        with mock.patch.object(Path, "unlink", fail_snapshot_unlink), self.assertRaises(SyncError):
+            self.a.cleanup(keep_days=7, keep_per_node=0, dry_run=False)
 
         self.assertTrue(all(path.exists() for path in old))
         self.assertFalse(

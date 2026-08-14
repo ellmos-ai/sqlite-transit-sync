@@ -1,10 +1,12 @@
+import json
 import re
+import unittest
+from pathlib import Path
+
 try:
     import tomllib
 except ModuleNotFoundError:  # Python 3.10 compatibility
     import tomli as tomllib
-import unittest
-from pathlib import Path
 
 import sqlite_transit_sync
 
@@ -43,6 +45,26 @@ class TestMetadata(unittest.TestCase):
         for item in sqlite_transit_sync.__all__:
             obj = getattr(sqlite_transit_sync, item, None)
             self.assertIsNotNone(obj, f"Exported symbol {item} should be present in module")
+
+    def test_bilingual_readmes_exist(self):
+        """Verify that English and German documentation files exist."""
+        readme_en = ROOT / "README.md"
+        readme_de = ROOT / "README_de.md"
+        self.assertTrue(readme_en.is_file(), "README.md must exist")
+        self.assertTrue(readme_de.is_file(), "README_de.md must exist")
+
+    def test_ellmos_module_manifests(self):
+        """Verify ellmos-module JSON manifests match package metadata."""
+        m1_file = ROOT / "ellmos-module.json"
+        if m1_file.exists():
+            data1 = json.loads(m1_file.read_text(encoding="utf-8"))
+            self.assertEqual(data1.get("version"), self._pyproject_version())
+
+        m2_file = ROOT / "ellmos-module.v2.json"
+        if m2_file.exists():
+            data2 = json.loads(m2_file.read_text(encoding="utf-8"))
+            repo = data2.get("source_of_truth", {}).get("repository")
+            self.assertEqual(repo, "https://github.com/ellmos-ai/sqlite-transit-sync")
 
 
 if __name__ == "__main__":

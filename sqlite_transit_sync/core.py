@@ -9,11 +9,11 @@ import re
 import socket
 import sqlite3
 import tempfile
+from collections.abc import Sequence
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import Any, Protocol, Sequence
-
+from typing import Any, Protocol
 
 PROTOCOL_VERSION = 1
 SNAPSHOT_SUFFIX = ".sqlite-snapshot"
@@ -36,7 +36,7 @@ class SecretPattern:
     """One credential trigger: label, matcher and optional SQL pre-filter."""
 
     name: str
-    regex: "re.Pattern[str]"
+    regex: re.Pattern[str]
     prefilter: str | None = None
 
 
@@ -211,12 +211,12 @@ class SyncConfig:
             raise ValueError("Replicas must not be stored inside the transit directory")
 
     @classmethod
-    def from_file(cls, path: str | Path) -> "SyncConfig":
+    def from_file(cls, path: str | Path) -> SyncConfig:
         config_path = Path(path).expanduser().resolve()
         return cls.from_bytes(config_path.read_bytes(), source_path=config_path)
 
     @classmethod
-    def from_bytes(cls, payload: bytes, *, source_path: str | Path) -> "SyncConfig":
+    def from_bytes(cls, payload: bytes, *, source_path: str | Path) -> SyncConfig:
         """Parse exact config bytes using paths relative to their source file."""
         config_path = Path(source_path).expanduser().resolve()
         raw = json.loads(payload.decode("utf-8"))

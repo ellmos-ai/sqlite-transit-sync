@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "name": "sqlite-transit-sync",
-  "version": "0.1.0",
+  "version": "0.4.0",
   "status": "development",
   "type": "python-module",
   "package": "sqlite_transit_sync",
@@ -22,4 +22,3 @@
   "data_policy": "local-live-database; shared-verified-snapshots",
   "license": "MIT"
 }
-

@@ -1,6 +1,9 @@
 # Changelog
 
-## Unreleased
+## [0.4.0] — 2026-08-14
+
+- **Code-Hygiene & Linting:** Added Ruff configuration to `pyproject.toml`, modernized type annotations (`collections.abc.Sequence`, `collections.abc.Iterator`, `re.Pattern[str]`), cleaned unused imports, and formatted test assertions.
+- **Metadata- & Badge-Harmonisierung:** Updated Shields.io badges in `README.md` and `README_de.md` (`Ecosystem: ellmos-ai`, `tests-70/70 passed`), synchronized `llms.txt`, `ellmos-module.json`, and `ellmos-module.v2.json`, and added metadata parity tests in `tests/test_metadata.py`.
 
 - **Selected pending pull:** new `TransitSync.pull_selected()` lets lifecycle adapters process
   an explicit verified pending subset while reusing the carrier's merge transaction and state

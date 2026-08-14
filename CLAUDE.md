@@ -2,11 +2,11 @@
 name: "sqlite-transit-sync"
 type: project-docs
 profile: "STANDARD"
-version: 0.1.0
+version: 0.4.0
 created: "2026-07-11"
-updated: "2026-07-11"
-reason_last_change: "Neutrale Extraktion aus BACH-ProSync"
-last_verified: "2026-07-11"
+updated: "2026-08-14"
+reason_last_change: "Code-Hygiene, Ruff-Linting, Metadaten- & Badge-Harmonisierung"
+last_verified: "2026-08-14"
 author: "Lukas Geiger / ellmos / BACH Contributors"
 anthropic_compatible: true
 description: |

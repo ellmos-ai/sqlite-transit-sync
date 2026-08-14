@@ -181,7 +181,7 @@ class RepublicaTransitTests(unittest.TestCase):
         raw = snapshot.path.read_bytes()
         self.assertNotIn(b"payload 0", raw)
         self.assertNotIn(b"CREATE TABLE", raw)
-        self.assertNotIn("Grüße".encode("utf-8"), raw)
+        self.assertNotIn("Grüße".encode(), raw)
         # Not a SQLite file either: the transport carries ciphertext, not a database.
         self.assertFalse(raw.startswith(b"SQLite format 3"))
 
@@ -387,7 +387,7 @@ class SealedEnvelopeTests(unittest.TestCase):
         envelope = self.a.envelope_send(self.secret_file, label="hetzner-api-token")
         raw = envelope.path.read_bytes()
         self.assertNotIn(b"Z" * 40, raw)
-        self.assertNotIn("Grüße".encode("utf-8"), raw)
+        self.assertNotIn("Grüße".encode(), raw)
         # The manifest travels in the clear: it may name the purpose, never the secret,
         # and never where the secret lives on the sending machine.
         manifest = json.loads(envelope.manifest_path.read_text(encoding="utf-8"))
