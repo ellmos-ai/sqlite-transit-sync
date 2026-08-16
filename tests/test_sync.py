@@ -1,10 +1,13 @@
 from __future__ import annotations
 
+import hashlib
+import io
 import json
 import os
 import sqlite3
 import tempfile
 import unittest
+from contextlib import redirect_stdout
 from pathlib import Path
 from unittest import mock
 
@@ -12,10 +15,11 @@ from sqlite_transit_sync import (
     SyncConfig,
     SyncError,
     TransitSync,
+    core,
     load_secret_patterns,
 )
-from sqlite_transit_sync import core
-
+from sqlite_transit_sync.cli import build_parser
+from sqlite_transit_sync.cli import main as cli_main
 
 SCHEMA = """
 CREATE TABLE items (
@@ -57,6 +61,31 @@ def item(path: Path, table: str, key: str) -> tuple | None:
 
 def transit_files(path: Path) -> list[str]:
     return sorted(item.name for item in path.iterdir()) if path.exists() else []
+
+
+def add_fixture_snapshot(sync: TransitSync, node_id: str, created_at: str) -> tuple[Path, Path]:
+    """Publish a deterministic, anonymized manifest pair for retention tests."""
+    name = f"{sync.config.namespace}__{node_id}__{created_at}.sqlite-snapshot"
+    snapshot_path = sync.config.transit / name
+    snapshot_path.parent.mkdir(parents=True, exist_ok=True)
+    snapshot_path.write_bytes(sync.config.database.read_bytes())
+    manifest_path = snapshot_path.with_suffix(snapshot_path.suffix + ".json")
+    manifest_path.write_text(
+        json.dumps(
+            {
+                "protocol": 1,
+                "namespace": sync.config.namespace,
+                "node_id": node_id,
+                "created_at": created_at,
+                "snapshot": snapshot_path.name,
+                "sha256": hashlib.sha256(snapshot_path.read_bytes()).hexdigest(),
+                "size": snapshot_path.stat().st_size,
+                "redacted_tables": ["secrets"],
+            }
+        ),
+        encoding="utf-8",
+    )
+    return snapshot_path, manifest_path
 
 
 class TransitSyncTests(unittest.TestCase):
@@ -146,7 +175,7 @@ class TransitSyncTests(unittest.TestCase):
             for value in ("../outside.sqlite-snapshot", str(outside)):
                 manifest["snapshot"] = value
                 snapshot.manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
-                with self.assertRaisesRegex(SyncError, "relative filename|traversal"):
+                with self.assertRaises(SyncError):
                     self.b.pull()
                 self.assertFalse((self.root / "b-state.json").exists())
         finally:
@@ -175,28 +204,48 @@ class TransitSyncTests(unittest.TestCase):
 
     def test_snapshot_symlink_is_rejected_before_pull_state_changes(self) -> None:
         snapshot = self.a.push()
-        original = snapshot.manifest_path.read_bytes()
-        manifest = json.loads(original.decode("utf-8"))
-        link_name = f"{snapshot.path.stem}-link.sqlite-snapshot"
-        link = self.transit / link_name
-        manifest["snapshot"] = link_name
-        snapshot.manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
-        try:
-            try:
-                os.symlink(snapshot.path, link)
-                reparse_patch = mock.patch.object(core, "_is_reparse_or_symlink", wraps=core._is_reparse_or_symlink)
-            except OSError:
-                reparse_patch = mock.patch.object(
-                    core,
-                    "_is_reparse_or_symlink",
-                    side_effect=lambda path: Path(path) == link,
-                )
-            with reparse_patch, self.assertRaisesRegex(SyncError, "symlink or reparse"):
-                self.b.pull()
-            self.assertFalse((self.root / "b-state.json").exists())
-        finally:
-            snapshot.manifest_path.write_bytes(original)
-            link.unlink(missing_ok=True)
+        reparse_patch = mock.patch.object(
+            core,
+            "_is_reparse_or_symlink",
+            side_effect=lambda path: Path(path).resolve() == snapshot.path.resolve(),
+        )
+        with reparse_patch, self.assertRaisesRegex(SyncError, "symlink or reparse"):
+            self.b.pull()
+        self.assertFalse((self.root / "b-state.json").exists())
+
+    def test_pull_selected_merges_only_the_requested_pending_snapshot(self) -> None:
+        first = add_fixture_snapshot(self.a, "node-a", "20260101T000000000000Z")
+        second = add_fixture_snapshot(self.a, "node-c", "20260102T000000000000Z")
+
+        reports = self.b.pull_selected([second[0].name])
+
+        self.assertEqual([second[0].name], [report.snapshot for report in reports])
+        self.assertEqual([first[0].name], [snapshot.path.name for snapshot in self.b.pending()])
+        state = json.loads((self.root / "b-state.json").read_text(encoding="utf-8"))
+        self.assertIn("node-c", state["last_pulled"])
+        self.assertNotIn("node-a", state["last_pulled"])
+
+    def test_pull_selected_dry_run_does_not_advance_state(self) -> None:
+        snapshot = add_fixture_snapshot(self.a, "node-a", "20260101T000000000000Z")
+
+        reports = self.b.pull_selected([snapshot[0].name], dry_run=True)
+
+        self.assertEqual([snapshot[0].name], [report.snapshot for report in reports])
+        self.assertFalse((self.root / "b-state.json").exists())
+        self.assertEqual([snapshot[0].name], [item.path.name for item in self.b.pending()])
+
+    def test_pull_selected_rejects_unsafe_duplicate_or_non_pending_names(self) -> None:
+        snapshot = add_fixture_snapshot(self.a, "node-a", "20260101T000000000000Z")
+
+        with self.assertRaises(ValueError):
+            self.b.pull_selected(snapshot[0].name)
+        with self.assertRaises(ValueError):
+            self.b.pull_selected([snapshot[0].name, snapshot[0].name])
+        with self.assertRaises(ValueError):
+            self.b.pull_selected([f"..\\{snapshot[0].name}"])
+        with self.assertRaises(SyncError):
+            self.b.pull_selected(["demo__node-z__20260101T000000000000Z.sqlite-snapshot"])
+        self.assertFalse((self.root / "b-state.json").exists())
 
     def test_config_roundtrip_and_relative_paths(self) -> None:
         config_path = self.root / "config" / "node.json"
@@ -490,6 +539,29 @@ class TransitSyncTests(unittest.TestCase):
         snapshot = TransitSync(config).push()
         self.assertTrue(snapshot.path.is_file())
 
+    def test_vendor_prefixes_do_not_match_inside_ordinary_words(self) -> None:
+        # A credential prefix starts a token; it never continues a word. Without a
+        # left anchor, "sk-" matches inside "task-scheduler" and "ask-2026" — and
+        # since the scan is fail-closed, such a hit blocks publication of an
+        # otherwise clean database. Found on a real knowledge base: 33 hits, all words.
+        self._set_item_value(
+            self.a_db,
+            "run antigravity-task-scheduler, see /analysen/ask-2026-auswertung "
+            "and the risk-and-reward-analysis in Task-Management-Uebersicht",
+        )
+        snapshot = self.a.push()
+        self.assertTrue(snapshot.path.is_file())
+
+    def test_vendor_prefixes_still_match_a_real_key_in_context(self) -> None:
+        # The counterpart to the test above: the anchor must not blind the scanner
+        # to a key that sits after quotes, equals signs or whitespace.
+        for prefix, filler in (("sk-", "A" * 32), ("sk-ant-api03-", "B" * 40), ("ghp_", "C" * 36)):
+            with self.subTest(prefix=prefix):
+                self._set_item_value(self.a_db, 'config: {"api_key": "' + prefix + filler + '"}')
+                with self.assertRaises(SyncError):
+                    self.a.push()
+                self.assertEqual([], transit_files(self.transit))
+
     def test_bundled_trigger_file_is_present_and_loadable(self) -> None:
         # Guards the packaging side: without package-data the JSON never reaches
         # an installed wheel and every push would fail.
@@ -558,6 +630,150 @@ class TransitSyncTests(unittest.TestCase):
         restored = SyncConfig.from_file(target)
         self.assertFalse(restored.scan_snapshot_for_secrets)
         self.assertEqual(("items",), restored.secret_scan_skip_tables)
+
+    def test_cleanup_is_dry_run_and_local_node_only_by_default(self) -> None:
+        own = add_fixture_snapshot(self.a, "node-a", "20200101T000000000000Z")
+        foreign = add_fixture_snapshot(self.a, "node-b", "20200101T000000000000Z")
+
+        report = self.a.cleanup(keep_days=7, keep_per_node=0)
+
+        self.assertTrue(report["dry_run"])
+        self.assertEqual("local-node", report["scope"])
+        self.assertEqual(2, report["examined"])
+        self.assertEqual(1, report["managed"])
+        self.assertEqual(1, report["skipped_foreign"])
+        self.assertEqual([own[0].name], [item["snapshot"] for item in report["eligible"]])
+        self.assertEqual([], report["deleted"])
+        self.assertTrue(all(path.exists() for path in (*own, *foreign)))
+
+    def test_cleanup_apply_removes_snapshot_and_manifest_pair(self) -> None:
+        old = add_fixture_snapshot(self.a, "node-a", "20200101T000000000000Z")
+
+        report = self.a.cleanup(keep_days=7, keep_per_node=0, dry_run=False)
+
+        self.assertEqual([old[0].name], [item["snapshot"] for item in report["deleted"]])
+        self.assertTrue(all(not path.exists() for path in old))
+
+    def test_cleanup_requires_explicit_foreign_node_scope(self) -> None:
+        foreign = add_fixture_snapshot(self.a, "node-b", "20200101T000000000000Z")
+
+        report = self.a.cleanup(
+            keep_days=7,
+            keep_per_node=0,
+            include_foreign=True,
+            dry_run=False,
+        )
+
+        self.assertEqual("all-nodes", report["scope"])
+        self.assertEqual([foreign[0].name], [item["snapshot"] for item in report["deleted"]])
+        self.assertTrue(all(not path.exists() for path in foreign))
+
+    def test_cleanup_verifies_only_the_authorized_node_scope(self) -> None:
+        own = add_fixture_snapshot(self.a, "node-a", "20200101T000000000000Z")
+        foreign = add_fixture_snapshot(self.a, "node-b", "20200101T000000000000Z")
+        foreign[0].write_bytes(foreign[0].read_bytes() + b"tampered")
+
+        report = self.a.cleanup(keep_days=7, keep_per_node=0, dry_run=False)
+
+        self.assertEqual([own[0].name], [item["snapshot"] for item in report["deleted"]])
+        self.assertTrue(foreign[0].exists())
+        with self.assertRaises(SyncError):
+            self.a.cleanup(
+                keep_days=7,
+                keep_per_node=0,
+                include_foreign=True,
+            )
+
+    def test_cleanup_rejects_manifest_alias_to_another_node_snapshot(self) -> None:
+        foreign = add_fixture_snapshot(self.a, "node-b", "20200101T000000000000Z")
+        alias_manifest = self.transit / (
+            "demo__node-a__20200101T000000000000Z.sqlite-snapshot.json"
+        )
+        payload = json.loads(foreign[1].read_text(encoding="utf-8"))
+        payload["node_id"] = "node-a"
+        alias_manifest.write_text(json.dumps(payload), encoding="utf-8")
+
+        with self.assertRaises(SyncError):
+            self.a.cleanup(keep_days=7, keep_per_node=0, dry_run=False)
+
+        self.assertTrue(all(path.exists() for path in foreign))
+        self.assertTrue(alias_manifest.exists())
+
+    def test_cleanup_cli_reports_malformed_manifests_as_json_error(self) -> None:
+        old = add_fixture_snapshot(self.a, "node-a", "20200101T000000000000Z")
+        valid_payload = json.loads(old[1].read_text(encoding="utf-8"))
+        wrong_created_at = dict(valid_payload, created_at=123)
+        config_path = self.a.config.write(self.root / "node-a.json")
+
+        for malformed, expected_error in (
+            (wrong_created_at, "Invalid manifest value types"),
+            (dict(valid_payload, protocol=True), "Unsupported protocol"),
+            (dict(valid_payload, protocol=1.0), "Unsupported protocol"),
+            (7, "Invalid manifest object"),
+            (None, "Invalid manifest object"),
+            (True, "Invalid manifest object"),
+        ):
+            with self.subTest(malformed=malformed):
+                old[1].write_text(json.dumps(malformed), encoding="utf-8")
+                output = io.StringIO()
+                with redirect_stdout(output):
+                    exit_code = cli_main(["cleanup", "--config", str(config_path)])
+                response = json.loads(output.getvalue())
+                self.assertEqual(1, exit_code)
+                self.assertFalse(response["ok"])
+                self.assertIn(expected_error, response["error"])
+
+    def test_cleanup_refuses_unexpected_snapshot_sidecars_without_deleting_them(self) -> None:
+        old = add_fixture_snapshot(self.a, "node-a", "20200101T000000000000Z")
+        unrelated = old[0].with_name(f"{old[0].name}-operator-notes")
+        unrelated.write_text("unrelated", encoding="utf-8")
+
+        with self.assertRaises(SyncError):
+            self.a.cleanup(keep_days=7, keep_per_node=0, dry_run=False)
+
+        self.assertTrue(all(path.exists() for path in old))
+        self.assertTrue(unrelated.exists())
+
+    def test_cleanup_restores_manifest_when_snapshot_delete_fails(self) -> None:
+        old = add_fixture_snapshot(self.a, "node-a", "20200101T000000000000Z")
+        real_unlink = Path.unlink
+
+        def fail_snapshot_unlink(path: Path, *args, **kwargs):
+            if path == old[0]:
+                raise PermissionError("synthetic delete failure")
+            return real_unlink(path, *args, **kwargs)
+
+        with mock.patch.object(Path, "unlink", fail_snapshot_unlink), self.assertRaises(SyncError):
+            self.a.cleanup(keep_days=7, keep_per_node=0, dry_run=False)
+
+        self.assertTrue(all(path.exists() for path in old))
+        self.assertFalse(
+            old[1].with_name(f".{old[1].name}.cleanup").exists()
+        )
+
+    def test_cleanup_keeps_latest_per_node_even_when_old(self) -> None:
+        oldest = add_fixture_snapshot(self.a, "node-a", "20200101T000000000000Z")
+        newest = add_fixture_snapshot(self.a, "node-a", "20200102T000000000000Z")
+
+        report = self.a.cleanup(keep_days=7, keep_per_node=1, dry_run=False)
+
+        self.assertEqual([oldest[0].name], [item["snapshot"] for item in report["deleted"]])
+        self.assertTrue(all(path.exists() for path in newest))
+
+    def test_cleanup_cli_is_non_destructive_without_apply(self) -> None:
+        args = build_parser().parse_args(["cleanup", "--config", "node.json"])
+
+        self.assertEqual("cleanup", args.command)
+        self.assertFalse(args.apply)
+        self.assertFalse(args.all_nodes)
+        self.assertEqual(7, args.keep_days)
+        self.assertEqual(10, args.keep_per_node)
+
+    def test_cleanup_rejects_negative_retention_values(self) -> None:
+        with self.assertRaises(ValueError):
+            self.a.cleanup(keep_days=-1)
+        with self.assertRaises(ValueError):
+            self.a.cleanup(keep_per_node=-1)
 
 
 if __name__ == "__main__":

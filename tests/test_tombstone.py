@@ -14,7 +14,6 @@ from sqlite_transit_sync import (
     ensure_tombstone_table,
 )
 
-
 SCHEMA = """
 CREATE TABLE items (
     id TEXT PRIMARY KEY,

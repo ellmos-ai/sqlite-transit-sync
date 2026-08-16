@@ -2,8 +2,8 @@
 
 > Local-first SQLite synchronization through verified transit snapshots and configurable row-level merge policies. Extracted from the BACH ProSync architecture for standalone, zero-dependency Python projects.
 
-- Last-checked: 2026-08-10
-- Version: 0.2.0
+- Last-checked: 2026-08-16
+- Version: 0.4.0
 - Module status: `development`; visibility projection: `public-candidate`; release gate: `LOCKED`.
 - Metadata contract: `METADATA_CONTRACT.md` (version, status and verification authority).
 - Architecture: Local-First / Zero-Dependency / Snapshot-based Transit
@@ -11,7 +11,7 @@
 
 ## System Overview
 
-`sqlite-transit-sync` is a Python 3.10+ zero-dependency library and CLI for synchronizing local SQLite databases across untrusted or asynchronous file transports (shared folders, object-store mounts, removable drives, or sync-master yards). The current bundle adds an opt-in ownership-aware retention policy and a synthetic BACH golden comparison that stays blocked without authorized reference results. The local collection is 53 tests; no live SQLite database, BACH runtime or external transport is used. The CLI has no global `--version` option.
+`sqlite-transit-sync` is a Python 3.10+ library (zero dependencies for merge mode; the optional Republica mode adds `cryptography`) and CLI for synchronizing local SQLite databases across untrusted or asynchronous file transports (shared folders, object-store mounts, removable drives, or sync-master yards). Includes ownership-aware snapshot retention policies, HMAC-SHA256 authentication, and synthetic BACH golden comparison. Verified 96/96 passing test suite on 2026-08-16.
 
 It avoids live SQLite database locking over file sync by using:
 1. Online consistent snapshots via SQLite Backup API (`sqlite3.Connection.backup`).
@@ -28,10 +28,11 @@ It avoids live SQLite database locking over file sync by using:
 
 ## Key Features
 
-- **Zero External Dependencies**: Standard library Python 3.10+ only.
+- **Zero External Dependencies (core)**: Standard library Python 3.10+ only for `push`/`pull`. The optional Republica mode adds `cryptography` via `pip install 'sqlite-transit-sync[crypto]'`.
 - **Atomic & Safe Transit**: Never syncs live SQLite files directly. Uses isolated snapshot zones.
 - **Configurable Merge Policies**: Built-in `LastWriteWinsPolicy` and support for custom domain `MergePolicy` implementations (tombstones, CRDTs).
 - **Data Privacy & Exclusion**: Exclude sensitive tables from transit snapshots with post-delete `VACUUM`.
+- **Conservative Retention**: `cleanup` verifies snapshot pairs and only plans local-node deletion by default; `--apply` and `--all-nodes` are explicit authority gates.
 - **CLI & Python API**: Declarative JSON configuration (`node.json`) and programmatic `TransitSync` API.
 
 ## Core Workflows & CLI Reference
@@ -59,7 +60,54 @@ sqlite-transit-sync status --config node.json
 
 # Verify integrity of local database and transit manifests
 sqlite-transit-sync verify --config node.json
+
+# Plan retention cleanup (dry-run); add --apply only after reviewing the JSON result
+sqlite-transit-sync cleanup --config node.json [--keep-days 7] [--keep-per-node 10] [--all-nodes] [--apply]
 ```
+
+### Republica - the showcase method (one-way, encrypted; requires `[crypto]` extra)
+
+Each node publishes an encrypted showcase of its database into a shared file area.
+`republica-import` writes a separate read-only database per source node under
+`republica_root` and never touches the local one. Designed as a PERMANENT fallback layer
+next to direct tunnel-based sync, not as a migration step: when a host is offline, a VPN is
+down or a trust setup is pending, Republica still carries; when the shared folder breaks,
+direct sync still carries. Setup cost is one key transfer over any channel that is not the
+transport itself.
+
+```bash
+# Generate the shared Fernet key - local disk only, never inside the transit.
+# Copy it to the other machines out of band; do NOT run keygen there.
+sqlite-transit-sync keygen --key-file ~/.keys/republica.key
+
+# Publish: backup -> curated SQL dump -> gzip -> Fernet -> transit/<node>/
+sqlite-transit-sync republica-publish --config node.json
+
+# List showcases other nodes offer
+sqlite-transit-sync republica-list --config node.json
+
+# Decrypt, restore and rebuild FTS into republica_root/<source-node>/<namespace>.sqlite
+sqlite-transit-sync republica-import --config node.json [--node <source>]
+```
+
+Config keys: `key_file`, `republica_root`, `allow_key_in_synced_folder`.
+Guarantees: content is never in the clear in transit; Fernet HMAC detects deliberate
+modification even with a recomputed manifest hash; an imported showcase is never merged.
+Limit: Fernet authenticates the key, not the sender - node identity is out of scope.
+
+### Sealed envelope (single encrypted file, same channel and key)
+
+For the bootstrap problem: two machines share no secure channel yet and a credential must
+cross. The plaintext arrives AS A FILE (mode 0600) and never enters a database.
+
+```bash
+sqlite-transit-sync envelope-send    --config node.json --file ./api-token.txt --label api-token
+sqlite-transit-sync envelope-receive --config node.json --into ~/credentials [--keep]
+```
+
+Inverted rules vs. showcases: the credential scan does not apply (it would block the payload
+being moved), and the envelope is removed from the transit after receipt. Unsealing into the
+transit or a cloud-synced folder is refused; the filename is re-sanitised on arrival.
 
 ## Python API Usage
 
@@ -77,6 +125,9 @@ print(f"Snapshot created: {snapshot.sha256}")
 reports = sync.pull()
 for r in reports:
     print(f"Merged node {r.source_node_id}: {r.rows_inserted} inserted, {r.rows_updated} updated")
+
+# Dry-run by default; manages this node only unless include_foreign=True
+cleanup_plan = sync.cleanup(keep_days=7, keep_per_node=10)
 ```
 
 ## Recommended Search Phrases
@@ -90,7 +141,7 @@ for r in reports:
 
 ## Repository & Ecosystem Links
 
-- **Repository**: [dev-bricks/sqlite-transit-sync](https://github.com/dev-bricks/sqlite-transit-sync)
+- **Repository**: [ellmos-ai/sqlite-transit-sync](https://github.com/ellmos-ai/sqlite-transit-sync)
 - **File Transport Companion**: [dev-bricks/sync-master](https://github.com/dev-bricks/sync-master)
 - **Ecosystem Catalog**: [ellmos-ai/stacks](https://github.com/ellmos-ai/stacks)
 - **Main Organization**: [dev-bricks](https://github.com/dev-bricks)

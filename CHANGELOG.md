@@ -1,48 +1,17 @@
 # Changelog
 
-## Unreleased
-
-- 2026-08-13: `SnapshotRetentionPolicy` und der versionierte
-  `retention-report.v1`-Auditvertrag ergänzt. Die Policy ist opt-in und
-  standardmäßig Dry-Run; nur verifizierte, eigene, nicht ausstehende und
-  ausdrücklich bestätigte Snapshot-Paare können nach Alters-/Count-Regel
-  geplant werden. Fremde, unbekannte, unvollständige und ungeprüfte Artefakte
-  bleiben erhalten; Mutationen verifizieren direkt vor dem Löschen und sind
-  idempotent. Synthetische Tests decken Grenzwerte, Restart, Audit und
-  Löschfehler ab.
-- 2026-08-13: Sieben synthetische BACH-Golden-Szenarien und der reproduzierbare
-  Vergleich `scripts/compare_bach_golden.py` ergänzt. Der Bericht ist bis zu
-  autorisierten BACH-Referenzergebnissen absichtlich
-  `blocked_no_authorized_bach_golden`; kein Adapter oder BACH-Runtime-Zugriff
-  wurde implementiert. Die lokale Sammlung umfasst 53 Tests.
-
-- 2026-08-10: Optionalen `HMACSnapshotAuthenticator` mit kanonischer
-  Manifest-Nutzlast, Sender-/Key-ID-Prüfung, Rotation und fail-closed
-  Authentifizierungsfehlern ergänzt. `SyncConfig` weist State-Pfade im oder
-  gleich dem Transit vor jedem Write zurück. `TombstoneMergePolicy` und die
-  explizite `__sqlite_transit_tombstones`-Referenz mit Versions-/Retention-
-  Vertrag bleiben von der Standard-LWW-Policy getrennt.
-- Neue synthetische Adapter-, State-/CLI- und Multi-Node-Tombstone-Tests erhöhen
-  die autoritative Sammlung auf 45; keine echten Schlüssel, Datenbanken,
-  Transporte oder Veröffentlichungsaktionen verwendet.
-- 2026-08-10: Version-, Status- und Verifikationsvertrag in
-  `METADATA_CONTRACT.md` vereinheitlicht; Manifest-/Snapshot-Pfade werden vor
-  Hash, SQLite-Prüfung und Merge auf direkten regulären Transit-Dateien
-  begrenzt (inklusive Traversal-, Symlink- und Reparse-Regressionstests).
-  Release-Gate, CI-Matrix und synthetische JSON-CLI-Smokes sind reproduzierbar
-  beschrieben; der Gate-Status bleibt `LOCKED`, weil der vorgeschriebene
-  externe Helper aktuell nicht auf dem autorisierten Commit steht.
-- Vor dem Adapter-Bündel lag die Maintainer-Verifikation am 2026-08-10 bei
-  34/34 Tests; sie ist durch den aktuellen 45-Test-Readback oben ersetzt.
-- Maintainer-Verifikation am 2026-08-10: `unittest discover` und Pytest mit
-  jeweils 26/26 bestanden, `compileall` und Ruff bestanden; CLI-Help
-  (`--help`, `init --help`) sowie der Paket-Versions-Smoke
-  (`__version__ == 0.2.0`) erfolgreich. Die CLI definiert keinen globalen
-  `--version`-Schalter. Keine Live-Datenbank-, Transport-, Release- oder
-  Cloud-Aktion.
-- Maintainer-Verifikation am 2026-08-01: `unittest discover` und Pytest mit
-  26/26 bestanden, `compileall` sowie CLI-Help und Versions-Smoke erfolgreich;
-  `llms.txt`-Prüfdatum aktualisiert. Keine Release-Gate- oder Cloud-Aktion.
+- **Discoverability, README-Design & Metadata Parity Check:** Synchronized Shields.io badges in `README.md` and `README_de.md` (`Ecosystem: ellmos-ai`, `Umbrella: open-bricks`, `version-0.4.0`, `tests-96/96 passed`), synchronized `llms.txt`, `ellmos-module.json`, `ellmos-module.v2.json`, and dynamic metadata parity tests in `tests/test_metadata.py` (96/96 passed, 100% green) [G 2026-08-16].
+- **Code-Hygiene & Linting:** Added Ruff configuration to `pyproject.toml`, modernized type annotations (`collections.abc.Sequence`, `collections.abc.Iterator`, `re.Pattern[str]`), cleaned unused imports, and formatted test assertions.
+- **Snapshot Retention Policy:** `SnapshotRetentionPolicy` and versioned `retention-report.v1` audit contract added. Opt-in and dry-run by default; verified, owner-scoped, non-pending, explicitly acknowledged snapshot pairs planned by age/count rules.
+- **BACH Golden Compatibility Comparison:** Added 7 synthetic BACH golden scenarios and reproducible comparison via `scripts/compare_bach_golden.py` (`blocked_no_authorized_bach_golden` status without authorized reference inputs).
+- **Authenticated Manifests:** Added optional `HMACSnapshotAuthenticator` with canonical manifest envelope, sender/key verification, and rotation.
+- **Tombstone Reference Policy:** Added `TombstoneMergePolicy` with explicit `__sqlite_transit_tombstones` tracking.
+- **Selected Pending Pull:** Added `TransitSync.pull_selected()` for lifecycle adapters to process explicit pending snapshots safely.
+- **Conservative Direct-Snapshot Cleanup:** Added `TransitSync.cleanup()` and CLI `cleanup` with verified age and per-node retention planning.
+- **Discoverability:** Corrected canonical repository owner to `ellmos-ai` in package metadata, `llms.txt`, and release documentation.
+- **Republica Mode:** One-way encrypted showcase distribution mode (`republica.py`, `RepublicaTransit`, `publish` / `republica-import`) and sealed envelopes (`envelope-send` / `envelope-receive`).
+- **FTS Virtual Table Restoration:** Curated SQL dump handling and automatic full-text index rebuilding on import.
+- **Credential Scan Left-Anchoring:** Left-anchored regex prefix triggers with `(?<![A-Za-z0-9])` in `credential-triggers.json` (v2) to eliminate false-positive substring blocking on clean words.
 - Close every backup into `DELETE` journal mode before publication and remove the
   complete temporary SQLite artifact family on backup, redaction, credential-scan,
   verification, or manifest failure. WAL source databases can no longer leave

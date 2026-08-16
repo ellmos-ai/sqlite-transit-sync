@@ -5,10 +5,12 @@
 
 [English](README.md) | [Deutsch](README_de.md)
 
-[![License](https://img.shields.io/github/license/dev-bricks/sqlite-transit-sync)](LICENSE)
+[![License](https://img.shields.io/github/license/ellmos-ai/sqlite-transit-sync)](LICENSE)
 [![Python Version](https://img.shields.io/badge/python->=3.10-blue.svg)](https://www.python.org/)
-[![Architecture](https://img.shields.io/badge/architecture-local--first-success.svg)](#part-of-the-ellmos-stack-family)
-[![Tests](https://img.shields.io/badge/tests-53%2F53%20passed-brightgreen.svg)](#tests)
+[![Ecosystem: ellmos-ai](https://img.shields.io/badge/Ecosystem-ellmos--ai-blue.svg)](https://github.com/ellmos-ai)
+[![Umbrella: open-bricks](https://img.shields.io/badge/Umbrella-open--bricks-purple.svg)](https://github.com/open-bricks)
+[![Version](https://img.shields.io/badge/version-0.4.0-blue.svg)](CHANGELOG.md)
+[![Tests](https://img.shields.io/badge/tests-96%2F96%20passed-brightgreen.svg)](#tests)
 [![llms.txt](https://img.shields.io/badge/llms.txt-available-informational.svg)](llms.txt)
 
 > [!NOTE]
@@ -85,7 +87,14 @@ application-selectable merge policies.
   contains credential-shaped values (on by default; reports `table.column`, never
   the value itself);
 - custom `MergePolicy` support for domain rules, tombstones or CRDTs;
-- dependency-free Python API and JSON CLI.
+- verified snapshot cleanup with a dry-run default, local-node scope by default,
+  and explicit opt-ins for deletion and foreign-node administration;
+- selected pending pulls for thin application lifecycle adapters without duplicating merge or
+  state-advancement logic;
+- an optional [Republica showcase mode](#republica--the-showcase-method) that distributes a database
+  one way as an encrypted payload and materialises it as a separate read-only showcase,
+  instead of merging it;
+- dependency-free Python API and JSON CLI (Republica mode adds `cryptography`).
 
 ## Install
 
@@ -111,6 +120,9 @@ sqlite-transit-sync pull --config node.json --dry-run
 sqlite-transit-sync pull --config node.json
 sqlite-transit-sync status --config node.json
 sqlite-transit-sync verify --config node.json
+sqlite-transit-sync cleanup --config node.json
+# Review the JSON plan, then explicitly apply it:
+sqlite-transit-sync cleanup --config node.json --apply
 ```
 
 The application schema must already exist on each node. Automatic first-copy
@@ -174,6 +186,9 @@ config_sha256 = hashlib.sha256(payload).hexdigest()
 | `secret_scan_skip_tables` | `[]` | Tables the scan ignores — use for a single noisy table instead of disabling the scan |
 | `secret_scan_extra_patterns` | `[]` | Additional regexes, on top of the trigger file |
 | `secret_patterns_file` | `null` (bundled file) | Path to your own trigger file; **replaces** the built-in patterns |
+| `key_file` | `null`, else `$SQLITE_TRANSIT_SYNC_KEY_FILE` | Fernet key for Republica mode; must stay outside the transit |
+| `republica_root` | `~/.republica` | Where imported showcases are written; must stay outside the transit |
+| `allow_key_in_synced_folder` | `false` | Waives the check that refuses a key inside a cloud-sync folder |
 
 The `state` default in this table applies when a JSON configuration is loaded
 without that key. `sqlite-transit-sync init` instead writes
@@ -230,6 +245,104 @@ a scanner with a high false-positive rate gets switched off, which protects noth
 Treat a clean scan as "no known pattern matched", never as "this snapshot is free of
 secrets".
 
+## Republica — the showcase method
+
+Each machine puts an **encrypted showcase** of its database into a shared file area. Every
+other machine can look at it; none can change it. Hence the name — a re-publication of a
+database, readable only by whoever holds the key.
+
+Use it when `push`/`pull` does not fit: you want to *read* what another node knows without
+merging it into your rows, or the only thing the machines share is a folder — no server, no
+open ports, no trust setup — and that folder must not see your content in the clear.
+
+### Two modes, deliberately redundant
+
+Republica is **not a stopgap until a proper tunnel exists.** It is the second of two modes
+meant to run side by side, so that a failure in one does not stop the other:
+
+| Failure | Direct sync (`push`/`pull`) | Republica |
+|---|---|---|
+| A machine is asleep or offline | stalls (no peer) | keeps working — drop off now, pick up later |
+| VPN/SSH down, network blocks the tunnel | stalls | keeps working over the file area |
+| Key rotation or trust setup pending | stalls | keeps working with the shared key |
+| Shared folder broken, full or desynced | keeps working | stalls |
+| No merge policy agreed for a dataset | not applicable | keeps working — nothing is merged |
+
+The whole value is that it works on the day the other path does not, so keep it configured
+and exercised even while the direct path is healthy.
+
+### Setup cost: one key transfer
+
+The shared key must reach the other machines through **some channel that is not the
+transport itself** — an existing encrypted tunnel, a password manager, a USB stick, reading
+it out over the phone. Once. After that a plain shared folder is enough, forever, even one
+you do not trust.
+
+```text
+republica_root/
+  laptop/my-app.sqlite      <- read-only showcase of laptop's database
+  workstation/my-app.sqlite <- read-only showcase of workstation's database
+```
+
+```bash
+# Once per key, on local disk - never inside the transit, never in a synced folder.
+# Then copy this file to the other machines out of band; do NOT run keygen there.
+sqlite-transit-sync keygen --key-file ~/.keys/republica.key
+
+sqlite-transit-sync init --config node.json \
+  --database ./app.db --transit ./shared-transit \
+  --node-id laptop --namespace my-app \
+  --key-file ~/.keys/republica.key
+
+sqlite-transit-sync republica-publish --config node.json   # encrypt and publish
+sqlite-transit-sync republica-list    --config node.json   # what other nodes offer
+sqlite-transit-sync republica-import  --config node.json   # materialise them locally
+```
+
+Requires the optional cipher: `pip install 'sqlite-transit-sync[crypto]'`.
+
+**What travels** is not a database file but a curated SQL dump, gzip-compressed and
+Fernet-encrypted. On a real 53.6 MB knowledge database that is 11.0 MB in transit, because
+full-text index internals are rebuilt on arrival instead of shipped (35370 of 49636 dump
+statements). The publication passes the same gate as a merge snapshot — redaction,
+credential scan, `quick_check`, manifest.
+
+**What it protects:** the transport sees ciphertext, and Fernet's HMAC detects deliberate
+modification even when the manifest hash was recomputed to match.
+
+**What it does not:** Fernet authenticates the *key*, not the *sender* — anyone holding it
+can publish a valid snapshot. That is exactly why a replica is kept separate and never
+merged. Keep the key out of the transport: a key inside the transit directory is refused,
+and so is one in a folder that looks synchronised (override with
+`allow_key_in_synced_folder`). The same rule applies to `republica_root` — a decrypted
+replica inside the transit would be redistributed in the clear.
+
+**Limit:** a full-text index without its own content (`content=''`) cannot be rebuilt,
+because there is nothing to rebuild it from. Such tables are reported in the manifest as
+`contentless_fts` instead of arriving silently empty.
+
+### Sealed envelope: one file, same channel, never a database
+
+The bootstrap problem: two machines share no secure channel *yet*, and that is exactly why a
+credential has to cross. The same key and the same folder can carry a single encrypted file.
+
+```bash
+sqlite-transit-sync envelope-send    --config node.json --file ./api-token.txt --label api-token
+sqlite-transit-sync envelope-receive --config node.json --into ~/credentials
+```
+
+The file arrives **as a file** (mode `0600`), named `<source-node>__<filename>`, and never
+enters a database — a secret in a database gets copied onward by every backup, index and
+sync that touches it. Notes should record where a secret lives, never the secret.
+
+Two showcase rules are inverted on purpose: the **credential scan does not apply** (it would
+block the very payload being moved), and the envelope is **removed from the transit** after
+receipt, so a secret does not linger in a shared folder. Unsealing into the transit or into a
+folder that looks cloud-synced is refused, and the filename is re-sanitised on arrival so a
+crafted manifest cannot write outside the target directory.
+
+This is a courier, not a password manager and not file sync — keep envelopes few and small.
+
 ## This is not a secrets manager
 
 The scan **removes** credentials from the sync path. It does not **distribute** them.
@@ -257,9 +370,21 @@ from sqlite_transit_sync import SyncConfig, TransitSync
 
 sync = TransitSync(SyncConfig.from_file("node.json"))
 snapshot = sync.push()
+pending = sync.pending()
+selected_reports = sync.pull_selected([pending[-1].path.name]) if pending else []
 reports = sync.pull()
-print(snapshot.sha256, [report.as_dict() for report in reports])
+cleanup_plan = sync.cleanup()
+print(
+    snapshot.sha256,
+    [report.as_dict() for report in reports],
+    [report.as_dict() for report in selected_reports],
+    cleanup_plan,
+)
 ```
+
+`pull_selected()` accepts only explicitly named snapshots that are currently pending and reuses
+the same verification, merge and state gates as `pull()`. A thin lifecycle adapter can therefore
+choose one eligible snapshot without copying the carrier's data mechanics.
 
 ### Optional authenticated manifests
 
@@ -407,8 +532,10 @@ across several permanently operated nodes.
 - Snapshot redaction deletes listed tables and VACUUMs the snapshot, but it must
   still list every table containing credentials or private data; the generic
   module cannot discover domain secrets reliably.
-- Application migrations, clock policy, retention and conflict semantics stay
-  with the integrating application.
+- Application migrations, clock policy, retention parameters and conflict semantics stay
+  with the integrating application. `cleanup` supplies only the mechanism: it verifies every
+  pair, performs a dry-run by default, keeps the newest ten snapshots per node, and manages
+  foreign nodes only when `--all-nodes` is explicit.
 - Run only one sync process per node unless the host application adds a process lock.
 
 See [ARCHITECTURE.md](ARCHITECTURE.md), [README_de.md](README_de.md) and
@@ -418,14 +545,14 @@ See [ARCHITECTURE.md](ARCHITECTURE.md), [README_de.md](README_de.md) and
 
 ## Bundles and partners
 
-Generated discovery projection for `module:sqlite-transit-sync` from `catalog:v4-bundles` (`a52688938bcad21469beb546acfe6dd79ca40196a2bbaf246e5bd6aaac4bbbd7`).
+Generated discovery projection for `module:sqlite-transit-sync` from `catalog:v4-bundles` (`546290dafbaafd810df1d59ef5a3d7183738472b48cd5a8a81f1e8f2b64d852e`).
 Target repository visibility: `public`. Bundle manifests remain the membership authority; this section does not install or activate components.
 Discovery approval: `public` module-registry record, explicit default-deny bundle allowlist.
 
 ### `ellmos-sync-federation-bundle`
 
 - Bundle recipe visibility: `private`; role: `declared-component`; requirement: `recommended`.
-- module partners: `module:cloud-safe-exporter`, `module:receipt-validator`, `module:sync`, `module:system-explorer-export`, `module:system-gap-master`.
+- module partners: `module:cloud-safe-exporter`, `module:direct-beam`, `module:receipt-validator`, `module:sync`, `module:system-explorer-export`, `module:system-gap-master`.
 - skill partners: `skill:agent-config-sync`, `skill:mcp-config-sync`, `skill:system-onboarding`.
 
 Composition and runtime details are intentionally omitted.
@@ -446,7 +573,7 @@ python -m pytest --collect-only -q
 
 The suite uses only synthetic databases and temporary transit directories. The
 CLI help, retention contract, golden comparison and JSON
-init/status/push/list/verify/pull smoke are part of the same 53-test
+init/status/push/list/verify/pull smoke are part of the verified 96-test
 collection; no live database, BACH runtime or external transport is used.
 
 ## Provenance

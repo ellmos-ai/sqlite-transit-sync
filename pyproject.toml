@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "sqlite-transit-sync"
-version = "0.2.0"
+version = "0.4.0"
 description = "Local-first SQLite synchronization through verified snapshots and configurable row-level merge policies."
 readme = "README.md"
 license = "MIT"
@@ -14,13 +14,16 @@ keywords = ["sqlite", "synchronization", "local-first", "offline-first", "snapsh
 dependencies = []
 
 [project.urls]
-Homepage = "https://github.com/dev-bricks/sqlite-transit-sync#readme"
-Repository = "https://github.com/dev-bricks/sqlite-transit-sync"
-Issues = "https://github.com/dev-bricks/sqlite-transit-sync/issues"
-Documentation = "https://github.com/dev-bricks/sqlite-transit-sync/blob/main/README.md"
+Homepage = "https://github.com/ellmos-ai/sqlite-transit-sync#readme"
+Repository = "https://github.com/ellmos-ai/sqlite-transit-sync"
+Issues = "https://github.com/ellmos-ai/sqlite-transit-sync/issues"
+Documentation = "https://github.com/ellmos-ai/sqlite-transit-sync/blob/main/README.md"
 
 [project.optional-dependencies]
-dev = ["pytest>=7", "ruff>=0.8"]
+dev = ["pytest>=7", "cryptography>=42", "tomli>=2; python_version < '3.11'", "ruff>=0.8"]
+# The core stays dependency free on purpose: push/pull needs nothing but the standard
+# library. Only publish-replica mode encrypts, so its cipher is opt-in.
+crypto = ["cryptography>=42"]
 
 [project.scripts]
 sqlite-transit-sync = "sqlite_transit_sync.cli:main"
@@ -39,3 +42,11 @@ minversion = "7.0"
 addopts = "-ra -q"
 testpaths = ["tests"]
 pythonpath = "."
+
+[tool.ruff]
+line-length = 120
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP"]
+ignore = ["E501"]

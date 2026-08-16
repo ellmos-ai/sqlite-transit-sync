@@ -11,11 +11,11 @@ import socket
 import sqlite3
 import stat
 import tempfile
+from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import asdict, dataclass, field
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import Any, Iterable, Mapping, Protocol, Sequence
-
+from typing import Any, Protocol
 
 PROTOCOL_VERSION = 1
 SNAPSHOT_SUFFIX = ".sqlite-snapshot"
@@ -41,7 +41,7 @@ class SecretPattern:
     """One credential trigger: label, matcher and optional SQL pre-filter."""
 
     name: str
-    regex: "re.Pattern[str]"
+    regex: re.Pattern[str]
     prefilter: str | None = None
 
 
@@ -133,6 +133,16 @@ def _validated_snapshot_name(value: Any) -> str:
 
 def _utc_token() -> str:
     return datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%fZ")
+
+
+def _parse_utc_token(value: Any) -> datetime:
+    if not isinstance(value, str):
+        raise ValueError("timestamp must be a string")
+    return datetime.strptime(value, "%Y%m%dT%H%M%S%fZ").replace(tzinfo=timezone.utc)
+
+
+def _snapshot_filename(namespace: str, node_id: str, created_at: str) -> str:
+    return f"{namespace}__{node_id}__{created_at}{SNAPSHOT_SUFFIX}"
 
 
 def _sha256(path: Path) -> str:
@@ -388,6 +398,11 @@ class SyncConfig:
     secret_scan_extra_patterns: tuple[str, ...] = ()
     secret_scan_skip_tables: tuple[str, ...] = ()
     secret_patterns_file: Path | None = None
+    # Publish-replica mode only (see replica.py). Unused by push/pull, so an existing
+    # configuration keeps working untouched.
+    key_file: Path | None = None
+    republica_root: Path | None = None
+    allow_key_in_synced_folder: bool = False
 
     def __post_init__(self) -> None:
         self.database = Path(self.database).expanduser().resolve()
@@ -402,18 +417,33 @@ class SyncConfig:
         self.secret_scan_skip_tables = tuple(self.secret_scan_skip_tables)
         if self.secret_patterns_file is not None:
             self.secret_patterns_file = Path(self.secret_patterns_file).expanduser().resolve()
-        if self.database == self.transit or self.transit in self.database.parents:
-            raise ValueError("The live database must not be inside the transit directory")
+        # The key path may come from the environment so that a configuration file can
+        # be shared or version-controlled without naming a local credential location.
+        if self.key_file is None:
+            from_env = os.environ.get("SQLITE_TRANSIT_SYNC_KEY_FILE")
+            if from_env:
+                self.key_file = Path(from_env)
+        if self.key_file is not None:
+            self.key_file = Path(self.key_file).expanduser().resolve()
+        self.republica_root = (
+            Path(self.republica_root).expanduser().resolve()
+            if self.republica_root is not None
+            else Path.home() / ".republica"
+        )
         if self.state == self.transit or self.transit in self.state.parents:
             raise ValueError("The sync state must be outside the transit directory")
+        # An imported replica holds decrypted foreign data. Inside the transit it would
+        # be republished in the clear — the exact outcome the encryption prevents.
+        if self.republica_root == self.transit or self.transit in self.republica_root.parents:
+            raise ValueError("Replicas must not be stored inside the transit directory")
 
     @classmethod
-    def from_file(cls, path: str | Path) -> "SyncConfig":
+    def from_file(cls, path: str | Path) -> SyncConfig:
         config_path = Path(path).expanduser().resolve()
         return cls.from_bytes(config_path.read_bytes(), source_path=config_path)
 
     @classmethod
-    def from_bytes(cls, payload: bytes, *, source_path: str | Path) -> "SyncConfig":
+    def from_bytes(cls, payload: bytes, *, source_path: str | Path) -> SyncConfig:
         """Parse exact config bytes using paths relative to their source file."""
         config_path = Path(source_path).expanduser().resolve()
         raw = json.loads(payload.decode("utf-8"))
@@ -443,6 +473,9 @@ class SyncConfig:
                 if raw.get("secret_patterns_file")
                 else None
             ),
+            key_file=resolve(raw["key_file"]) if raw.get("key_file") else None,
+            republica_root=resolve(raw["republica_root"]) if raw.get("republica_root") else None,
+            allow_key_in_synced_folder=bool(raw.get("allow_key_in_synced_folder", False)),
         )
 
     def write(self, path: str | Path) -> Path:
@@ -462,6 +495,9 @@ class SyncConfig:
             "secret_patterns_file": (
                 str(self.secret_patterns_file) if self.secret_patterns_file else None
             ),
+            "key_file": str(self.key_file) if self.key_file else None,
+            "republica_root": str(self.republica_root) if self.republica_root else None,
+            "allow_key_in_synced_folder": self.allow_key_in_synced_folder,
         }
         _atomic_json_write(target, payload)
         return target
@@ -920,9 +956,10 @@ class TransitSync:
         _atomic_json_write(self.config.state, state)
 
     def _snapshot_name(self, created_at: str) -> str:
-        return (
-            f"{self.config.namespace}__{self.config.node_id}__{created_at}"
-            f"{SNAPSHOT_SUFFIX}"
+        return _snapshot_filename(
+            self.config.namespace,
+            self.config.node_id,
+            created_at,
         )
 
     def _redact_snapshot(self, path: Path) -> list[str]:
@@ -1147,11 +1184,11 @@ class TransitSync:
         except (OSError, json.JSONDecodeError) as error:
             raise SyncError(f"Invalid manifest {manifest_path}: {error}") from error
         if not isinstance(manifest, dict):
-            raise SyncError(f"Invalid manifest {manifest_path}: expected an object")
+            raise SyncError(f"Invalid manifest object: {manifest_path}")
         required = {"protocol", "namespace", "node_id", "created_at", "snapshot", "sha256", "size"}
         if not required.issubset(manifest):
             raise SyncError(f"Incomplete manifest: {manifest_path}")
-        if manifest["protocol"] != PROTOCOL_VERSION:
+        if type(manifest["protocol"]) is not int or manifest["protocol"] != PROTOCOL_VERSION:
             raise SyncError(f"Unsupported protocol in {manifest_path}")
         if manifest["namespace"] != self.config.namespace:
             raise SyncError(f"Wrong namespace in {manifest_path}")
@@ -1165,13 +1202,41 @@ class TransitSync:
                 raise
             except Exception as error:
                 raise SyncError("Snapshot authentication failed") from error
-        snapshot_name = _validated_snapshot_name(manifest["snapshot"])
-        snapshot_path = self.config.transit / snapshot_name
+        if not all(
+            isinstance(manifest[key], str)
+            for key in ("namespace", "node_id", "created_at", "snapshot", "sha256")
+        ):
+            raise SyncError(f"Invalid manifest value types: {manifest_path}")
+        node_id = _safe_identifier(manifest["node_id"], "node")
+        if node_id != manifest["node_id"]:
+            raise SyncError(f"Unsafe node id in {manifest_path}")
+        try:
+            _parse_utc_token(manifest["created_at"])
+        except ValueError as error:
+            raise SyncError(
+                f"Invalid snapshot timestamp in {manifest_path}: {manifest['created_at']}"
+            ) from error
+        expected_name = _snapshot_filename(
+            manifest["namespace"],
+            node_id,
+            manifest["created_at"],
+        )
+        if manifest["snapshot"] != expected_name or manifest_path.name != f"{expected_name}.json":
+            raise SyncError(f"Manifest and snapshot identity do not match: {manifest_path}")
+        if not re.fullmatch(r"[0-9a-f]{64}", manifest["sha256"]):
+            raise SyncError(f"Invalid SHA-256 in {manifest_path}")
+        if type(manifest["size"]) is not int or manifest["size"] < 0:
+            raise SyncError(f"Invalid snapshot size in {manifest_path}")
+        if manifest_path.resolve().parent != self.config.transit.resolve():
+            raise SyncError(f"Manifest escapes transit directory: {manifest_path}")
+        snapshot_path = manifest_path.parent / expected_name
+        if snapshot_path.parent.resolve() != self.config.transit.resolve():
+            raise SyncError(f"Snapshot escapes transit directory: {snapshot_path}")
         _assert_transit_regular_file(snapshot_path, self.config.transit, "Snapshot")
         snapshot = Snapshot(
             path=snapshot_path,
             manifest_path=manifest_path,
-            node_id=_safe_identifier(manifest["node_id"], "node"),
+            node_id=node_id,
             namespace=manifest["namespace"],
             created_at=manifest["created_at"],
             sha256=manifest["sha256"],
@@ -1345,6 +1410,119 @@ class TransitSync:
             snapshots.append(self._read_snapshot(manifest, verify=verify))
         return sorted(snapshots, key=lambda item: (item.created_at, item.node_id))
 
+    def cleanup(
+        self,
+        *,
+        keep_days: int = 7,
+        keep_per_node: int = 10,
+        include_foreign: bool = False,
+        dry_run: bool = True,
+    ) -> dict[str, Any]:
+        """Select and optionally remove old verified-snapshot artifacts.
+
+        Cleanup is deliberately conservative: it is a dry-run by default and
+        only manages snapshots published by this node unless the caller makes
+        foreign-node administration explicit. A snapshot is eligible only when
+        it is both older than ``keep_days`` and outside the newest
+        ``keep_per_node`` snapshots for its source node.
+        """
+        if keep_days < 0:
+            raise ValueError("keep_days must be zero or greater")
+        if keep_per_node < 0:
+            raise ValueError("keep_per_node must be zero or greater")
+
+        snapshots = self.snapshots(verify=False)
+        selected = [
+            snapshot
+            for snapshot in snapshots
+            if include_foreign or snapshot.node_id == self.config.node_id
+        ]
+        # Cleanup is destructive when applied, so every managed pair is verified
+        # before selection. A damaged foreign payload does not block local-only
+        # maintenance, but becomes fail-closed as soon as all-node authority is
+        # requested.
+        managed = [
+            self._read_snapshot(snapshot.manifest_path, verify=True)
+            for snapshot in selected
+        ]
+        cutoff = datetime.now(timezone.utc) - timedelta(days=keep_days)
+        by_node: dict[str, list[Snapshot]] = {}
+        for snapshot in managed:
+            by_node.setdefault(snapshot.node_id, []).append(snapshot)
+
+        eligible: list[Snapshot] = []
+        for node_snapshots in by_node.values():
+            newest_first = sorted(
+                node_snapshots,
+                key=lambda item: item.created_at,
+                reverse=True,
+            )
+            for index, snapshot in enumerate(newest_first):
+                try:
+                    created_at = _parse_utc_token(snapshot.created_at)
+                except ValueError as error:
+                    raise SyncError(
+                        f"Invalid snapshot timestamp in {snapshot.manifest_path}: "
+                        f"{snapshot.created_at}"
+                    ) from error
+                if index >= keep_per_node and created_at < cutoff:
+                    eligible.append(snapshot)
+
+        eligible.sort(key=lambda item: (item.node_id, item.created_at))
+
+        def summary(snapshot: Snapshot) -> dict[str, str]:
+            return {
+                "snapshot": snapshot.path.name,
+                "manifest": snapshot.manifest_path.name,
+                "node_id": snapshot.node_id,
+                "created_at": snapshot.created_at,
+            }
+
+        deleted: list[dict[str, str]] = []
+        if not dry_run:
+            for snapshot in eligible:
+                _assert_no_sqlite_sidecars(snapshot.path)
+                tombstone = snapshot.manifest_path.with_name(
+                    f".{snapshot.manifest_path.name}.cleanup"
+                )
+                if tombstone.exists():
+                    raise SyncError(f"Cleanup tombstone already exists: {tombstone}")
+                try:
+                    os.replace(snapshot.manifest_path, tombstone)
+                except OSError as error:
+                    raise SyncError(
+                        f"Could not stage snapshot manifest for cleanup: {snapshot.manifest_path}: "
+                        f"{error}"
+                    ) from error
+                try:
+                    snapshot.path.unlink()
+                except OSError as error:
+                    try:
+                        os.replace(tombstone, snapshot.manifest_path)
+                    except OSError as restore_error:
+                        raise SyncError(
+                            f"Could not remove {snapshot.path} and could not restore "
+                            f"{snapshot.manifest_path}: {restore_error}"
+                        ) from error
+                    raise SyncError(f"Could not remove snapshot {snapshot.path}: {error}") from error
+                try:
+                    tombstone.unlink()
+                except OSError as error:
+                    raise SyncError(f"Could not remove cleanup tombstone {tombstone}: {error}") from error
+                deleted.append(summary(snapshot))
+
+        return {
+            "dry_run": dry_run,
+            "scope": "all-nodes" if include_foreign else "local-node",
+            "keep_days": keep_days,
+            "keep_per_node": keep_per_node,
+            "examined": len(snapshots),
+            "managed": len(managed),
+            "skipped_foreign": len(snapshots) - len(managed),
+            "eligible": [summary(snapshot) for snapshot in eligible],
+            "deleted": deleted,
+        }
+
     def pending(self, verify: bool = False) -> list[Snapshot]:
         state = self._load_state()
         last_pulled = state.get("last_pulled", {})
@@ -1355,8 +1533,12 @@ class TransitSync:
             and snapshot.created_at > last_pulled.get(snapshot.node_id, "")
         ]
 
-    def pull(self, dry_run: bool = False) -> list[MergeReport]:
-        pending = self.pending(verify=True)
+    def _pull_snapshots(
+        self,
+        pending: Sequence[Snapshot],
+        *,
+        dry_run: bool,
+    ) -> list[MergeReport]:
         if dry_run:
             return [MergeReport(snapshot=item.path.name, source_node=item.node_id) for item in pending]
         if not self.config.database.is_file():
@@ -1389,6 +1571,57 @@ class TransitSync:
             self._save_state(state)
             reports.append(report)
         return reports
+
+    def pull(self, dry_run: bool = False) -> list[MergeReport]:
+        """Merge every pending verified snapshot in deterministic order."""
+
+        return self._pull_snapshots(self.pending(verify=True), dry_run=dry_run)
+
+    def pull_selected(
+        self,
+        snapshot_names: Sequence[str],
+        dry_run: bool = False,
+    ) -> list[MergeReport]:
+        """Merge only explicitly selected pending snapshots.
+
+        Selection uses snapshot basenames returned by :meth:`pending`; paths,
+        manifest names, duplicates and snapshots that are no longer pending are
+        rejected before the local database or sync state is changed. This keeps
+        application adapters from reimplementing merge and state advancement
+        when their lifecycle deliberately processes one pending snapshot.
+        """
+
+        if isinstance(snapshot_names, (str, bytes)):
+            raise ValueError("snapshot_names must be a sequence of snapshot basenames")
+        requested = list(snapshot_names)
+        if not requested:
+            return []
+        if any(not isinstance(name, str) for name in requested):
+            raise ValueError("snapshot_names must contain only strings")
+        if len(requested) != len(set(requested)):
+            raise ValueError("snapshot_names must not contain duplicates")
+        for name in requested:
+            # Check both separators explicitly rather than relying solely on
+            # Path(name).name: pathlib only treats "\\" as a separator on
+            # Windows, so a POSIX runner would let a "..\\name" traversal
+            # attempt straight through this basename gate.
+            if (
+                "/" in name
+                or "\\" in name
+                or Path(name).name != name
+                or not name.endswith(SNAPSHOT_SUFFIX)
+            ):
+                raise ValueError(f"Invalid snapshot basename: {name!r}")
+
+        pending = self.pending(verify=True)
+        by_name = {snapshot.path.name: snapshot for snapshot in pending}
+        missing = [name for name in requested if name not in by_name]
+        if missing:
+            raise SyncError(
+                "Selected snapshots are not pending: " + ", ".join(sorted(missing))
+            )
+        selected = [by_name[name] for name in requested]
+        return self._pull_snapshots(selected, dry_run=dry_run)
 
     def sync(self) -> dict[str, Any]:
         pulled = self.pull()

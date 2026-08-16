@@ -14,7 +14,6 @@ from sqlite_transit_sync import (
     TransitSync,
 )
 
-
 SCHEMA = """
 CREATE TABLE items (
     id TEXT PRIMARY KEY,

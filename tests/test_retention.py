@@ -10,6 +10,7 @@ from unittest import mock
 
 from sqlite_transit_sync import (
     RetentionEntry,
+    Snapshot,
     SnapshotRetentionPolicy,
     SyncConfig,
     TransitSync,
@@ -42,10 +43,28 @@ class RetentionTests(unittest.TestCase):
         self.temp.cleanup()
 
     @staticmethod
-    def set_created(manifest: Path, created_at: str) -> None:
+    def set_created(snapshot: Snapshot, created_at: str) -> Snapshot:
+        manifest = snapshot.manifest_path
         raw = json.loads(manifest.read_text(encoding="utf-8"))
         raw["created_at"] = created_at
+        new_name = f"{raw['namespace']}__{raw['node_id']}__{created_at}.sqlite-snapshot"
+        raw["snapshot"] = new_name
+        new_snapshot_path = manifest.parent / new_name
+        if snapshot.path.exists() and snapshot.path != new_snapshot_path:
+            snapshot.path.rename(new_snapshot_path)
+        new_manifest_path = manifest.parent / f"{new_name}.json"
         manifest.write_text(json.dumps(raw), encoding="utf-8")
+        if manifest != new_manifest_path:
+            manifest.rename(new_manifest_path)
+        return Snapshot(
+            path=new_snapshot_path,
+            manifest_path=new_manifest_path,
+            node_id=snapshot.node_id,
+            namespace=snapshot.namespace,
+            created_at=created_at,
+            sha256=snapshot.sha256,
+            size=snapshot.size,
+        )
 
     def test_policy_requires_criterion_and_nonnegative_values(self) -> None:
         with self.assertRaises(ValueError):
@@ -124,7 +143,7 @@ class RetentionTests(unittest.TestCase):
 
     def test_dry_run_apply_restart_and_audit_are_idempotent(self) -> None:
         snapshot = self.sync.push()
-        self.set_created(snapshot.manifest_path, "20260101T000000000000Z")
+        snapshot = self.set_created(snapshot, "20260101T000000000000Z")
         policy = SnapshotRetentionPolicy(
             max_age=timedelta(days=1), acknowledge=lambda _: True
         )
@@ -176,7 +195,7 @@ class RetentionTests(unittest.TestCase):
 
     def test_delete_error_is_reported_without_broad_cleanup(self) -> None:
         snapshot = self.sync.push()
-        self.set_created(snapshot.manifest_path, "20260101T000000000000Z")
+        snapshot = self.set_created(snapshot, "20260101T000000000000Z")
         policy = SnapshotRetentionPolicy(max_age=timedelta(days=1), acknowledge=lambda _: True)
         original_unlink = Path.unlink
 

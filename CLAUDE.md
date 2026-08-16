@@ -2,11 +2,11 @@
 name: "sqlite-transit-sync"
 type: project-docs
 profile: "STANDARD"
-version: 0.2.0
+version: 0.4.0
 created: "2026-07-11"
-updated: "2026-08-10"
-reason_last_change: "Version-/Statusvertrag, Release-Gate und Manifestpfad-Readback"
-last_verified: "2026-08-10"
+updated: "2026-08-16"
+reason_last_change: "Discoverability, README-Design, Badges & Metadata Parity Check"
+last_verified: "2026-08-16"
 release_status: "development"
 visibility: "public-candidate"
 author: "Lukas Geiger / ellmos / BACH Contributors"

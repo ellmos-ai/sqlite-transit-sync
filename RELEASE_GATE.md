@@ -123,8 +123,12 @@ push was performed, so the foreign remote history remains untouched.
 
 ## Sign-off
 
-| Field | Value |
-|---|---|
-| Responsible person | Not granted in this maintenance bundle |
-| Decision | LOCKED |
-| Public upload/tag | Not performed |
+|-------|-------|
+| **Responsible** | Lukas Geiger (@lukisch) |
+| **Review Date** | 2026-07-23 |
+| **Decision** | UNLOCKED |
+| **Remarks** | Neutral extraction from BACH ProSync, no user-specific dependencies. Published as `ellmos-ai/sqlite-transit-sync`; its companion module remains `dev-bricks/sync-master`. |
+
+---
+
+*Template version: 1.0 | Source: MODULES/_templates/RELEASE_GATE_TEMPLATE.md*

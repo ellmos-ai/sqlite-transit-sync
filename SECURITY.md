@@ -45,6 +45,12 @@ older rows; a later row version may resurrect a key. Missing rows never imply a
 delete, unknown target tables are not guessed, and tombstones are never pruned
 automatically. Retention, clocks and schema migration remain application duties.
 
+### Cleanup and retention safety
+
+`cleanup` verifies each managed snapshot and manifest before selecting it. It is a dry-run
+and local-node-only operation by default. Treat `--apply --all-nodes` as administrative
+authority over other publishers' artifacts, and review the JSON plan before granting it.
+
 ## Required application review
 
 Before deployment, define:

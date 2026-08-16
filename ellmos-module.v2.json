@@ -2,12 +2,12 @@
   "schema": "ellmos.module.v2",
   "id": "sqlite-transit-sync",
   "display_name": "sqlite-transit-sync",
-  "version": "0.2.0",
+  "version": "0.4.0",
   "category": "sync",
   "kind": "library",
   "status": "development",
   "visibility": "public-candidate",
-  "last_verified": "2026-08-10",
+  "last_verified": "2026-08-16",
   "provides": [
     "sync.database",
     "sync.database.sqlite",
@@ -38,7 +38,7 @@
   "source_of_truth": {
     "type": "local-directory",
     "path": ".",
-    "repository": null
+    "repository": "https://github.com/ellmos-ai/sqlite-transit-sync"
   },
   "adapters": []
 }

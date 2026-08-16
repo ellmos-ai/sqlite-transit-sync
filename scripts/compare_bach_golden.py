@@ -7,7 +7,6 @@ import json
 from pathlib import Path
 from typing import Any
 
-
 SCHEMA = "sqlite-transit-sync.bach-compatibility-fixtures.v1"
 REPORT_SCHEMA = "sqlite-transit-sync.bach-compatibility-report.v1"
 REQUIRED = (

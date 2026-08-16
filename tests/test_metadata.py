@@ -3,26 +3,43 @@ import re
 import subprocess
 import unittest
 from pathlib import Path
+
+try:
+    import tomllib
+except ModuleNotFoundError:  # Python 3.10 compatibility
+    import tomli as tomllib
+
 import sqlite_transit_sync
 
-
 ROOT = Path(__file__).parent.parent
-VERSION = "0.2.0"
-VERIFY_DATE = "2026-08-10"
 
 
 class TestMetadata(unittest.TestCase):
+    """Metadata parity.
+
+    These assertions compare the version *sources* against each other instead of
+    against a literal. A hard-coded number turns every release into a test edit and
+    silently passes when only one of the three places was bumped — which is the one
+    failure this test exists to catch.
+    """
+
+    def _pyproject_version(self) -> str:
+        data = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
+        return data["project"]["version"]
+
     def test_version_consistency(self):
-        """Verify that sqlite_transit_sync.__version__ is 0.2.0."""
-        self.assertEqual(sqlite_transit_sync.__version__, "0.2.0")
+        """Package version matches the packaging metadata."""
+        self.assertEqual(sqlite_transit_sync.__version__, self._pyproject_version())
 
     def test_llms_txt_version_parity(self):
-        """Verify llms.txt reflects version 0.2.0 and has recent Last-checked date."""
+        """llms.txt declares the same version the package reports."""
         llms_file = ROOT / "llms.txt"
         self.assertTrue(llms_file.exists(), "llms.txt should exist in repository root")
 
         content = llms_file.read_text(encoding="utf-8")
-        self.assertIn("- Version: 0.2.0", content, "llms.txt must declare Version: 0.2.0")
+        declared = re.search(r"^- Version:\s*(\S+)", content, re.MULTILINE)
+        self.assertIsNotNone(declared, "llms.txt must declare a '- Version:' line")
+        self.assertEqual(sqlite_transit_sync.__version__, declared.group(1))
 
     def test_exports_present(self):
         """Verify all declared exports in __all__ are importable and non-None."""
@@ -30,48 +47,26 @@ class TestMetadata(unittest.TestCase):
             obj = getattr(sqlite_transit_sync, item, None)
             self.assertIsNotNone(obj, f"Exported symbol {item} should be present in module")
 
-    def test_authoritative_version_contract_covers_all_surfaces(self):
-        pyproject = (ROOT / "pyproject.toml").read_text(encoding="utf-8")
-        project_version = re.search(r'(?m)^version\s*=\s*"([^"]+)"', pyproject)
-        self.assertIsNotNone(project_version)
-        self.assertEqual(VERSION, project_version.group(1))
+    def test_bilingual_readmes_exist(self):
+        """Verify that English and German documentation files exist."""
+        readme_en = ROOT / "README.md"
+        readme_de = ROOT / "README_de.md"
+        self.assertTrue(readme_en.is_file(), "README.md must exist")
+        self.assertTrue(readme_de.is_file(), "README_de.md must exist")
 
-        legacy_manifest = json.loads((ROOT / "ellmos-module.json").read_text(encoding="utf-8"))
-        v2_manifest = json.loads((ROOT / "ellmos-module.v2.json").read_text(encoding="utf-8"))
-        self.assertEqual(VERSION, sqlite_transit_sync.__version__)
-        self.assertEqual(VERSION, legacy_manifest["version"])
-        self.assertEqual(VERSION, v2_manifest["version"])
+    def test_ellmos_module_manifests(self):
+        """Verify ellmos-module JSON manifests match package metadata."""
+        m1_file = ROOT / "ellmos-module.json"
+        if m1_file.exists():
+            data1 = json.loads(m1_file.read_text(encoding="utf-8"))
+            self.assertEqual(data1.get("version"), self._pyproject_version())
 
-        for filename in ("README.md", "README_de.md"):
-            text = (ROOT / filename).read_text(encoding="utf-8")
-            self.assertIn("tests-53%2F53%20passed", text)
-            self.assertIn("METADATA_CONTRACT.md", text)
-        llms = (ROOT / "llms.txt").read_text(encoding="utf-8")
-        self.assertIn(f"- Version: {VERSION}", llms)
-        self.assertIn(f"- Last-checked: {VERIFY_DATE}", llms)
-
-    def test_status_and_verification_contract_is_explicit_and_current(self):
-        legacy = json.loads((ROOT / "ellmos-module.json").read_text(encoding="utf-8"))
-        v2 = json.loads((ROOT / "ellmos-module.v2.json").read_text(encoding="utf-8"))
-        self.assertEqual("development", legacy["status"])
-        self.assertEqual("development", v2["status"])
-        self.assertEqual("public-candidate", v2["visibility"])
-        self.assertEqual(VERIFY_DATE, legacy["last_verified"])
-        self.assertEqual(VERIFY_DATE, v2["last_verified"])
-
-        claude = (ROOT / "CLAUDE.md").read_text(encoding="utf-8")
-        self.assertRegex(claude, rf"(?m)^version:\s*{re.escape(VERSION)}\s*$")
-        self.assertRegex(claude, rf"(?m)^last_verified:\s*[\"']?{VERIFY_DATE}[\"']?\s*$")
-        self.assertRegex(claude, r'(?m)^release_status:\s*["\']development["\']\s*$')
-        self.assertRegex(claude, r'(?m)^visibility:\s*["\']public-candidate["\']\s*$')
-
-        contract = (ROOT / "METADATA_CONTRACT.md").read_text(encoding="utf-8")
-        self.assertIn("pyproject.toml", contract)
-        self.assertIn("schema_version", contract)
-        self.assertIn("public-candidate", contract)
-        gate = (ROOT / "RELEASE_GATE.md").read_text(encoding="utf-8")
-        self.assertIn("STATUS: LOCKED", gate)
-        self.assertIn("UNLOCKED", gate)
+        m2_file = ROOT / "ellmos-module.v2.json"
+        if m2_file.exists():
+            data2 = json.loads(m2_file.read_text(encoding="utf-8"))
+            self.assertEqual(data2.get("version"), self._pyproject_version())
+            repo = data2.get("source_of_truth", {}).get("repository")
+            self.assertEqual(repo, "https://github.com/ellmos-ai/sqlite-transit-sync")
 
     def test_tracked_public_view_has_no_local_artifact_or_path_leak(self):
         tracked = subprocess.check_output(

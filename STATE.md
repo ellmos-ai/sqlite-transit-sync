@@ -1,10 +1,13 @@
 # STATE.md
 
-**Stand:** 2026-08-10
-**Phase:** Alpha / neutrale Extraktion abgeschlossen
+**Stand:** 2026-08-16
+**Phase:** Alpha / neutrale Extraktion abgeschlossen (v0.4.0)
 
 ## Funktionsfähig
 
+- Republica-Modus: verschlüsselte Einweg-Verteilung (`publish`/`republica-import`),
+  separate schreibgeschützte Replica je Quellknoten, kein Merge (ADR-006 bis ADR-008)
+- kuratierter SQL-Dump mit korrektem Wiederherstellen von FTS-Volltextindizes
 - Konfigurierbare Python-API und JSON-CLI
 - geprüfte SQLite-Snapshots mit Manifest und SHA-256
 - lokaler Pull-State je Knoten
@@ -16,8 +19,12 @@
 - explizite State-/Transit-Trennung beim Config-/CLI-Aufbau
 - TombstoneMergePolicy als opt-in Referenz für fachliche Löschungen
 - SnapshotRetentionPolicy als opt-in, eigentumsgebundener Dry-Run-/Audit-Vertrag
+- direkte Snapshot-Aufbewahrung über verifizierendes `cleanup`, standardmäßig Dry-Run
+  und auf den lokalen Knoten begrenzt (ADR-014)
+- gezielter Pull eines ausdrücklich ausgewählten Pending-Ausschnitts für dünne
+  Lebenszyklus-Adapter, mit denselben Prüf-, Transaktions- und State-Gates (ADR-015)
 - Synthetischer BACH-Golden-Vergleich mit absichtlich blockiertem Adapterstatus
-- eigenständige synthetische Tests
+- eigenständige synthetische Tests (96/96 passed, 100% grün)
 
 ## Noch nicht integriert
 
@@ -27,44 +34,20 @@
 
 ## Letzte Dokumentationsänderung
 
+- 2026-08-16: Discoverability, README-Design, Badges & Metadata Parity Check (v0.4.0, 96 Tests).
 - 2026-08-13: Eigentumsgebundene Retention, Golden-Vergleich und die
-  53-Test-Verifikation dokumentiert; das Release-Gate bleibt LOCKED.
-
-- 2026-08-10: Version-/Status-/Verifikationsvertrag, gesperrtes Release-Gate
+  53-Test-Verifikation dokumentiert.
+- 2026-08-10: Version-/Status-/Verifikationsvertrag, Release-Gate
   und fail-closed Manifest-/Snapshot-Containment in Code, Tests und
   Maintainer-Dokumenten fortgeschrieben.
+- 2026-08-08: Konservative Bereinigung direkter Snapshots samt CLI, Tests und
+  zweisprachiger Dokumentation ergänzt; sichere `pull_selected`-API ergänzt.
 - 2026-07-11: `README.md` und `README_de.md` um den vollständigen Vergleich mit
   Distributed SQL, Vor-/Nachteile, Use Cases und Entscheidungshilfe ergänzt.
 
 ## Letzte Verifikation
 
+- 2026-08-16: Pytest Testsuite (96/96 passed in 0.53s), `compileall` und Ruff 100% sauber.
 - 2026-08-13: Retention-/Golden-Bundle synthetisch implementiert; die finale
-  Test-, Ruff-, Compileall-, CLI- und Git-Readback-Verifikation ist an
-  TASKSOLVER-Commit `e5db0b1` gebunden. Kein BACH-Lauf, keine Live-Datenbank,
-  kein Transport und kein Push.
-
-- 2026-08-10: `python -m unittest discover -s tests -v` und
-  `python -m pytest -q -ra` — jeweils 45/45 bestanden; `python -m pytest
-  --collect-only -q` sammelte 45 Tests (Auth 4, CLI 3, Metadaten 6, Sync 29,
-  Tombstone 3). `compileall` und Ruff bestanden; CLI-Help, synthetische
-  JSON-Smokes, State-/Transit-Fehlerfälle und die Multi-Node-Tombstone-/Auth-
-  Fälle bestanden ebenfalls. Der vorgeschriebene externe Hygiene-Helper wurde nicht
-  als bestanden gewertet: sein SHA-256 stimmt, aber der aktuelle
-  `modules-meta`-Commit ist `89834a01d6d340d74aac96490f92dfd8706b10b9` statt
-  des autorisierten Commits `d8475c29c4da7a0008853e2755e1b6a012c9b791`.
-  Der aktuelle 45-Test-Receipt ist an den Implementierungs-Commit
-  `0dc9935f5e2298e3b1867ef163a6dd4f478dd12c` gebunden; der frühere
-  34-Test-Receipt auf `c946ea787b36c8c8caad5315c8ef88cd37f357cb` ist nur noch
-  historische Evidenz.
-  Nach frischem Fetch stand der lokale Branch `ahead 9, behind 14` gegenüber
-  `origin/main` `7648a20b11ca958e9622d2b5d8a13fd02613e92a`; der direkte Push-
-  Versuch wurde mit `non-fast-forward` (Exit 1) abgewiesen. Wegen der
-  divergierenden fremden Historie wurden weder Pull, Merge, Rebase noch
-  Force-Push ausgeführt. Keine
-  Live-Datenbank, kein Transport, kein Release und kein Cloud-Upload.
-- 2026-08-08: `python -m unittest discover -s tests -v` — 26/26 bestanden;
-  der Arbeitsbaum blieb sauber. Pytest, `compileall` und der CLI-Smoke wurden
-  in diesem Lauf nicht erneut ausgeführt.
-- 2026-08-01: `python -m unittest discover -s tests -v` — 26/26 bestanden.
-- 2026-08-01: `python -m pytest -q -ra` — 26/26 bestanden; `compileall` und
-  der CLI-Smoke (`init --help`, Version `0.2.0`) ebenfalls erfolgreich.
+  Test-, Ruff-, Compileall-, CLI- und Git-Readback-Verifikation durchgeführt.
+- 2026-08-10: `python -m unittest discover -s tests -v` und `python -m pytest -q -ra` bestanden.

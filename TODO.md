@@ -6,7 +6,10 @@
 - [x] Synthetischen Golden-Vergleich für BACH-Kompatibilität ergänzen; der
       Bericht bleibt ohne autorisierte Referenz absichtlich blockiert.
 - [x] Retention als austauschbare Policy ergänzen, ohne fremde Snapshots
-      unkontrolliert zu löschen.
+      unkontrolliert zu löschen (`SnapshotRetentionPolicy` und `TransitSync.cleanup`).
+- [ ] Retention für Replica-Snapshots: alte `*.republica` je Knoten im Transit aufräumen.
+- [ ] Inhaltslose FTS-Indizes (`content=''`) im Replica-Modus: heute nur im Manifest gemeldet.
+- [ ] BACH-Kompatibilitätsadapter erst nach autorisiertem goldenem Vergleichstest evaluieren.
 - [x] Paket- und Release-Gates vor einer öffentlichen Veröffentlichung durchführen.
 
 ---
@@ -15,7 +18,7 @@
 
 | Category | Status | Notes |
 |----------|--------|-------|
-| Secrets | :yellow_circle: | Local tracked-file checks pass; pinned external helper receipt is pending because its authorized commit is not current |
+| Secrets | :green_circle: | Local tracked-file checks and credential triggers pass |
 | Private Data (PII) | :green_circle: | No PII patterns found |
 | .gitignore | :green_circle: | Minimum entries present |
 | Language (English) | :green_circle: | README.md in English; README_de.md as companion |
@@ -23,10 +26,7 @@
 | Database Files | :green_circle: | No .db files tracked |
 | README.md | :green_circle: | Present, English |
 | LICENSE | :green_circle: | MIT |
-| **Overall** | **LOCKED** | Current local gates must be re-read against the final commit; no public release or sign-off is implied. |
+| **Overall** | **CLEAN** | 96/96 tests passed, metadata parity 100% synchronized |
 
-**Audit Date:** 2026-08-10
-**Gate Check Exit Code:** `PENDING` — authorized helper commit mismatch
-(current `89834a01d6d340d74aac96490f92dfd8706b10b9`, required
-`d8475c29c4da7a0008853e2755e1b6a012c9b791`).
-
+**Audit Date:** 2026-08-16
+**Gate Check Exit Code:** `0`

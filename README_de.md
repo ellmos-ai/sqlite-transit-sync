@@ -5,10 +5,12 @@
 
 [English](README.md) | [Deutsch](README_de.md)
 
-[![License](https://img.shields.io/github/license/dev-bricks/sqlite-transit-sync)](LICENSE)
+[![License](https://img.shields.io/github/license/ellmos-ai/sqlite-transit-sync)](LICENSE)
 [![Python Version](https://img.shields.io/badge/python->=3.10-blue.svg)](https://www.python.org/)
-[![Architecture](https://img.shields.io/badge/architecture-local--first-success.svg)](#teil-der-ellmos-stack-familie)
-[![Tests](https://img.shields.io/badge/tests-53%2F53%20passed-brightgreen.svg)](#tests)
+[![Ecosystem: ellmos-ai](https://img.shields.io/badge/Ecosystem-ellmos--ai-blue.svg)](https://github.com/ellmos-ai)
+[![Umbrella: open-bricks](https://img.shields.io/badge/Umbrella-open--bricks-purple.svg)](https://github.com/open-bricks)
+[![Version](https://img.shields.io/badge/version-0.4.0-blue.svg)](CHANGELOG.md)
+[![Tests](https://img.shields.io/badge/tests-96%2F96%20passed-brightgreen.svg)](#tests)
 [![llms.txt](https://img.shields.io/badge/llms.txt-available-informational.svg)](llms.txt)
 
 > [!NOTE]
@@ -88,7 +90,14 @@ geprüfte Snapshots mit von der Anwendung wählbaren Merge-Policies.
   Snapshot weiterhin zugangsdatenähnliche Werte enthält (standardmäßig aktiv;
   gemeldet wird `table.column`, niemals der Wert selbst);
 - eigene `MergePolicy` für fachliche Regeln, Tombstones oder CRDTs;
-- Python-API und JSON-CLI ohne zusätzliche Laufzeitabhängigkeiten.
+- Bereinigung geprüfter Snapshots mit Dry-Run als Standard, standardmäßiger Begrenzung
+  auf den lokalen Knoten sowie ausdrücklichen Freigaben für Löschung und Verwaltung
+  fremder Knoten;
+- optionaler [Republica-Schaufenster-Modus](#republica--die-schaufenster-methode), der eine Datenbank
+  einseitig als verschlüsselte Nutzlast verteilt und als eigenständige,
+  schreibgeschütztes Schaufenster materialisiert, statt sie zu mergen;
+- Python-API und JSON-CLI ohne zusätzliche Laufzeitabhängigkeiten (der Republica-Modus
+  ergänzt `cryptography`).
 
 ## Installation
 
@@ -115,6 +124,9 @@ sqlite-transit-sync pull --config node.json --dry-run
 sqlite-transit-sync pull --config node.json
 sqlite-transit-sync status --config node.json
 sqlite-transit-sync verify --config node.json
+sqlite-transit-sync cleanup --config node.json
+# JSON-Plan prüfen und anschließend ausdrücklich anwenden:
+sqlite-transit-sync cleanup --config node.json --apply
 ```
 
 Das Anwendungsschema muss auf jedem Knoten bereits existieren. Ein automatisches
@@ -179,6 +191,9 @@ config_sha256 = hashlib.sha256(payload).hexdigest()
 | `secret_scan_skip_tables` | `[]` | Tabellen, die der Scan auslässt; bei einer einzelnen störenden Tabelle besser als die vollständige Abschaltung |
 | `secret_scan_extra_patterns` | `[]` | Zusätzliche reguläre Ausdrücke, ergänzend zur Trigger-Datei |
 | `secret_patterns_file` | `null` (mitgelieferte Datei) | Pfad zu einer eigenen Trigger-Datei; **ersetzt** die eingebauten Muster |
+| `key_file` | `null`, sonst `$SQLITE_TRANSIT_SYNC_KEY_FILE` | Fernet-Schlüssel für den Republica-Modus; muss außerhalb des Transits liegen |
+| `republica_root` | `~/.republica` | Ablageort importierter Schaufenster; muss außerhalb des Transits liegen |
+| `allow_key_in_synced_folder` | `false` | Hebt die Prüfung auf, die einen Schlüssel in einem Cloud-Ordner ablehnt |
 
 Der `state`-Standardwert in dieser Tabelle gilt, wenn eine JSON-Konfiguration ohne
 diesen Schlüssel geladen wird. `sqlite-transit-sync init` schreibt ohne `--state`
@@ -237,6 +252,111 @@ abgeschaltet und schützt dann gar nicht mehr. Ein sauberer Scan bedeutet „kei
 bekanntes Muster gefunden“, niemals „dieser Snapshot enthält garantiert keine
 Secrets“.
 
+## Republica — die Schaufenster-Methode
+
+Jede Maschine stellt ein **verschlüsseltes Schaufenster** ihrer Datenbank in eine geteilte
+Dateifläche. Alle anderen können hineinsehen, niemand kann es verändern. Daher der Name: eine
+Wiederveröffentlichung der Datenbank, lesbar nur für den, der den Schlüssel hat.
+
+Zu verwenden, wenn `push`/`pull` nicht passt: Man möchte *lesen*, was ein anderer Knoten
+weiß, ohne es in die eigenen Zeilen einzurechnen — oder die Maschinen teilen nichts als einen
+Ordner (kein Server, keine offenen Ports, kein Vertrauens-Setup), und dieser Ordner soll die
+Inhalte nicht im Klartext sehen.
+
+### Zwei Betriebsarten, bewusst redundant
+
+Republica ist **keine Übergangslösung, bis ein richtiger Tunnel steht.** Es ist die zweite
+von zwei Betriebsarten, die nebeneinander laufen sollen, damit der Ausfall der einen die
+andere nicht stoppt:
+
+| Ausfall | Direkter Abgleich (`push`/`pull`) | Republica |
+|---|---|---|
+| Eine Maschine schläft oder ist offline | steht still (kein Gegenüber) | läuft weiter — jetzt ablegen, später abholen |
+| VPN/SSH tot, Netz blockiert den Tunnel | steht still | läuft weiter über die Dateifläche |
+| Schlüsselrotation oder Trust-Setup offen | steht still | läuft weiter mit dem geteilten Schlüssel |
+| Geteilter Ordner kaputt, voll oder desynchron | läuft weiter | steht still |
+| Keine Merge-Regel für einen Datensatz vereinbart | nicht anwendbar | läuft weiter — es wird nichts gemergt |
+
+Der ganze Nutzen liegt darin, dass es an dem Tag funktioniert, an dem der andere Weg es nicht
+tut. Also eingerichtet lassen und mitlaufen lassen, auch wenn der direkte Weg gerade
+problemlos läuft.
+
+### Einrichtungskosten: ein einziger Schlüsseltransfer
+
+Der geteilte Schlüssel muss die anderen Maschinen über **irgendeinen Kanal erreichen, der
+nicht der Transportweg selbst ist** — ein bestehender verschlüsselter Tunnel, ein
+Passwortmanager, ein USB-Stick, telefonisch vorgelesen. Einmal. Danach genügt ein schlichter
+geteilter Ordner, dauerhaft, selbst einer, dem man nicht vertraut.
+
+```text
+republica_root/
+  laptop/my-app.sqlite      <- schreibgeschütztes Schaufenster der Laptop-Datenbank
+  workstation/my-app.sqlite <- schreibgeschütztes Schaufenster der Workstation-Datenbank
+```
+
+```bash
+# Einmalig, auf lokaler Platte - nie im Transit, nie in einem Cloud-Ordner.
+# Diese Datei dann out-of-band auf die anderen Maschinen kopieren; dort NICHT keygen aufrufen.
+sqlite-transit-sync keygen --key-file ~/.keys/republica.key
+
+sqlite-transit-sync init --config node.json \
+  --database ./app.db --transit ./shared-transit \
+  --node-id laptop --namespace my-app \
+  --key-file ~/.keys/republica.key
+
+sqlite-transit-sync republica-publish --config node.json   # verschlüsseln und veröffentlichen
+sqlite-transit-sync republica-list    --config node.json   # was andere Knoten anbieten
+sqlite-transit-sync republica-import  --config node.json   # lokal materialisieren
+```
+
+Benötigt die optionale Verschlüsselung: `pip install 'sqlite-transit-sync[crypto]'`.
+
+**Übertragen wird** keine Datenbankdatei, sondern ein kuratierter SQL-Dump, gzip-komprimiert
+und Fernet-verschlüsselt. Bei einer realen 53,6-MB-Wissensdatenbank sind das 11,0 MB im
+Transit, weil die Interna des Volltextindex beim Import neu aufgebaut statt mitgeschickt
+werden (35.370 von 49.636 Dump-Anweisungen). Die Veröffentlichung durchläuft dieselbe
+Prüfkette wie ein Merge-Snapshot: Redaktion, Credential-Scan, `quick_check`, Manifest.
+
+**Was das schützt:** Der Transport sieht nur Chiffretext, und Fernets HMAC erkennt eine
+absichtliche Änderung selbst dann, wenn der Manifest-Hash passend nachgerechnet wurde.
+
+**Was nicht:** Fernet authentifiziert den *Schlüssel*, nicht den *Absender* – wer ihn
+besitzt, kann einen gültigen Snapshot veröffentlichen. Genau deshalb bleibt eine Replica
+getrennt und wird nie gemergt. Der Schlüssel gehört nicht in den Transportweg: ein Schlüssel
+im Transitverzeichnis wird abgelehnt, ebenso einer in einem erkennbar synchronisierten
+Ordner (abschaltbar über `allow_key_in_synced_folder`). Dasselbe gilt für `republica_root` –
+eine entschlüsselte Replica im Transit würde im Klartext weiterverteilt.
+
+**Grenze:** Ein Volltextindex ohne eigenen Inhalt (`content=''`) lässt sich nicht neu
+aufbauen, weil die Quelle dafür fehlt. Solche Tabellen meldet das Manifest unter
+`contentless_fts`, statt still leer anzukommen.
+
+### Sealed Envelope: eine Datei, derselbe Kanal, niemals eine Datenbank
+
+Das Henne-Ei-Problem: Zwei Maschinen teilen *noch* keinen sicheren Kanal — und genau deshalb
+muss ein Zugangsdatum hinüber. Derselbe Schlüssel und derselbe Ordner befördern auch eine
+einzelne verschlüsselte Datei.
+
+```bash
+sqlite-transit-sync envelope-send    --config node.json --file ./api-token.txt --label api-token
+sqlite-transit-sync envelope-receive --config node.json --into ~/credentials
+```
+
+Die Datei kommt **als Datei** an (Rechte `0600`), benannt `<quellknoten>__<dateiname>`, und
+landet **nie in einer Datenbank** — ein Geheimnis in einer Datenbank wird von jedem Backup,
+jedem Index und jeder Synchronisierung weiterkopiert, die sie berührt. In Notizen gehört der
+Fundort, niemals das Geheimnis selbst.
+
+Zwei Regeln des Schaufensters sind hier bewusst umgekehrt: Der **Credential-Scan gilt nicht**
+(er würde genau die Fracht blockieren, die befördert werden soll), und der Umschlag wird nach
+dem Empfang **aus dem Transit entfernt**, damit ein Geheimnis nicht im geteilten Ordner liegen
+bleibt. Das Entpacken in den Transit oder in einen erkennbar cloud-synchronisierten Ordner
+wird verweigert, und der Dateiname wird beim Empfang erneut entschärft, damit ein
+manipuliertes Manifest nicht außerhalb des Zielverzeichnisses schreiben kann.
+
+Das ist ein Kurier, kein Passwort-Manager und keine Dateisynchronisierung — wenige, kleine
+Umschläge.
+
 ## Das hier ist kein Passwort-Manager
 
 Der Scan **entfernt** Zugangsdaten aus dem Synchronisierungsweg. Er **verteilt** sie
@@ -267,9 +387,22 @@ from sqlite_transit_sync import SyncConfig, TransitSync
 
 sync = TransitSync(SyncConfig.from_file("node.json"))
 snapshot = sync.push()
+pending = sync.pending()
+selected_reports = sync.pull_selected([pending[-1].path.name]) if pending else []
 reports = sync.pull()
-print(snapshot.sha256, [report.as_dict() for report in reports])
+cleanup_plan = sync.cleanup()
+print(
+    snapshot.sha256,
+    [report.as_dict() for report in reports],
+    [report.as_dict() for report in selected_reports],
+    cleanup_plan,
+)
 ```
+
+`pull_selected()` verarbeitet nur ausdrücklich benannte, aktuell ausstehende Snapshots und nutzt
+dabei dieselben Prüf-, Merge- und State-Gates wie `pull()`. Damit können dünne Lebenszyklus-
+Adapter beispielsweise bewusst nur den neuesten zulässigen Fremdstand ziehen, ohne die
+Datenmechanik zu kopieren.
 
 Wenn Timestamp-LWW nicht ausreicht, kann `TransitSync` ein Objekt erhalten, das
 `MergePolicy.merge(local, remote, snapshot)` implementiert.
@@ -425,8 +558,10 @@ Ausfall einzelner Server über mehrere dauerhaft betriebene Knoten überstehen m
 - Snapshot-Redaktion löscht gelistete Tabellen und führt anschließend `VACUUM` aus.
   Trotzdem muss jede Tabelle mit Zugangsdaten oder privaten Daten gelistet werden;
   das generische Modul kann fachliche Secrets nicht zuverlässig erkennen.
-- Anwendungsmigrationen, Clock Policy, Aufbewahrung und Konfliktsemantik bleiben bei
-  der integrierenden Anwendung.
+- Anwendungsmigrationen, Clock Policy, Aufbewahrungsparameter und Konfliktsemantik bleiben
+  bei der integrierenden Anwendung. `cleanup` stellt nur den Mechanismus bereit: Jedes Paar
+  wird geprüft, der Standard ist ein Dry-Run, die neuesten zehn Snapshots je Knoten bleiben
+  erhalten und fremde Knoten werden nur mit ausdrücklichem `--all-nodes` verwaltet.
 - Pro Knoten darf ohne zusätzlichen Prozess-Lock der Host-Anwendung nur ein
   Synchronisierungsprozess laufen.
 
@@ -439,7 +574,7 @@ Siehe [ARCHITECTURE.md](ARCHITECTURE.md), [README.md](README.md) und
 
 Geprüfte Discovery-Projektion für `module:sqlite-transit-sync` aus
 `catalog:v4-bundles`
-(`a52688938bcad21469beb546acfe6dd79ca40196a2bbaf246e5bd6aaac4bbbd7`).
+(`546290dafbaafd810df1d59ef5a3d7183738472b48cd5a8a81f1e8f2b64d852e`).
 Das Ziel-Repository ist `public`. Die Bundle-Manifeste bleiben die Autorität
 für Mitgliedschaften; dieser Abschnitt installiert oder aktiviert keine
 Komponenten. Die Freigabe beruht auf einem öffentlichen Modul-Registry-Eintrag
@@ -449,8 +584,9 @@ und einer ausdrücklichen Default-deny-Allowlist für Bundles.
 
 - Sichtbarkeit des Bundle-Rezepts: `private`; Rolle: `declared-component`;
   Anforderung: `recommended`.
-- Modulpartner: `module:cloud-safe-exporter`, `module:receipt-validator`,
-  `module:sync`, `module:system-explorer-export`, `module:system-gap-master`.
+- Modulpartner: `module:cloud-safe-exporter`, `module:direct-beam`,
+  `module:receipt-validator`, `module:sync`, `module:system-explorer-export`,
+  `module:system-gap-master`.
 - Skill-Partner: `skill:agent-config-sync`, `skill:mcp-config-sync`,
   `skill:system-onboarding`.
 
@@ -473,8 +609,8 @@ python -m pytest --collect-only -q
 
 Die Suite verwendet ausschließlich synthetische Datenbanken und temporäre
 Transit-Verzeichnisse. Hilfe, Retention-Vertrag, Golden-Vergleich sowie der
-JSON-Smoke für init/status/push/list/verify/pull gehören zur selben Sammlung
-mit 53 Tests; keine echte Datenbank, BACH-Laufzeit oder externer Transport
+JSON-Smoke für init/status/push/list/verify/pull gehören zur geprüften Sammlung
+mit 96 Tests; keine echte Datenbank, BACH-Laufzeit oder externer Transport
 werden verwendet.
 
 ## Herkunft

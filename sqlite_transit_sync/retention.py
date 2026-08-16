@@ -11,11 +11,11 @@ from __future__ import annotations
 import json
 import os
 import tempfile
+from collections.abc import Callable, Iterable
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import Any, Callable, Iterable, Protocol
-
+from typing import Any, Protocol
 
 _REPORT_SCHEMA = "sqlite-transit-sync.retention-report.v1"
 _TIMESTAMP_FORMAT = "%Y%m%dT%H%M%S%fZ"
