@@ -3,7 +3,7 @@
   "name": "sqlite-transit-sync",
   "version": "0.4.0",
   "status": "development",
-  "last_verified": "2026-08-16",
+  "last_verified": "2026-08-21",
   "type": "python-module",
   "package": "sqlite_transit_sync",
   "entrypoint": "sqlite-transit-sync",

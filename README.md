@@ -6,11 +6,15 @@
 [English](README.md) | [Deutsch](README_de.md)
 
 [![License](https://img.shields.io/github/license/ellmos-ai/sqlite-transit-sync)](LICENSE)
-[![Python Version](https://img.shields.io/badge/python->=3.10-blue.svg)](https://www.python.org/)
+[![Python Version](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12%20%7C%203.13-blue.svg)](https://www.python.org/)
+[![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20Linux%20%7C%20macOS-informational.svg)](#)
+[![CI](https://github.com/ellmos-ai/sqlite-transit-sync/actions/workflows/ci.yml/badge.svg)](https://github.com/ellmos-ai/sqlite-transit-sync/actions/workflows/ci.yml)
+[![Privacy](https://img.shields.io/badge/privacy-100%25%20Offline%20%7C%20Zero--Egress-brightgreen.svg)](#)
+[![Security](https://img.shields.io/badge/security-Local--First%20%7C%20HMAC--Verified-blue.svg)](SECURITY.md)
 [![Ecosystem: ellmos-ai](https://img.shields.io/badge/Ecosystem-ellmos--ai-blue.svg)](https://github.com/ellmos-ai)
 [![Umbrella: open-bricks](https://img.shields.io/badge/Umbrella-open--bricks-purple.svg)](https://github.com/open-bricks)
 [![Version](https://img.shields.io/badge/version-0.4.0-blue.svg)](CHANGELOG.md)
-[![Tests](https://img.shields.io/badge/tests-96%2F96%20passed-brightgreen.svg)](#tests)
+[![Tests](https://img.shields.io/badge/tests-101%2F101%20passed-brightgreen.svg)](#tests)
 [![llms.txt](https://img.shields.io/badge/llms.txt-available-informational.svg)](llms.txt)
 
 > [!NOTE]
@@ -52,6 +56,35 @@ sequenceDiagram
     NodeB->>Transit: Read manifest & PRAGMA quick_check
     NodeB->>NodeB: Transactional Row Merge (LWW / Policy)
     Note over NodeB: Eventual Consistency Reached
+```
+
+### Snapshot Publishing & Verification Lifecycle
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant App as Application / Node
+    participant Core as sqlite-transit-sync
+    participant Transit as Transit Directory
+    participant Verifier as Receiving Node
+
+    Note over App,Core: Push Phase (Atomic & Redacted)
+    App->>Core: push(config, db)
+    Core->>Core: Online Snapshot via SQLite Backup API
+    Core->>Core: Redact Excluded Tables & VACUUM
+    Core->>Core: Scan Content for Credential Patterns (credential-triggers.json)
+    Core->>Core: Compute SHA-256 & Generate HMAC Signature Envelope
+    Core->>Transit: Write temporary snapshot & Atomic os.replace
+    Core->>Transit: Write verified JSON manifest (*.manifest.json)
+    
+    Note over Transit,Verifier: Pull Phase (Fail-Closed Integrity)
+    Verifier->>Transit: Scan manifests & validate path safety (anti-traversal)
+    Verifier->>Verifier: Verify HMAC Envelope & SHA-256 Digest
+    Verifier->>Verifier: Execute PRAGMA quick_check on Snapshot
+    Verifier->>Verifier: BEGIN IMMEDIATE Transaction
+    Verifier->>Verifier: Execute Row-Level Merge Policy (LWW / Tombstones)
+    Verifier->>Verifier: Advance local state index & COMMIT
+    Note over Verifier: Safe Local Eventual Consistency
 ```
 
 ## Part of the ellmos stack family
@@ -541,6 +574,29 @@ across several permanently operated nodes.
 See [ARCHITECTURE.md](ARCHITECTURE.md), [README_de.md](README_de.md) and
 [SECURITY.md](SECURITY.md).
 
+## Ecosystem & Sibling Tools
+
+`sqlite-transit-sync` is part of the **ellmos-ai** and **open-bricks** local-first software ecosystem. Together with its sister repositories, it forms a modular suite for resilient, offline-first development, documentation, and agent orchestration:
+
+| Repository | Focus / Domain | Description |
+|---|---|---|
+| [dev-bricks/sync-master](https://github.com/dev-bricks/sync-master) | File Sync Yard | Robust local-first file transport companion (`sync.files`) powering transit zones. |
+| [ellmos-ai/policy-registry](https://github.com/ellmos-ai/policy-registry) | Policy Registry | Cryptographic policy evaluation and capability-bound agent execution. |
+| [ellmos-ai/system-gap-master](https://github.com/ellmos-ai/system-gap-master) | System Topology | System drift inspection, sync yard health auditing, and topology validation. |
+| [ellmos-ai/lock-master](https://github.com/ellmos-ai/lock-master) | Lock Management | Multi-agent concurrency coordinator with cooperative locking and deadlock detection. |
+| [ellmos-ai/ticket-master](https://github.com/ellmos-ai/ticket-master) | Task Tracking | Local-first ticket and milestone tracking without external server dependencies. |
+| [ellmos-ai/clutch](https://github.com/ellmos-ai/clutch) | Process Bridge | Subprocess management, stdio isolation, and process supervision for LLM tools. |
+| [ellmos-ai/memoryhooker](https://github.com/ellmos-ai/memoryhooker) | Long-Term Memory | Persistent memory and context hooks for LLM interactions. |
+| [ellmos-ai/workflowhooker](https://github.com/ellmos-ai/workflowhooker) | Workflow Automation | Event-driven pipeline interception and automated lifecycle hooks. |
+| [ellmos-ai/ellmos-controlcenter-mcp](https://github.com/ellmos-ai/ellmos-controlcenter-mcp) | Control Center MCP | Unified orchestration gateway for tools, models, stacks, and subagents. |
+| [ellmos-ai/ellmos-filecommander-mcp](https://github.com/ellmos-ai/ellmos-filecommander-mcp) | File Commander MCP | Safe, hardened file system operations with audit logs and boundary enforcement. |
+| [ellmos-ai/ellmos-codecommander-mcp](https://github.com/ellmos-ai/ellmos-codecommander-mcp) | Code Commander MCP | High-level code analysis, AST transformations, and import diagnostic MCP server. |
+| [dev-bricks/automation-master](https://github.com/dev-bricks/automation-master) | Automation Engine | Local event-sourced automation pipeline with projection-based execution. |
+| [dev-bricks/DevCenter](https://github.com/dev-bricks/DevCenter) | Developer Cockpit | Desktop GUI for managing projects, environments, and multi-repo workflows. |
+| [dev-bricks/CodeBox](https://github.com/dev-bricks/CodeBox) | Code Management | Local-first code library and AST pattern index. |
+| [doc-bricks/PDFtoPDFocr](https://github.com/doc-bricks/PDFtoPDFocr) | Document OCR | Zero-egress searchable PDF conversion with OCR layer integration. |
+| [open-bricks/open-bricks](https://github.com/open-bricks) | Umbrella Hub | Meta-repository and umbrella documentation for all open-source bricks. |
+
 <!-- BEGIN GENERATED ELLMOS BUNDLE DISCOVERY -->
 
 ## Bundles and partners
@@ -573,7 +629,7 @@ python -m pytest --collect-only -q
 
 The suite uses only synthetic databases and temporary transit directories. The
 CLI help, retention contract, golden comparison and JSON
-init/status/push/list/verify/pull smoke are part of the verified 96-test
+init/status/push/list/verify/pull smoke are part of the verified test
 collection; no live database, BACH runtime or external transport is used.
 
 ## Provenance

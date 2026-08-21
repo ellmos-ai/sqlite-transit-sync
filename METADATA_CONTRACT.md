@@ -6,7 +6,7 @@ Versionszahl ist kein Beleg für eine Veröffentlichung.
 ## Autoritative Release-Version
 
 Die einzige Release-Quelle ist `pyproject.toml`, Feld
-`[project].version`. Beim aktuellen Readback ist sie `0.2.0`. Diese Zahl wird
+`[project].version`. Beim aktuellen Readback ist sie `0.4.0`. Diese Zahl wird
 byte-/wertgleich gespiegelt in:
 
 - `sqlite_transit_sync.__version__`
@@ -29,7 +29,7 @@ aktueller Gate-Nachweis und kein ausdrücklicher Sign-off vorliegen.
 
 ## Verifikationsdatum
 
-`2026-08-10` ist der gemeinsame Stand des aktuellen lokalen Readbacks. Er wird
+`2026-08-21` ist der gemeinsame Stand des aktuellen lokalen Readbacks. Er wird
 in `llms.txt`, beiden Modulmanifesten und dem Frontmatter von `CLAUDE.md`
 geführt. `STATE.md` und `CHANGELOG.md` beschreiben die ausgeführten Befehle,
 Testanzahl und Grenzen. `tests/test_metadata.py` liest diese Artefakte und

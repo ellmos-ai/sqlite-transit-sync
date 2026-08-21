@@ -7,7 +7,7 @@
   "kind": "library",
   "status": "development",
   "visibility": "public-candidate",
-  "last_verified": "2026-08-16",
+  "last_verified": "2026-08-21",
   "provides": [
     "sync.database",
     "sync.database.sqlite",

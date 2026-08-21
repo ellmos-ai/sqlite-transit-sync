@@ -68,6 +68,68 @@ class TestMetadata(unittest.TestCase):
             repo = data2.get("source_of_truth", {}).get("repository")
             self.assertEqual(repo, "https://github.com/ellmos-ai/sqlite-transit-sync")
 
+    def test_llms_txt_date_parity(self):
+        """llms.txt declares a valid Last-checked date."""
+        llms_file = ROOT / "llms.txt"
+        content = llms_file.read_text(encoding="utf-8")
+        declared = re.search(r"^- Last-checked:\s*(\d{4}-\d{2}-\d{2})", content, re.MULTILINE)
+        self.assertIsNotNone(declared, "llms.txt must declare a '- Last-checked: YYYY-MM-DD' line")
+
+    def test_bilingual_security_exists_and_contacts(self):
+        """SECURITY.md must be bilingual and declare direct contact channels."""
+        sec_file = ROOT / "SECURITY.md"
+        self.assertTrue(sec_file.is_file(), "SECURITY.md must exist")
+        content = sec_file.read_text(encoding="utf-8")
+        self.assertIn("# Security", content)
+        self.assertIn("Sicherheitsrichtlinie (Deutsch)", content)
+        self.assertIn("security@ellmos.ai", content)
+        self.assertIn("support@lukasgeiger.com", content)
+
+    def test_ci_workflow_integrity(self):
+        """CI workflow must exist and test Python 3.10 through 3.13 across OS platforms."""
+        ci_file = ROOT / ".github" / "workflows" / "ci.yml"
+        self.assertTrue(ci_file.is_file(), ".github/workflows/ci.yml must exist")
+        content = ci_file.read_text(encoding="utf-8")
+        for py in ["3.10", "3.11", "3.12", "3.13"]:
+            self.assertIn(py, content, f"CI matrix should test Python {py}")
+        self.assertIn("ubuntu-latest", content)
+        self.assertIn("windows-latest", content)
+
+    def test_pyproject_pep621_classifiers(self):
+        """pyproject.toml must contain standard PEP 621 classifiers."""
+        data = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
+        classifiers = data.get("project", {}).get("classifiers", [])
+        self.assertTrue(len(classifiers) >= 6, "pyproject.toml should have classifiers")
+        required_classifiers = [
+            "Programming Language :: Python :: 3.10",
+            "Programming Language :: Python :: 3.11",
+            "Programming Language :: Python :: 3.12",
+            "Programming Language :: Python :: 3.13",
+            "Operating System :: OS Independent",
+            "License :: OSI Approved :: MIT License",
+        ]
+        for rc in required_classifiers:
+            self.assertIn(rc, classifiers, f"Classifier '{rc}' must be present in pyproject.toml")
+
+    def test_badges_parity(self):
+        """README.md and README_de.md must have synchronized essential badges."""
+        readme_en = (ROOT / "README.md").read_text(encoding="utf-8")
+        readme_de = (ROOT / "README_de.md").read_text(encoding="utf-8")
+        for badge_fragment in [
+            "license/ellmos-ai/sqlite-transit-sync",
+            "python-3.10",
+            "platform-Windows",
+            "actions/workflows/ci.yml/badge.svg",
+            "privacy-100%25%20Offline",
+            "security-Local--First",
+            "Ecosystem-ellmos--ai",
+            "Umbrella-open--bricks",
+            "version-0.4.0",
+            "llms.txt-available",
+        ]:
+            self.assertIn(badge_fragment, readme_en, f"Badge fragment '{badge_fragment}' missing in README.md")
+            self.assertIn(badge_fragment, readme_de, f"Badge fragment '{badge_fragment}' missing in README_de.md")
+
     def test_tracked_public_view_has_no_local_artifact_or_path_leak(self):
         tracked = subprocess.check_output(
             ["git", "ls-files"], cwd=ROOT, text=True, encoding="utf-8"

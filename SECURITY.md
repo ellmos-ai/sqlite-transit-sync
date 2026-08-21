@@ -80,7 +80,45 @@ snapshot and runs `VACUUM` before publishing. This reduces residual bytes in the
 snapshot file, but it is not a substitute for a complete application-specific
 redaction list.
 
-## Reporting
+## Reporting Vulnerabilities
 
-Do not include live databases, snapshots, credentials or personal records in a bug
-report. Provide a minimal synthetic database and redacted manifest instead.
+If you discover a security vulnerability, please report it responsibly:
+- **Email (Direct Security Contact)**: [security@ellmos.ai](mailto:security@ellmos.ai)
+- **Secondary Contact**: [support@lukasgeiger.com](mailto:support@lukasgeiger.com)
+- **GitHub Advisory**: Use the [Private Vulnerability Reporting](https://github.com/ellmos-ai/sqlite-transit-sync/security/advisories/new) tab on GitHub.
+
+Do not include live databases, actual credentials, or personal records in a report. Provide a minimal synthetic database and redacted manifest instead.
+
+---
+
+# Sicherheitsrichtlinie (Deutsch)
+
+## Unterstützte Nutzung & Local-First Invarianten
+
+Verwenden Sie das Modul ausschließlich mit lokalen Live-Datenbanken und einem vertrauenswürdigen Transportweg. Der Knotenzustand (`state`) muss strikt außerhalb des geteilten Transitverzeichnisses liegen. Dateisystem-Zugriffsrechte sollten auf Datenbank-, Zustands- und Transitpfade beschränkt sein.
+
+`SyncConfig` weist Zustandspfade, die gleich oder unterhalb des kanonischen Transitverzeichnisses liegen, vor der Verzeichniserstellung fail-closed ab. Dies gilt für absolute wie relative Pfade sowie CLI-`init`.
+
+### Transitpfad- und Manifest-Isolationsgrenzen
+
+Empfänger akzeptieren ausschließlich direkte, reguläre Manifestdateien im kanonischen Transitordner. Das Manifest darf exakt einen relativen Snapshot-Dateinamen angeben. Absolute Pfade, Directory-Traversal (`../`), geschachtelte Pfade, Symlinks und Windows-Reparse-Points werden vor dem Hashen, SQLite-`quick_check` oder Merge fail-closed blockiert. Eine erfolgreiche SHA-256-Prüfung garantiert die Datenintegrität des Manifests, stellt jedoch ohne kryptografischen Adapter keine Absenderauthentifizierung dar.
+
+### Optionaler HMAC-Authentifizierungs-Adapter
+
+`TransitSync(..., authenticator=...)` stellt eine optionale Sicherheitsgrenze dar. Der integrierte `HMACSnapshotAuthenticator` signiert ein kanonisches JSON-Payload (Protokoll, Namespace, Sender/Knoten, Snapshot-Dateiname, SHA-256-Hash, Dateigröße, Redaktionsliste und Schlüssel-Header). Verwendet wird ein anwendungseigener In-Memory-Schlüsselbund; keine Geheimnisse werden in Manifeste, Transit-Dateien, Logs oder JSON-Konfigurationen geschrieben.
+
+### Inhaltsbezogener Zugangsdaten-Schutzscan (Credential Shield)
+
+Standardmäßig prüft `scan_snapshot_for_secrets = true` den *Inhalt* jedes Snapshots vor dem Schreiben in das Transitverzeichnis auf zugangsdatenähnliche Muster (OpenAI, Anthropic, Google, GitHub, GitLab, AWS, Slack, PEM-Schlüssel). Bei einem Fund wird die Veröffentlichung mit einem Fehler abgebrochen, der lediglich `table.column` benennt, jedoch niemals das Geheimnis selbst preisgibt.
+
+### Bereinigungs- und Aufbewahrungssicherheit
+
+Die `cleanup`-Routine verifiziert jedes geplante Snapshot- und Manifestpaar einzeln vor einer Löschung. Standardmäßig läuft sie als Dry-Run und ist strikt auf den lokalen Knoten beschränkt. Das Flag `--apply --all-nodes` erfordert explizite administrative Autorisierung über Artefakte fremder Knoten.
+
+## Sicherheitskontakt & Schwachstellenmeldung
+
+Sicherheitsrelevante Schwachstellen bitte vertraulich melden:
+- **E-Mail (Sicherheitskontakt)**: [security@ellmos.ai](mailto:security@ellmos.ai)
+- **Sekundärkontakt**: [support@lukasgeiger.com](mailto:support@lukasgeiger.com)
+- **GitHub Advisory**: Über [Private Vulnerability Reporting](https://github.com/ellmos-ai/sqlite-transit-sync/security/advisories/new).
+
