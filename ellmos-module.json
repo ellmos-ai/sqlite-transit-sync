@@ -3,7 +3,7 @@
   "name": "sqlite-transit-sync",
   "version": "0.4.0",
   "status": "development",
-  "last_verified": "2026-08-21",
+  "last_verified": "2026-08-22",
   "type": "python-module",
   "package": "sqlite_transit_sync",
   "entrypoint": "sqlite-transit-sync",
@@ -17,6 +17,7 @@
     "snapshot-transit",
     "row-level-merge",
     "schema-drift-tolerance",
+    "read-only-projection-verification",
     "json-cli"
   ],
   "runtime_dependencies": [],

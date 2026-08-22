@@ -90,11 +90,28 @@ The key travels out of band and must live outside the transport; the same applie
 - `MergePolicy`: application extension point.
 - `TimestampMergePolicy`: safe generic baseline for timestamped rows with primary keys.
 - `TombstoneMergePolicy`: opt-in explicit deletion reference policy.
+- `ProjectionContract` / `verify_projection_database`: strict, read-only validation
+  of an application-owned minimal projection; no transport, merge or state mutation.
 - `SnapshotRetentionPolicy`: opt-in, ownership-aware age/count planning that
   retains foreign, pending, unknown and unverified artifacts by default.
 - `RepublicaTransit`: adds `publish`, `available`, `import_republica` and sealed envelopes on the same safety gate.
 - `RepublicaSnapshot` / `RepublicaImport` / `Envelope`: results of publication and import.
 - `cli.py`: JSON interface for humans, agents and automations.
+
+## Minimal read-only projection boundary
+
+An application projection is not a merge target. One canonical application
+adapter creates a closed SQLite file containing only contract-allowlisted
+tables and columns. A consumer supplies its own identity, last accepted
+checkpoint and reviewed maximum offline interval to the verifier. The verifier
+opens the file read-only, checks closure and SQLite integrity, then validates
+schema, values, provenance, loop protection, checkpoint progression and
+tombstone retention. It returns a report and writes nothing.
+
+This boundary composes with either carrier mode after the application has
+authenticated and approved that transport. It does not choose source queries,
+derive opaque identifiers, advance a source checkpoint, activate a scheduler or
+authorize a production cutover. See `PROJECTION_CONTRACTS.md`.
 
 ## Default merge semantics
 

@@ -29,7 +29,7 @@ aktueller Gate-Nachweis und kein ausdrücklicher Sign-off vorliegen.
 
 ## Verifikationsdatum
 
-`2026-08-21` ist der gemeinsame Stand des aktuellen lokalen Readbacks. Er wird
+`2026-08-22` ist der gemeinsame Stand des aktuellen lokalen Readbacks. Er wird
 in `llms.txt`, beiden Modulmanifesten und dem Frontmatter von `CLAUDE.md`
 geführt. `STATE.md` und `CHANGELOG.md` beschreiben die ausgeführten Befehle,
 Testanzahl und Grenzen. `tests/test_metadata.py` liest diese Artefakte und

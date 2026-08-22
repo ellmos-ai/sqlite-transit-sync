@@ -4,9 +4,9 @@ type: project-docs
 profile: "STANDARD"
 version: 0.4.0
 created: "2026-07-11"
-updated: "2026-08-21"
-reason_last_change: "Discoverability, README-Design, Badges, Security & Metadata Parity Check"
-last_verified: "2026-08-21"
+updated: "2026-08-22"
+reason_last_change: "Versionierte minimale Read-only-Projektionsverträge und Verifier"
+last_verified: "2026-08-22"
 release_status: "development"
 visibility: "public-candidate"
 author: "Lukas Geiger / ellmos / BACH Contributors"

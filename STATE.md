@@ -1,6 +1,6 @@
 # STATE.md
 
-**Stand:** 2026-08-16
+**Stand:** 2026-08-22
 **Phase:** Alpha / neutrale Extraktion abgeschlossen (v0.4.0)
 
 ## Funktionsfähig
@@ -24,13 +24,17 @@
 - gezielter Pull eines ausdrücklich ausgewählten Pending-Ausschnitts für dünne
   Lebenszyklus-Adapter, mit denselben Prüf-, Transaktions- und State-Gates (ADR-015)
 - Synthetischer BACH-Golden-Vergleich mit absichtlich blockiertem Adapterstatus
-- eigenständige synthetische Tests (96/96 passed, 100% grün)
+- zwei versionierte minimale Read-only-Projektionsverträge mit generischem
+  Allowlist-Verifier und synthetischen Offline-/Resume-/Tombstone-Fixtures
+- eigenständige synthetische Tests (110/110 bestanden, 100 % grün)
 
 ## Noch nicht integriert
 
 - BACH nutzt weiterhin seine bewährte interne ProSync-Implementierung.
 - BACH-Kompatibilitätsadapter, autorisierte Golden-Referenzen, Schlüsselablage,
   Frische und fachliche Tombstone-Aufbewahrung bleiben anwendungsspezifisch.
+- Publisher-Adapter für konkrete Anwendungen bleiben in deren kanonischen
+  Quell-Repositories; dieses Modul enthält keine Quellabfrage oder Aktivierung.
 
 ## Letzte Dokumentationsänderung
 
@@ -47,6 +51,8 @@
 
 ## Letzte Verifikation
 
+- 2026-08-22: Unittest und Pytest jeweils 110/110 grün; Compileall, Ruff,
+  JSON-CLI-Verifier, Diff-, Secret-, Pfad- und Mojibake-Prüfung ohne Befund.
 - 2026-08-16: Pytest Testsuite (96/96 passed in 0.53s), `compileall` und Ruff 100% sauber.
 - 2026-08-13: Retention-/Golden-Bundle synthetisch implementiert; die finale
   Test-, Ruff-, Compileall-, CLI- und Git-Readback-Verifikation durchgeführt.
