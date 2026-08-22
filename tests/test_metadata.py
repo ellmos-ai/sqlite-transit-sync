@@ -91,6 +91,24 @@ class TestMetadata(unittest.TestCase):
         self.assertIn("support@lukasgeiger.com", content)
         self.assertIn("security@open-bricks.org", content)
 
+    def test_projection_contract_docs_and_package_data_are_bilingual(self):
+        """Projection docs, contract names, and package data must stay synchronized."""
+        docs = [ROOT / "PROJECTION_CONTRACTS.md", ROOT / "PROJECTION_CONTRACTS_de.md"]
+        readmes = [ROOT / "README.md", ROOT / "README_de.md"]
+        for path in docs:
+            self.assertTrue(path.is_file(), f"Missing projection documentation: {path.name}")
+        for token in (
+            "mediplaner-reminder-projection.v1",
+            "routinika-reminder-projection.v1",
+            "verify-projection",
+        ):
+            for path in (*docs, *readmes):
+                self.assertIn(token, path.read_text(encoding="utf-8"), f"{token} missing in {path.name}")
+        package_data = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))[
+            "tool"
+        ]["setuptools"]["package-data"]["sqlite_transit_sync"]
+        self.assertIn("projection-contracts/*.json", package_data)
+
     def test_ci_workflow_integrity(self):
         """CI workflow must test Python 3.10-3.13 across triple OS matrix with concurrency."""
         ci_file = ROOT / ".github" / "workflows" / "ci.yml"

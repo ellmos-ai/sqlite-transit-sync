@@ -10,6 +10,8 @@
 - [ ] Retention für Replica-Snapshots: alte `*.republica` je Knoten im Transit aufräumen.
 - [ ] Inhaltslose FTS-Indizes (`content=''`) im Replica-Modus: heute nur im Manifest gemeldet.
 - [ ] BACH-Kompatibilitätsadapter erst nach autorisiertem goldenem Vergleichstest evaluieren.
+- [ ] Konkrete Publisher-Adapter erst in autoritativ registrierten Plan-D-App-Repositories
+      implementieren; keine Adapterkopie oder Quellabfrage im neutralen Carrier pflegen.
 - [x] Paket- und Release-Gates vor einer öffentlichen Veröffentlichung durchführen.
 
 ---

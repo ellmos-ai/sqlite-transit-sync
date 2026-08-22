@@ -1,0 +1,74 @@
+{
+  "consumer_id": "bach-reminder-consumer",
+  "contract": "routinika-reminder-projection.v1",
+  "fixture_schema": "sqlite-transit-sync.synthetic-projection-fixture.v1",
+  "minimum_offline_seconds": 2592000,
+  "snapshots": [
+    {
+      "name": "initial",
+      "previous_checkpoint": 5,
+      "tables": {
+        "projection_metadata": [
+          {
+            "contract_id": "org.ellmos.routinika.reminder-projection",
+            "contract_version": "1.0.0",
+            "generated_at": "2026-08-22T07:00:00Z",
+            "publisher_component": "routinika-projection-adapter",
+            "publisher_instance": "routinika-primary",
+            "source_checkpoint": 6
+          }
+        ],
+        "projection_tombstones": [],
+        "routine_due": [
+          {
+            "due_at": "2026-08-22T07:30:00Z",
+            "publisher_instance": "routinika-primary",
+            "record_ref": "cccccccccccccccccccccccccccccccc",
+            "record_version": 1,
+            "source_checkpoint": 6,
+            "state": "due",
+            "window_end_at": "2026-08-22T08:00:00Z"
+          }
+        ]
+      }
+    },
+    {
+      "name": "resumed-after-offline",
+      "previous_checkpoint": 6,
+      "tables": {
+        "projection_metadata": [
+          {
+            "contract_id": "org.ellmos.routinika.reminder-projection",
+            "contract_version": "1.0.0",
+            "generated_at": "2026-08-22T11:00:00Z",
+            "publisher_component": "routinika-projection-adapter",
+            "publisher_instance": "routinika-primary",
+            "source_checkpoint": 8
+          }
+        ],
+        "projection_tombstones": [
+          {
+            "deleted_at": "2026-08-22T09:30:00Z",
+            "publisher_instance": "routinika-primary",
+            "record_ref": "cccccccccccccccccccccccccccccccc",
+            "record_type": "routine_due",
+            "record_version": 2,
+            "retain_until": "2026-10-22T09:30:00Z",
+            "source_checkpoint": 8
+          }
+        ],
+        "routine_due": [
+          {
+            "due_at": "2026-08-22T10:30:00Z",
+            "publisher_instance": "routinika-primary",
+            "record_ref": "dddddddddddddddddddddddddddddddd",
+            "record_version": 1,
+            "source_checkpoint": 8,
+            "state": "completed",
+            "window_end_at": "2026-08-22T11:00:00Z"
+          }
+        ]
+      }
+    }
+  ]
+}

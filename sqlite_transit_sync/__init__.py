@@ -16,6 +16,15 @@ from .core import (
     ensure_tombstone_table,
     load_secret_patterns,
 )
+from .projection import (
+    PROJECTION_CONTRACT_SCHEMA,
+    ProjectionContract,
+    ProjectionContractError,
+    ProjectionVerificationReport,
+    bundled_projection_contracts,
+    projection_contract_path,
+    verify_projection_database,
+)
 from .republica import (
     Envelope,
     EnvelopeReceipt,
@@ -39,6 +48,10 @@ __all__ = [
     "HMACKey",
     "HMACSnapshotAuthenticator",
     "MergeReport",
+    "PROJECTION_CONTRACT_SCHEMA",
+    "ProjectionContract",
+    "ProjectionContractError",
+    "ProjectionVerificationReport",
     "RepublicaImport",
     "RepublicaSnapshot",
     "RepublicaTransit",
@@ -57,9 +70,12 @@ __all__ = [
     "TombstoneMergePolicy",
     "TransitSync",
     "apply_retention",
+    "bundled_projection_contracts",
     "ensure_tombstone_table",
     "generate_key",
     "load_secret_patterns",
+    "projection_contract_path",
+    "verify_projection_database",
 ]
 
 __version__ = "0.4.0"

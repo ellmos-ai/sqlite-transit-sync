@@ -218,6 +218,8 @@ application-selectable merge policies.
   and explicit opt-ins for deletion and foreign-node administration;
 - selected pending pulls for thin application lifecycle adapters without duplicating merge or
   state-advancement logic;
+- strict versioned read-only projection contracts with exact schema/privacy allowlists,
+  provenance, checkpoint, loop and offline-tombstone verification;
 - an optional [Republica showcase mode](#republica--the-showcase-method) that distributes a database
   one way as an encrypted payload and materialises it as a separate read-only showcase,
   instead of merging it;
@@ -255,6 +257,30 @@ sqlite-transit-sync cleanup --config node.json --apply
 The application schema must already exist on each node. Automatic first-copy
 is intentionally disabled because a generic module cannot decide which schema,
 secrets, local tables or migrations belong to an application.
+
+## Read-only application projections
+
+`verify-projection` validates a closed, application-owned SQLite projection
+without copying, merging, migrating, scheduling, or advancing state. The
+application supplies its consumer identity and reviewed maximum offline interval;
+the verifier rejects loops, stale checkpoints, insufficient tombstone retention,
+unlisted tables or columns, and non-opaque record references.
+
+Two narrow contracts are bundled for medication due/inventory-warning state and
+routine due/completion state: `mediplaner-reminder-projection.v1` and
+`routinika-reminder-projection.v1`. Their test fixtures are synthetic JSON recipes;
+names, doses, quantities, stock values, notes, and media are not contract fields.
+See [Read-only projection contracts](PROJECTION_CONTRACTS.md) and the
+[German companion](PROJECTION_CONTRACTS_de.md).
+
+```bash
+sqlite-transit-sync verify-projection \
+  --contract mediplaner-reminder-projection.v1 \
+  --database ./closed-projection.sqlite \
+  --consumer-id reminder-consumer \
+  --minimum-offline-seconds 2592000 \
+  --previous-checkpoint 41
+```
 
 ## Configuration
 

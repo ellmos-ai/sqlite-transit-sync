@@ -256,3 +256,21 @@ Datenmechanik bleibt beim Carrier.
 ein Name wie `..\foo.sqlite-snapshot` dadurch unerkannt und fiel erst später (als „nicht
 ausstehend“, `SyncError` statt `ValueError`) auf. Die Prüfung testet jetzt zusätzlich explizit auf
 `/` und `\`, damit die Ablehnung plattformunabhängig identisch greift.
+
+## ADR-016: Minimale Projektionen werden geprüft, nicht generisch erzeugt
+
+Ein Koordinator benötigt häufig nur wenige Fälligkeits- oder Statusfelder aus
+einer fachlich autoritativen Anwendung. Der neutrale Carrier darf daraus weder
+eine zweite Fachdatenbank noch einen parallelen Writer machen. Deshalb sind
+Projektionsverträge ein eigener, strikt read-only Prüfpfad: Genau ein kanonischer
+Anwendungsadapter erzeugt eine geschlossene Datei; `verify_projection_database`
+prüft deren exakte Tabellen- und Spalten-Allowlist, Werte, Provenienz,
+Checkpoint-Fortschritt, Loop-Schutz und Tombstone-Aufbewahrung, ohne die Datei
+oder lokalen Zustand zu verändern.
+
+Der maximale Offline-Horizont bleibt eine ausdrückliche Eingabe der Anwendung.
+Das neutrale Modul rät keine Frist, Quellabfrage, ID-Ableitung, Migration oder
+Aktivierungsrichtlinie. Ein erfolgreicher Prüfbericht ist daher ein Beleg für
+die konkrete geschlossene Projektion, keine Produktionsfreigabe und keine
+Absenderauthentifizierung. Transportauthentifizierung bleibt eine zusätzliche
+Grenze gemäß ADR-004 und ADR-011.
