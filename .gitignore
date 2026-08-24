@@ -4,6 +4,7 @@ __pycache__/
 *.pyc
 *.egg-info/
 .pytest_cache/
+.ruff_cache/
 .coverage
 htmlcov/
 dist/
@@ -22,3 +23,7 @@ data/
 .claude/.cache/
 .claude/state/
 
+# Sync conflicts and locks
+*.sync-conflict-*
+*.conflict
+LOCK*.txt

@@ -14,7 +14,7 @@
 [![Ecosystem: ellmos-ai](https://img.shields.io/badge/Ecosystem-ellmos--ai-blue.svg)](https://github.com/ellmos-ai)
 [![Umbrella: open-bricks](https://img.shields.io/badge/Umbrella-open--bricks-purple.svg)](https://github.com/open-bricks)
 [![Version](https://img.shields.io/badge/version-0.4.0-blue.svg)](CHANGELOG.md)
-[![Tests](https://img.shields.io/badge/tests-101%2F101%20passed-brightgreen.svg)](#tests)
+[![Tests](https://img.shields.io/badge/tests-103%2F103%20passed-brightgreen.svg)](#tests)
 [![llms.txt](https://img.shields.io/badge/llms.txt-available-informational.svg)](llms.txt)
 
 > [!NOTE]

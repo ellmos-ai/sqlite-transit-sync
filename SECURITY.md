@@ -80,18 +80,35 @@ snapshot and runs `VACUUM` before publishing. This reduces residual bytes in the
 snapshot file, but it is not a substitute for a complete application-specific
 redaction list.
 
+## Supported Versions
+
+| Version | Supported          |
+| ------- | ------------------ |
+| 0.4.x   | :white_check_mark: |
+| < 0.4.0 | :x:                |
+
 ## Reporting Vulnerabilities
 
 If you discover a security vulnerability, please report it responsibly:
 - **Email (Direct Security Contact)**: [security@ellmos.ai](mailto:security@ellmos.ai)
 - **Secondary Contact**: [support@lukasgeiger.com](mailto:support@lukasgeiger.com)
+- **Umbrella Security**: [security@open-bricks.org](mailto:security@open-bricks.org)
+- **Maintainer**: [lukas@open-bricks.org](mailto:lukas@open-bricks.org)
 - **GitHub Advisory**: Use the [Private Vulnerability Reporting](https://github.com/ellmos-ai/sqlite-transit-sync/security/advisories/new) tab on GitHub.
 
+We acknowledge receipt of valid reports within **48 hours** and provide regular progress updates until a patch is released.
 Do not include live databases, actual credentials, or personal records in a report. Provide a minimal synthetic database and redacted manifest instead.
 
 ---
 
 # Sicherheitsrichtlinie (Deutsch)
+
+## Unterstützte Versionen
+
+| Version | Unterstützt        |
+| ------- | ------------------ |
+| 0.4.x   | :white_check_mark: |
+| < 0.4.0 | :x:                |
 
 ## Unterstützte Nutzung & Local-First Invarianten
 
@@ -120,5 +137,9 @@ Die `cleanup`-Routine verifiziert jedes geplante Snapshot- und Manifestpaar einz
 Sicherheitsrelevante Schwachstellen bitte vertraulich melden:
 - **E-Mail (Sicherheitskontakt)**: [security@ellmos.ai](mailto:security@ellmos.ai)
 - **Sekundärkontakt**: [support@lukasgeiger.com](mailto:support@lukasgeiger.com)
+- **Dachorganisation Security**: [security@open-bricks.org](mailto:security@open-bricks.org)
+- **Maintainer**: [lukas@open-bricks.org](mailto:lukas@open-bricks.org)
 - **GitHub Advisory**: Über [Private Vulnerability Reporting](https://github.com/ellmos-ai/sqlite-transit-sync/security/advisories/new).
+
+Wir bestätigen den Eingang valider Sicherheitsberichte innerhalb von **48 Stunden** und informieren regelmäßig über den Fortschritt bis zur Veröffentlichung eines Patches.
 

@@ -76,17 +76,23 @@ class TestMetadata(unittest.TestCase):
         self.assertIsNotNone(declared, "llms.txt must declare a '- Last-checked: YYYY-MM-DD' line")
 
     def test_bilingual_security_exists_and_contacts(self):
-        """SECURITY.md must be bilingual and declare direct contact channels."""
+        """SECURITY.md must be bilingual and declare supported versions, 48h SLA, and contacts."""
         sec_file = ROOT / "SECURITY.md"
         self.assertTrue(sec_file.is_file(), "SECURITY.md must exist")
         content = sec_file.read_text(encoding="utf-8")
         self.assertIn("# Security", content)
+        self.assertIn("## Supported Versions", content)
         self.assertIn("Sicherheitsrichtlinie (Deutsch)", content)
+        self.assertIn("## Unterstützte Versionen", content)
+        self.assertIn("0.4.x", content)
+        self.assertIn("48 hours", content)
+        self.assertIn("48 Stunden", content)
         self.assertIn("security@ellmos.ai", content)
         self.assertIn("support@lukasgeiger.com", content)
+        self.assertIn("security@open-bricks.org", content)
 
     def test_ci_workflow_integrity(self):
-        """CI workflow must exist and test Python 3.10 through 3.13 across OS platforms."""
+        """CI workflow must test Python 3.10-3.13 across triple OS matrix with concurrency."""
         ci_file = ROOT / ".github" / "workflows" / "ci.yml"
         self.assertTrue(ci_file.is_file(), ".github/workflows/ci.yml must exist")
         content = ci_file.read_text(encoding="utf-8")
@@ -94,6 +100,10 @@ class TestMetadata(unittest.TestCase):
             self.assertIn(py, content, f"CI matrix should test Python {py}")
         self.assertIn("ubuntu-latest", content)
         self.assertIn("windows-latest", content)
+        self.assertIn("macos-latest", content)
+        self.assertIn("actions/checkout@v4", content)
+        self.assertIn("actions/setup-python@v5", content)
+        self.assertIn("cancel-in-progress: true", content)
 
     def test_pyproject_pep621_classifiers(self):
         """pyproject.toml must contain standard PEP 621 classifiers."""
@@ -110,6 +120,27 @@ class TestMetadata(unittest.TestCase):
         ]
         for rc in required_classifiers:
             self.assertIn(rc, classifiers, f"Classifier '{rc}' must be present in pyproject.toml")
+
+    def test_pyproject_ecosystem_urls(self):
+        """pyproject.toml must contain full ecosystem URLs."""
+        data = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
+        urls = data.get("project", {}).get("urls", {})
+        self.assertIn("Homepage", urls)
+        self.assertIn("Repository", urls)
+        self.assertIn("Issues", urls)
+        self.assertIn("Documentation", urls)
+        self.assertIn("Changelog", urls)
+        self.assertIn("Security", urls)
+        self.assertEqual(urls.get("Parent Organization"), "https://github.com/ellmos-ai")
+        self.assertEqual(urls.get("Umbrella Ecosystem"), "https://github.com/open-bricks")
+
+    def test_gitignore_hygiene(self):
+        """gitignore must ignore caches, conflict patterns and locks."""
+        gi_file = ROOT / ".gitignore"
+        self.assertTrue(gi_file.is_file(), ".gitignore must exist")
+        content = gi_file.read_text(encoding="utf-8")
+        for pattern in [".pytest_cache/", ".ruff_cache/", "*.sync-conflict-*", "*.conflict", "LOCK*.txt"]:
+            self.assertIn(pattern, content, f"Pattern '{pattern}' should be in .gitignore")
 
     def test_badges_parity(self):
         """README.md and README_de.md must have synchronized essential badges."""
