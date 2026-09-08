@@ -2,17 +2,17 @@
 
 > Local-first SQLite synchronization through verified transit snapshots and configurable row-level merge policies. Extracted from the BACH ProSync architecture for standalone, zero-dependency Python projects.
 
-- Last-checked: 2026-08-24
+- Last-checked: 2026-09-09
 - Version: 0.4.0
 - Module status: `development`; visibility projection: `public-candidate`; release gate: `LOCKED`.
 - Metadata contract: `METADATA_CONTRACT.md` (version, status and verification authority).
-- Security policy: `SECURITY.md` (Supported Versions 0.4.x, 48h SLA, Direct Contacts).
-- Architecture: Local-First / Zero-Dependency / Snapshot-based Transit
+- Security policy: `SECURITY.md` (Supported Versions 0.4.x, 48h SLA + 5 business days triage, Direct Contacts).
+- Architecture: Local-First / Zero-Dependency / Snapshot-based Transit (Dual Mermaid diagrams & 10-point Invariants Matrix in README)
 - Module Family: `dev-bricks/sync-master` companion (`sync.database`)
 
 ## System Overview
 
-`sqlite-transit-sync` is a Python 3.10+ library (zero dependencies for merge mode; the optional Republica mode adds `cryptography`) and CLI for synchronizing local SQLite databases across untrusted or asynchronous file transports (shared folders, object-store mounts, removable drives, or sync-master yards). Includes ownership-aware snapshot retention policies, HMAC-SHA256 authentication, and synthetic BACH golden comparison. Verified passing test suite on 2026-08-24 (103 passed, 100% green).
+`sqlite-transit-sync` is a Python 3.10+ library (zero dependencies for merge mode; the optional Republica mode adds `cryptography`) and CLI for synchronizing local SQLite databases across untrusted or asynchronous file transports (shared folders, object-store mounts, removable drives, or sync-master yards). Includes ownership-aware snapshot retention policies, HMAC-SHA256 authentication, and synthetic BACH golden comparison. Verified passing test suite on 2026-09-09 (109 passed, 100% green).
 
 It avoids live SQLite database locking over file sync by using:
 1. Online consistent snapshots via SQLite Backup API (`sqlite3.Connection.backup`).

@@ -2,23 +2,43 @@
 
 <img src="assets/banner.png" width="100%" alt="Sqlite Transit Sync banner">
 
-
-[English](README.md) | [Deutsch](README_de.md)
-
-[![License](https://img.shields.io/github/license/ellmos-ai/sqlite-transit-sync)](LICENSE)
+[![CI](https://github.com/ellmos-ai/sqlite-transit-sync/actions/workflows/ci.yml/badge.svg)](https://github.com/ellmos-ai/sqlite-transit-sync/actions/workflows/ci.yml)
+[![Version](https://img.shields.io/badge/version-0.4.0-blue.svg)](CHANGELOG.md)
+[![Code style: Ruff](https://img.shields.io/badge/code%20style-ruff-000000.svg)](https://github.com/astral-sh/ruff)
+[![Tests](https://img.shields.io/badge/tests-109%2F109%20passed%20%7C%20100%25%20green-brightgreen.svg)](#tests)
 [![Python Version](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12%20%7C%203.13-blue.svg)](https://www.python.org/)
 [![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20Linux%20%7C%20macOS-informational.svg)](#)
-[![CI](https://github.com/ellmos-ai/sqlite-transit-sync/actions/workflows/ci.yml/badge.svg)](https://github.com/ellmos-ai/sqlite-transit-sync/actions/workflows/ci.yml)
 [![Privacy](https://img.shields.io/badge/privacy-100%25%20Offline%20%7C%20Zero--Egress-brightgreen.svg)](#)
 [![Security](https://img.shields.io/badge/security-Local--First%20%7C%20HMAC--Verified-blue.svg)](SECURITY.md)
+[![Security SLA](https://img.shields.io/badge/security%20SLA-48h%20SLA-blue.svg)](SECURITY.md)
+[![License](https://img.shields.io/github/license/ellmos-ai/sqlite-transit-sync)](LICENSE)
 [![Ecosystem: ellmos-ai](https://img.shields.io/badge/Ecosystem-ellmos--ai-blue.svg)](https://github.com/ellmos-ai)
 [![Umbrella: open-bricks](https://img.shields.io/badge/Umbrella-open--bricks-purple.svg)](https://github.com/open-bricks)
-[![Version](https://img.shields.io/badge/version-0.4.0-blue.svg)](CHANGELOG.md)
-[![Tests](https://img.shields.io/badge/tests-103%2F103%20passed-brightgreen.svg)](#tests)
 [![llms.txt](https://img.shields.io/badge/llms.txt-available-informational.svg)](llms.txt)
 
 > [!NOTE]
 > **Kontext für LLMs und KI-Agenten**: Ein strukturierter maschinenlesbarer Verzeichnisbaum, ein Architekturüberblick und ein API-Leitfaden stehen unter [`llms.txt`](llms.txt) bereit.
+
+**🇬🇧 [English Version](README.md)** | **🛡️ [Sicherheitsrichtlinie](SECURITY.md)** | **📝 [Changelog](CHANGELOG.md)** | **📋 [llms.txt](llms.txt)**
+
+## 🧭 Schnellnavigation
+
+- [Was ist sqlite-transit-sync?](#was-ist-sqlite-transit-sync)
+- [Systemarchitektur & Topologie](#systemarchitektur-topologie)
+- [End-to-End Snapshot- und Synchronisations-Lebenszyklus](#end-to-end-snapshot--und-synchronisations-lebenszyklus)
+- [Governance- & Laufzeit-Invarianten-Matrix](#governance--laufzeit-invarianten-matrix)
+- [Teil der ellmos-Stack-Familie](#teil-der-ellmos-stack-familie)
+- [Eigenschaften & Kernfähigkeiten](#eigenschaften)
+- [Installation & Voraussetzungen](#installation)
+- [Kurzstart & Arbeitsablauf](#kurzstart)
+- [Konfigurationsreferenz](#konfiguration)
+- [Republica — die Schaufenster-Methode](#republica-die-schaufenster-methode)
+- [Python-API & Erweiterungspunkte](#python-api)
+- [Vergleich mit Distributed SQL](#vergleich-mit-distributed-sql)
+- [Sicherheit und Grenzen](#sicherheit-und-grenzen)
+- [Ökosystem & Geschwister-Werkzeuge](#ökosystem-geschwister-werkzeuge)
+
+## Was ist sqlite-transit-sync?
 
 Die Autorität für Version, Modulstatus, Sichtbarkeit und Prüfdatum steht in
 [`METADATA_CONTRACT.md`](METADATA_CONTRACT.md); daraus folgt keine Freigabe
@@ -41,52 +61,126 @@ Modulfamilie: Ein sync-master-Yard ist ein natürlicher Transit-Transport. Dazu 
 (dort Protokollregel R9). sync-master transportiert die Dokumente, dieses Modul
 verantwortet Datenbankintegrität und Merge; beide bleiben unabhängig.
 
-## Architektur & Datenfluss
+## Systemarchitektur & Topologie
+
+Das folgende Diagramm visualisiert die entkoppelte Multi-Knoten-Architektur, bei der lokale SQLite-Datenbanken ausschließlich über geschlossene, validierte Snapshot-Bündel im Transitspeicher synchronisiert werden:
+
+```mermaid
+flowchart TD
+    subgraph NODE_A ["Publisher-Knoten (Host A)"]
+        DB_A[("Lokale SQLite-DB<br/>(app.db)")]
+        BACKUP_A["Online-Backup-API<br/>(sqlite3.backup)"]
+        REDACT_A["Tabellen-Redaktion &<br/>VACUUM-Engine"]
+        SHIELD_A["Credential-Shield-Scanner<br/>(13+ Erkennungsmuster)"]
+        HMAC_A["HMAC-SHA256-Signierer<br/>(Schlüsselbund)"]
+        STATE_A["Lokales Status-Ledger<br/>(node-state.json)"]
+    end
+
+    subgraph TRANSIT ["Geteilte Transit-Zone (Yard / Transport)"]
+        SNAP["Geschlossener atomarer Snapshot<br/>(*.snapshot.sqlite)"]
+        SIG["HMAC-Signatur-Umschlag<br/>(Kanonisches Manifest)"]
+        HASH["SHA-256 Digest<br/>(*.manifest.json)"]
+        RETENTION["Aufbewahrungs-Engine<br/>(Konservative Bereinigung)"]
+    end
+
+    subgraph NODE_B ["Subscriber-Knoten (Host B)"]
+        GUARD_B["Pfad-Traversierungsschutz<br/>(Fail-Closed Root)"]
+        VERIFY_B["Integritäts- & HMAC-Prüfer<br/>(SHA-256 + HMAC)"]
+        SANITY_B["SQLite PRAGMA quick_check<br/>(Konsistenzprüfung)"]
+        MERGE_B["Zeilenweises Merge-Engine<br/>(LWW / Tombstones / Drift)"]
+        DB_B[("Lokale SQLite-DB<br/>(app.db)")]
+        STATE_B["Lokales Status-Ledger<br/>(node-state.json)"]
+    end
+
+    subgraph SHOWCASE ["Showcase-Schicht (Republica-Modus)"]
+        REP_EXP["SQL-Dump & Gzip<br/>(Kuratierter Export)"]
+        REP_FER["Fernet-Verschlüsselung<br/>(AES-128-CBC + HMAC)"]
+        REP_RO[("Read-Only Showcase-DB<br/>(republica_root/)")]
+    end
+
+    DB_A --> BACKUP_A
+    BACKUP_A --> REDACT_A
+    REDACT_A --> SHIELD_A
+    SHIELD_A --> HMAC_A
+    HMAC_A --> SNAP
+    HMAC_A --> SIG
+    HMAC_A --> HASH
+    SNAP --- TRANSIT
+    SIG --- TRANSIT
+    HASH --- TRANSIT
+    TRANSIT --> RETENTION
+
+    SNAP --> GUARD_B
+    SIG --> GUARD_B
+    HASH --> GUARD_B
+    GUARD_B --> VERIFY_B
+    VERIFY_B --> SANITY_B
+    SANITY_B --> MERGE_B
+    MERGE_B --> DB_B
+    MERGE_B --> STATE_B
+    HMAC_A -.-> STATE_A
+
+    DB_A -.-> REP_EXP
+    REP_EXP --> REP_FER
+    REP_FER --> REP_RO
+```
+
+## End-to-End Snapshot- und Synchronisations-Lebenszyklus
+
+Der End-to-End-Lebenszyklus stellt sicher, dass Live-Datenbanken niemals Dateisystem-Sperren von Synchronisationsdiensten ausgesetzt werden und sämtliche knotenübergreifenden Daten kryptografisch verifiziert, geheimnisfrei und transaktional zusammengeführt werden:
 
 ```mermaid
 sequenceDiagram
     autonumber
-    participant NodeA as Node A (app.db)
+    participant App as Anwendung / Knoten A
+    participant CoreA as sqlite-transit-sync (Push)
+    participant Shield as Credential-Shield
     participant Transit as Shared Transit (db-transit)
-    participant NodeB as Node B (app.db)
+    participant CoreB as sqlite-transit-sync (Pull)
+    participant Target as Lokale DB / Knoten B
 
-    Note over NodeA: Live local writes
-    NodeA->>NodeA: SQLite Backup API (Online Snapshot)
-    NodeA->>Transit: Push atomic snapshot & SHA-256 manifest
-    Note over Transit: Verified Transit Storage (R9)
-    NodeB->>Transit: Read manifest & PRAGMA quick_check
-    NodeB->>NodeB: Transactional Row Merge (LWW / Policy)
-    Note over NodeB: Eventual Consistency Reached
+    Note over App,CoreA: Phase 1: Lokaler Online-Snapshot & Redaktion
+    App->>CoreA: push(config, db)
+    CoreA->>CoreA: Online-Snapshot via SQLite Backup API
+    CoreA->>CoreA: Ausgeschlossene Tabellen leeren & VACUUM
+    CoreA->>Shield: Inhalts-Scan auf Secret-Muster (credential-triggers.json)
+    Shield-->>CoreA: Scan OK (0 Zugangsdaten erkannt)
+
+    Note over CoreA,Transit: Phase 2: Kryptografische Versiegelung & atomare Publikation
+    CoreA->>CoreA: SHA-256 Digest & HMAC-Umschlag berechnen
+    CoreA->>Transit: Temporären Snapshot schreiben & atomarer os.replace
+    CoreA->>Transit: Geprüftes Manifest schreiben (*.manifest.json)
+
+    Note over Transit,CoreB: Phase 3: Transit-Erfassung & Grenzkontrolle
+    CoreB->>Transit: Manifeste erkennen & Pfadgrenzen prüfen (Anti-Traversierung)
+    CoreB->>CoreB: HMAC-Signatur & SHA-256 Digest verifizieren
+    CoreB->>CoreB: PRAGMA quick_check auf isoliertem Snapshot ausführen
+
+    Note over CoreB,Target: Phase 4: Transaktionales Zeilen-Merge & Status-Aktualisierung
+    CoreB->>Target: BEGIN IMMEDIATE Transaktion starten
+    CoreB->>Target: Zeilenweises Merge ausführen (LWW pro PK / Tombstones)
+    CoreB->>Target: Schema-Drift bei gemeinsamen Spalten abgleichen
+    CoreB->>Target: Transaktion mit COMMIT abschließen
+    CoreB->>CoreB: Lokalen Status fortschreiben (node-state.json)
+    Note over Target: Lokale Eventual Consistency garantiert
 ```
 
-### Snapshot-Veröffentlichungs- und Verifikationslebenszyklus
+## Governance- & Laufzeit-Invarianten-Matrix
 
-```mermaid
-sequenceDiagram
-    autonumber
-    participant App as Anwendung / Knoten
-    participant Core as sqlite-transit-sync
-    participant Transit as Transit-Verzeichnis
-    participant Verifier as Empfangender Knoten
+`sqlite-transit-sync` erzwingt 10 verbindliche Governance- und Laufzeit-Invarianten für verlässliche Datenintegrität, Isolation und Sicherheit:
 
-    Note over App,Core: Push-Phase (Atomar & Redagiert)
-    App->>Core: push(config, db)
-    Core->>Core: Online-Snapshot via SQLite Backup API
-    Core->>Core: Tabellen redagieren & VACUUM
-    Core->>Core: Credential-Scan auf Inhalten (credential-triggers.json)
-    Core->>Core: SHA-256 berechnen & HMAC-Signaturumschlag erstellen
-    Core->>Transit: Temporären Snapshot schreiben & atomarer os.replace
-    Core->>Transit: Geprüftes JSON-Manifest schreiben (*.manifest.json)
-    
-    Note over Transit,Verifier: Pull-Phase (Fail-Closed Integrität)
-    Verifier->>Transit: Manifeste scannen & Pfadsicherheit prüfen (Anti-Traversierung)
-    Verifier->>Verifier: HMAC-Umschlag & SHA-256 Digest validieren
-    Verifier->>Verifier: PRAGMA quick_check auf Snapshot ausführen
-    Verifier->>Verifier: BEGIN IMMEDIATE Transaktion starten
-    Verifier->>Verifier: Zeilenweises Merge ausführen (LWW / Tombstones)
-    Verifier->>Verifier: Lokalen Zustandsindex fortschreiben & COMMIT
-    Note over Verifier: Sichere lokale Eventual Consistency erreicht
-```
+| # | Invariante | Architektur-Ebene | Garantie & Durchsetzungs-Mechanismus |
+|---|---|---|---|
+| 1 | **100% Local-First & Zero-Egress** | Systemarchitektur | Arbeitet ausschließlich auf lokalen SQLite-Datenbankdateien (`app.db`). Keine Telemetrie, keine ausgehenden Netzwerkaufrufe, keine Cloud-Abhängigkeiten. |
+| 2 | **Offline-Snapshot-Atomarität** | Transit-Veröffentlichung | Live-Datenbanken werden niemals über File-Sync geteilt. Snapshots entstehen via `sqlite3.backup` und werden per atomarem `os.replace` publiziert. |
+| 3 | **Rollback-Journal & Sidecar-Bereinigung** | Sidecar-Schutz | Snapshots werden strikt im Rollback-Journal-Modus geschlossen; alle temporären SQLite-Sidecars (`-wal`, `-shm`, `-journal`) werden fail-closed vor Manifest-Erstellung bereinigt. |
+| 4 | **Strikte Pfadkapselung & Traversierungsschutz** | Dateisystemgrenze | Manifest- und Snapshot-Pfade müssen direkte reguläre Dateien im Transit-Wurzelordner sein. Traversierungsversuche (`../`), Symlinks und Reparse-Points scheitern fail-closed. |
+| 5 | **Zweistufige Integritäts- und Konsistenzprüfung** | Vorab-Validierung | Jeder empfangene Snapshot muss die kryptografische SHA-256-Prüfung sowie `PRAGMA quick_check` fehlerfrei durchlaufen, bevor Tabellen inspiziert oder zusammengeführt werden. |
+| 6 | **Inhaltsbezogener Zugangsdaten-Schutz (Credential Shield)** | Inhaltsprüfung | Snapshot-Inhalte werden vor Publikation auf 13+ Secret-Muster (`credential-triggers.json`) gescannt. Erkannte Secrets brechen den Push ab (`table.column`, ohne Preisgabe des Werts). |
+| 7 | **HMAC-Authentifizierungs-Umschlag** | Identität & Nachweisbarkeit | Optionaler HMAC-SHA256-Signaturumschlag über kanonische Manifest-Payloads (Protokoll, Namespace, Absender, Dateiname, SHA-256, Größe, Redaktion) mit In-Memory-Schlüsselbund. |
+| 8 | **Deterministisches zeilenweises Merge** | Daten-Konvergenz | Transaktionales Zeilen-Merge (LWW pro PK, Spaltenschnittmenge bei Schema-Drift, optionale Tombstone-Tabelle). Hash-Tie-Breaker sorgt für deterministische Konvergenz. |
+| 9 | **Konservative Aufbewahrung & Autorisierung** | Bereinigung | Bereinigungsroutinen laufen standardmäßig als Dry-Run und beschränken sich auf den lokalen Knoten. Fremdknoten-Löschung (`--all-nodes`) erfordert explizite Autorisierung. |
+| 10 | **Unprivilegierte Ausführung & Multi-OS-Parität** | Plattform-Laufzeit | Läuft vollständig im Benutzermodus (RunAsInvoker). Strikte Plattformparität unter Linux, Windows und macOS ohne externe Binärabhängigkeiten. |
 
 ## Teil der ellmos-Stack-Familie
 

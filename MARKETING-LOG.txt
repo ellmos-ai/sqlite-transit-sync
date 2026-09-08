@@ -1,0 +1,61 @@
+# MARKETING-LOG: sqlite-transit-sync (ellmos-ai/sqlite-transit-sync)
+Date: 2026-09-09
+Operator: Antigravity / Gemini (via GITHUBBOT Pfad B)
+Target Repo: ellmos-ai/sqlite-transit-sync
+Canonical Path: C:\_Local_DEV\repos\sqlite-transit-sync
+Version: 0.4.0
+
+================================================================================
+1. REPOSITORY AUDIT & DISCOVERABILITY BASELINE
+================================================================================
+- Organization: ellmos-ai
+- Ecosystem: open-bricks (umbrella)
+- Domain: Local-first SQLite database synchronization via verified offline snapshots and transactional merge
+- Disambiguation: Distinct from distributed SQL engines (CockroachDB, TiDB, Litestream, LiteFS), cloud-only databases, and unverified file synchronizers. `sqlite-transit-sync` never opens live databases over networks and works exclusively with closed snapshots and manifest digests.
+- Canonical Search Query: ellmos-ai/sqlite-transit-sync
+- Baseline State:
+  * 109 passing tests (9 subtests) | 100% green
+  * Supported versions: 0.4.x
+  * CI: GitHub Actions multi-OS matrix (Ubuntu, Windows, macOS) over Python 3.10-3.13
+  * Linting: Clean Ruff configuration, zero warnings
+  * Security: Dual-language SECURITY.md with 48h initial response SLA
+
+================================================================================
+2. PFAD B ARCHITECTITECTURAL & DISCOVERABILITY UPGRADES (2026-09-09)
+================================================================================
+- Standardized 14-Point Quick Navigation (Bilingual):
+  * Integrated across README.md and README_de.md with 100% matching GitHub anchor slugs
+  * Quick links bar linking German/English version, SECURITY.md, CHANGELOG.md, and llms.txt
+- Dual Mermaid Diagrams (Bilingual & Syntactically Hardened):
+  * Diagram 1 (Architecture): Multi-Node Decoupled Topology (Flowchart TD) with fully quoted node and edge labels covering Publisher Node, Credential Shield, Shared Transit Zone, Subscriber Node, Path Traversal Guard, Verification Engine, and Republica Showcase Mode.
+  * Diagram 2 (Lifecycle): 4-Phase End-to-End Snapshot & Synchronization Lifecycle (SequenceDiagram with autonumbering) covering online backup, content credential scan, HMAC sealing, atomic os.replace, transit boundary validation, PRAGMA quick_check, and transactional row-level merge.
+- Governance & Runtime Invariants Matrix:
+  * 10 Core Architectural Invariants formally specified in English and German:
+    1. 100% Local-First & Zero-Egress
+    2. Offline Snapshot Atomicity
+    3. Rollback Journal Clean Isolation
+    4. Strict Transit Path Containment (Fail-Closed)
+    5. Two-Stage Integrity & Sanity Verification
+    6. Pre-Publication Credential Shielding (13+ Secret Families)
+    7. HMAC Authenticity Envelope
+    8. Deterministic Row-Level Merge & Schema Drift Tolerance
+    9. Conservative Retention & Authority Scoping
+    10. Non-Elevation & Multi-OS Parity
+- Sibling Tools & Ecosystem Matrix:
+  * 16-repo cross-linking table covering sister tools across ellmos-ai, dev-bricks, file-bricks, doc-bricks, and open-bricks.
+- Security Policy Hardening:
+  * Formalized 5-business-day triage commitment alongside the 48-hour response SLA in both English and German sections of SECURITY.md.
+- Machine-Readable AI Discoverability:
+  * Refreshed llms.txt verification timestamp to 2026-09-09, updated visual architecture references, and maintained LLM-ready index.
+
+================================================================================
+3. VERIFICATION & METADATA CONTRACT
+================================================================================
+- Contract Test Suite (`tests/test_metadata.py`):
+  * test_quick_navigation_anchors: Verifies 14 anchors in both README.md and README_de.md
+  * test_dual_mermaid_diagrams: Verifies flowchart TD and sequence diagrams in both READMEs
+  * test_runtime_invariants_matrix: Verifies presence of 10 architectural invariants in both READMEs
+  * test_security_sla_and_triage: Verifies 48h SLA and 5-day triage commitment
+  * test_local_marketing_log_present: Verifies local MARKETING-LOG.txt presence
+  * test_ecosystem_sibling_tools: Verifies sibling tools matrix in both READMEs
+- All 103+ unit and contract tests verified passing.

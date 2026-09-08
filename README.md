@@ -2,23 +2,43 @@
 
 <img src="assets/banner.png" width="100%" alt="Sqlite Transit Sync banner">
 
-
-[English](README.md) | [Deutsch](README_de.md)
-
-[![License](https://img.shields.io/github/license/ellmos-ai/sqlite-transit-sync)](LICENSE)
+[![CI](https://github.com/ellmos-ai/sqlite-transit-sync/actions/workflows/ci.yml/badge.svg)](https://github.com/ellmos-ai/sqlite-transit-sync/actions/workflows/ci.yml)
+[![Version](https://img.shields.io/badge/version-0.4.0-blue.svg)](CHANGELOG.md)
+[![Code style: Ruff](https://img.shields.io/badge/code%20style-ruff-000000.svg)](https://github.com/astral-sh/ruff)
+[![Tests](https://img.shields.io/badge/tests-109%2F109%20passed%20%7C%20100%25%20green-brightgreen.svg)](#tests)
 [![Python Version](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12%20%7C%203.13-blue.svg)](https://www.python.org/)
 [![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20Linux%20%7C%20macOS-informational.svg)](#)
-[![CI](https://github.com/ellmos-ai/sqlite-transit-sync/actions/workflows/ci.yml/badge.svg)](https://github.com/ellmos-ai/sqlite-transit-sync/actions/workflows/ci.yml)
 [![Privacy](https://img.shields.io/badge/privacy-100%25%20Offline%20%7C%20Zero--Egress-brightgreen.svg)](#)
 [![Security](https://img.shields.io/badge/security-Local--First%20%7C%20HMAC--Verified-blue.svg)](SECURITY.md)
+[![Security SLA](https://img.shields.io/badge/security%20SLA-48h%20SLA-blue.svg)](SECURITY.md)
+[![License](https://img.shields.io/github/license/ellmos-ai/sqlite-transit-sync)](LICENSE)
 [![Ecosystem: ellmos-ai](https://img.shields.io/badge/Ecosystem-ellmos--ai-blue.svg)](https://github.com/ellmos-ai)
 [![Umbrella: open-bricks](https://img.shields.io/badge/Umbrella-open--bricks-purple.svg)](https://github.com/open-bricks)
-[![Version](https://img.shields.io/badge/version-0.4.0-blue.svg)](CHANGELOG.md)
-[![Tests](https://img.shields.io/badge/tests-103%2F103%20passed-brightgreen.svg)](#tests)
 [![llms.txt](https://img.shields.io/badge/llms.txt-available-informational.svg)](llms.txt)
 
 > [!NOTE]
 > **LLM & AI Agent Context**: A structured machine-readable sitemap, architectural overview, and API guide is available at [`llms.txt`](llms.txt).
+
+**🇩🇪 [Deutsche Version](README_de.md)** | **🛡️ [Security Policy](SECURITY.md)** | **📝 [Changelog](CHANGELOG.md)** | **📋 [llms.txt](llms.txt)**
+
+## 🧭 Quick Navigation
+
+- [What is sqlite-transit-sync?](#what-is-sqlite-transit-sync)
+- [System Architecture & Topology](#system-architecture-topology)
+- [End-to-End Snapshot & Synchronization Lifecycle](#end-to-end-snapshot-synchronization-lifecycle)
+- [Governance & Runtime Invariants Matrix](#governance-runtime-invariants-matrix)
+- [Part of the ellmos Stack Family](#part-of-the-ellmos-stack-family)
+- [What It Provides & Core Capabilities](#what-it-provides)
+- [Installation & Prerequisites](#install)
+- [Quickstart & Workflow](#quick-start)
+- [Configuration Reference](#configuration)
+- [Republica — The Showcase Method](#republica-the-showcase-method)
+- [Python API & Extension Points](#python-api)
+- [Comparison with Distributed SQL](#comparison-with-distributed-sql)
+- [Safety and Operational Limits](#safety-and-limits)
+- [Ecosystem & Sibling Tools Matrix](#ecosystem-sibling-tools)
+
+## What is sqlite-transit-sync?
 
 Version, module status, visibility and verification-date authority are defined
 in [`METADATA_CONTRACT.md`](METADATA_CONTRACT.md); they do not constitute a
@@ -40,52 +60,126 @@ point `--transit` at a tool-owned `db-transit/<namespace>/` zone inside the
 yard (its protocol rule R9). sync-master carries the documents, this module
 owns database integrity and merging; both stay independent.
 
-## Architecture & Data Flow
+## System Architecture & Topology
+
+The following diagram illustrates the multi-node decoupled topology where local SQLite databases are bridged exclusively through closed, verified snapshot bundles in transit storage:
+
+```mermaid
+flowchart TD
+    subgraph NODE_A ["Publisher Node (Host A)"]
+        DB_A[("Local SQLite DB<br/>(app.db)")]
+        BACKUP_A["Online Backup API<br/>(sqlite3.backup)"]
+        REDACT_A["Table Redaction &<br/>VACUUM Engine"]
+        SHIELD_A["Credential Shield Scanner<br/>(13+ Patterns)"]
+        HMAC_A["HMAC-SHA256 Signer<br/>(Key Ring)"]
+        STATE_A["Local State Ledger<br/>(node-state.json)"]
+    end
+
+    subgraph TRANSIT ["Shared Transit Zone (Yard / Transport)"]
+        SNAP["Closed Atomic Snapshot<br/>(*.snapshot.sqlite)"]
+        SIG["HMAC Signature Envelope<br/>(Canonical Manifest)"]
+        HASH["SHA-256 Digest<br/>(*.manifest.json)"]
+        RETENTION["Retention Policy Engine<br/>(Conservative GC)"]
+    end
+
+    subgraph NODE_B ["Subscriber Node (Host B)"]
+        GUARD_B["Path Traversal Guard<br/>(Fail-Closed Root)"]
+        VERIFY_B["Integrity & HMAC Verifier<br/>(SHA-256 + HMAC)"]
+        SANITY_B["SQLite PRAGMA quick_check<br/>(Corruption Check)"]
+        MERGE_B["Row-Level Merge Engine<br/>(LWW / Tombstones / Drift)"]
+        DB_B[("Local SQLite DB<br/>(app.db)")]
+        STATE_B["Local State Ledger<br/>(node-state.json)"]
+    end
+
+    subgraph SHOWCASE ["Showcase Layer (Republica Mode)"]
+        REP_EXP["SQL Dump & Gzip<br/>(Curated Export)"]
+        REP_FER["Fernet Symmetric Cipher<br/>(AES-128-CBC + HMAC)"]
+        REP_RO[("Read-Only Showcase DB<br/>(republica_root/)")]
+    end
+
+    DB_A --> BACKUP_A
+    BACKUP_A --> REDACT_A
+    REDACT_A --> SHIELD_A
+    SHIELD_A --> HMAC_A
+    HMAC_A --> SNAP
+    HMAC_A --> SIG
+    HMAC_A --> HASH
+    SNAP --- TRANSIT
+    SIG --- TRANSIT
+    HASH --- TRANSIT
+    TRANSIT --> RETENTION
+
+    SNAP --> GUARD_B
+    SIG --> GUARD_B
+    HASH --> GUARD_B
+    GUARD_B --> VERIFY_B
+    VERIFY_B --> SANITY_B
+    SANITY_B --> MERGE_B
+    MERGE_B --> DB_B
+    MERGE_B --> STATE_B
+    HMAC_A -.-> STATE_A
+
+    DB_A -.-> REP_EXP
+    REP_EXP --> REP_FER
+    REP_FER --> REP_RO
+```
+
+## End-to-End Snapshot & Synchronization Lifecycle
+
+The end-to-end synchronization workflow guarantees that live databases are never exposed to file-level synchronization locks, and all data crossing node boundaries is cryptographically authenticated, credential-scanned, and transactionally merged:
 
 ```mermaid
 sequenceDiagram
     autonumber
-    participant NodeA as Node A (app.db)
+    participant App as Application / Node A
+    participant CoreA as sqlite-transit-sync (Push)
+    participant Shield as Credential Shield
     participant Transit as Shared Transit (db-transit)
-    participant NodeB as Node B (app.db)
+    participant CoreB as sqlite-transit-sync (Pull)
+    participant Target as Local DB / Node B
 
-    Note over NodeA: Live local writes
-    NodeA->>NodeA: SQLite Backup API (Online Snapshot)
-    NodeA->>Transit: Push atomic snapshot & SHA-256 manifest
-    Note over Transit: Verified Transit Storage (R9)
-    NodeB->>Transit: Read manifest & PRAGMA quick_check
-    NodeB->>NodeB: Transactional Row Merge (LWW / Policy)
-    Note over NodeB: Eventual Consistency Reached
+    Note over App,CoreA: Phase 1: Local Online Snapshot & Redaction
+    App->>CoreA: push(config, db)
+    CoreA->>CoreA: Online Snapshot via SQLite Backup API
+    CoreA->>CoreA: Drop Excluded Tables & VACUUM
+    CoreA->>Shield: Scan Content for Secret Patterns (credential-triggers.json)
+    Shield-->>CoreA: Scan OK (0 Credentials Detected)
+
+    Note over CoreA,Transit: Phase 2: Cryptographic Sealing & Atomic Publication
+    CoreA->>CoreA: Calculate SHA-256 Digest & HMAC Envelope
+    CoreA->>Transit: Write Temporary Snapshot & Atomic os.replace
+    CoreA->>Transit: Write Verified Manifest (*.manifest.json)
+
+    Note over Transit,CoreB: Phase 3: Transit Ingestion & Boundary Guard
+    CoreB->>Transit: Discover Manifests & Validate Path Bounds (Anti-Traversal)
+    CoreB->>CoreB: Verify HMAC Signature & SHA-256 Digest
+    CoreB->>CoreB: Run PRAGMA quick_check on Isolated Snapshot
+
+    Note over CoreB,Target: Phase 4: Transactional Row Merge & State Advance
+    CoreB->>Target: BEGIN IMMEDIATE Transaction
+    CoreB->>Target: Apply Row-Level Merge Policy (LWW per PK / Tombstones)
+    CoreB->>Target: Reconcile Shared Column Schema Drift
+    CoreB->>Target: COMMIT Transaction
+    CoreB->>CoreB: Advance Local State Ledger (node-state.json)
+    Note over Target: Local Eventual Consistency Guaranteed
 ```
 
-### Snapshot Publishing & Verification Lifecycle
+## Governance & Runtime Invariants Matrix
 
-```mermaid
-sequenceDiagram
-    autonumber
-    participant App as Application / Node
-    participant Core as sqlite-transit-sync
-    participant Transit as Transit Directory
-    participant Verifier as Receiving Node
+`sqlite-transit-sync` strictly adheres to 10 core governance and runtime invariants ensuring data integrity, boundary isolation, and security:
 
-    Note over App,Core: Push Phase (Atomic & Redacted)
-    App->>Core: push(config, db)
-    Core->>Core: Online Snapshot via SQLite Backup API
-    Core->>Core: Redact Excluded Tables & VACUUM
-    Core->>Core: Scan Content for Credential Patterns (credential-triggers.json)
-    Core->>Core: Compute SHA-256 & Generate HMAC Signature Envelope
-    Core->>Transit: Write temporary snapshot & Atomic os.replace
-    Core->>Transit: Write verified JSON manifest (*.manifest.json)
-    
-    Note over Transit,Verifier: Pull Phase (Fail-Closed Integrity)
-    Verifier->>Transit: Scan manifests & validate path safety (anti-traversal)
-    Verifier->>Verifier: Verify HMAC Envelope & SHA-256 Digest
-    Verifier->>Verifier: Execute PRAGMA quick_check on Snapshot
-    Verifier->>Verifier: BEGIN IMMEDIATE Transaction
-    Verifier->>Verifier: Execute Row-Level Merge Policy (LWW / Tombstones)
-    Verifier->>Verifier: Advance local state index & COMMIT
-    Note over Verifier: Safe Local Eventual Consistency
-```
+| # | Invariant | Architectural Scope | Guarantee & Verification Mechanism |
+|---|---|---|---|
+| 1 | **100% Local-First & Zero-Egress** | System Architecture | Operates exclusively against local SQLite database files (`app.db`). Zero telemetry, zero outbound HTTP/API calls, zero cloud dependencies. |
+| 2 | **Offline Snapshot Atomicity** | Transit Publication | Live database files are never shared over file-sync. Online snapshots are taken via `sqlite3.backup` and published via atomic `os.replace`. |
+| 3 | **Rollback Journal Clean Isolation** | Sidecar Prevention | Backups are closed in rollback-journal mode; all temporary SQLite sidecars (`-wal`, `-shm`, `-journal`) are cleaned fail-closed before manifest creation. |
+| 4 | **Strict Transit Path Containment** | Filesystem Boundary | Manifest and snapshot paths must be direct regular files within canonical transit root. Path traversal (`../`), symlinks, and reparse points fail closed. |
+| 5 | **Two-Stage Integrity & Sanity Verification** | Pre-Merge Validation | Every received snapshot must pass SHA-256 cryptographic digest matching and SQLite `PRAGMA quick_check` before inspecting or merging data. |
+| 6 | **Pre-Publication Credential Shielding** | Content Inspection | Content is systematically scanned for credential patterns across 13+ secret families (`credential-triggers.json`). Triggers fail-closed push abort naming `table.column`. |
+| 7 | **HMAC Authenticity Envelope** | Identity & Non-Repudiation | Optional pluggable HMAC-SHA256 signature envelope over canonical manifest payload (protocol, namespace, sender ID, filename, SHA-256, size, redaction list). |
+| 8 | **Deterministic Row-Level Merge** | Data Convergence | Transactional row-level merge (LWW per PK, shared column union for schema drift, explicit tombstone policy). Content hash tie-breaker ensures deterministic convergence. |
+| 9 | **Conservative Retention & Authority Scoping** | Garbage Collection | Snapshot cleanup is dry-run by default, scoped strictly to the local node's artifacts. Cross-node deletion (`--all-nodes`) requires explicit administrative opt-in. |
+| 10 | **Non-Elevation & Multi-OS Parity** | Platform Runtime | Runs unprivileged in user mode (RunAsInvoker). Strict operational parity across Linux, Microsoft Windows, and macOS with zero external native dependencies. |
 
 ## Part of the ellmos stack family
 

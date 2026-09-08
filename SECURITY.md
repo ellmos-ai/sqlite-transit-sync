@@ -96,7 +96,7 @@ If you discover a security vulnerability, please report it responsibly:
 - **Maintainer**: [lukas@open-bricks.org](mailto:lukas@open-bricks.org)
 - **GitHub Advisory**: Use the [Private Vulnerability Reporting](https://github.com/ellmos-ai/sqlite-transit-sync/security/advisories/new) tab on GitHub.
 
-We acknowledge receipt of valid reports within **48 hours** and provide regular progress updates until a patch is released.
+We acknowledge receipt of valid reports within **48 hours** and provide triage assessments within **5 business days**, with regular progress updates until a patch is released.
 Do not include live databases, actual credentials, or personal records in a report. Provide a minimal synthetic database and redacted manifest instead.
 
 ---
@@ -141,5 +141,6 @@ Sicherheitsrelevante Schwachstellen bitte vertraulich melden:
 - **Maintainer**: [lukas@open-bricks.org](mailto:lukas@open-bricks.org)
 - **GitHub Advisory**: Über [Private Vulnerability Reporting](https://github.com/ellmos-ai/sqlite-transit-sync/security/advisories/new).
 
-Wir bestätigen den Eingang valider Sicherheitsberichte innerhalb von **48 Stunden** und informieren regelmäßig über den Fortschritt bis zur Veröffentlichung eines Patches.
+Wir bestätigen den Eingang valider Sicherheitsberichte innerhalb von **48 Stunden** und stellen eine verbindliche Triage-Einschätzung innerhalb von **5 Werktagen** bereit, begleitet von regelmäßigen Fortschrittsberichten bis zur Veröffentlichung eines Patches.
+Fügen Sie Meldungen niemals Live-Datenbanken, echte Zugangsdaten oder persönliche Daten bei. Nutzen Sie stattdessen eine minimale synthetische Testdatenbank und ein anonymisiertes Manifest.
 
