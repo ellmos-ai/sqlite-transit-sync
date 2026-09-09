@@ -135,10 +135,14 @@ class TestMetadata(unittest.TestCase):
             "Programming Language :: Python :: 3.12",
             "Programming Language :: Python :: 3.13",
             "Operating System :: OS Independent",
-            "License :: OSI Approved :: MIT License",
         ]
         for rc in required_classifiers:
             self.assertIn(rc, classifiers, f"Classifier '{rc}' must be present in pyproject.toml")
+        self.assertEqual(data["project"].get("license"), "MIT")
+        self.assertFalse(
+            any(item.startswith("License ::") for item in classifiers),
+            "PEP 639 license expressions must not be duplicated by deprecated classifiers",
+        )
 
     def test_pyproject_ecosystem_urls(self):
         """pyproject.toml must contain full ecosystem URLs."""

@@ -1,5 +1,8 @@
 # Changelog
 
+- **PEP 639 packaging compatibility:** Kept the SPDX `MIT` project license and
+  removed the superseded license classifier so current isolated setuptools
+  builds can install the package across the CI matrix [F 2026-09-09].
 - **Read-only account-balance projection contract:** Added the versioned
   `accounts-balance-projection.v1` allowlist, synthetic initial/resume fixtures,
   privacy-field exclusions and a negative full-IBAN guard for the
