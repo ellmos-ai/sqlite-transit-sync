@@ -266,10 +266,12 @@ application supplies its consumer identity and reviewed maximum offline interval
 the verifier rejects loops, stale checkpoints, insufficient tombstone retention,
 unlisted tables or columns, and non-opaque record references.
 
-Two narrow contracts are bundled for medication due/inventory-warning state and
-routine due/completion state: `mediplaner-reminder-projection.v1` and
+Three narrow contracts are bundled for account-balance summaries, medication
+due/inventory-warning state, and routine due/completion state:
+`accounts-balance-projection.v1`, `mediplaner-reminder-projection.v1`, and
 `routinika-reminder-projection.v1`. Their test fixtures are synthetic JSON recipes;
-names, doses, quantities, stock values, notes, and media are not contract fields.
+source IDs, full IBANs, account numbers, holder data, medication details, notes,
+and media are not contract fields.
 See [Read-only projection contracts](PROJECTION_CONTRACTS.md) and the
 [German companion](PROJECTION_CONTRACTS_de.md).
 

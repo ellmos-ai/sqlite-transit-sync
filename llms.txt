@@ -72,6 +72,8 @@ sqlite-transit-sync cleanup --config node.json [--keep-days 7] [--keep-per-node 
 sqlite-transit-sync verify-projection --contract mediplaner-reminder-projection.v1 \
   --database ./closed-projection.sqlite --consumer-id reminder-consumer \
   --minimum-offline-seconds 2592000 --previous-checkpoint 41
+
+# Bundled projection contracts also include accounts-balance-projection.v1
 ```
 
 ### Republica - the showcase method (one-way, encrypted; requires `[crypto]` extra)

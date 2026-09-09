@@ -92,6 +92,7 @@ class ProjectionContractTests(unittest.TestCase):
     def test_bundled_contracts_are_versioned_and_loadable(self) -> None:
         self.assertEqual(
             (
+                "accounts-balance-projection.v1",
                 "mediplaner-reminder-projection.v1",
                 "routinika-reminder-projection.v1",
             ),
@@ -106,10 +107,16 @@ class ProjectionContractTests(unittest.TestCase):
                 columns.isdisjoint(
                     {
                         "client_name",
+                        "account_number",
+                        "bank_name",
+                        "bic",
                         "diagnosis",
                         "dose",
+                        "holder_name",
+                        "iban",
                         "medication_name",
                         "note",
+                        "notes",
                         "quantity",
                         "routine_title",
                         "stock_level",
@@ -119,6 +126,7 @@ class ProjectionContractTests(unittest.TestCase):
 
     def test_all_synthetic_initial_and_resume_fixtures_verify_without_mutation(self) -> None:
         fixture_names = (
+            "accounts-balance-projection.v1.fixture.json",
             "mediplaner-reminder-projection.v1.fixture.json",
             "routinika-reminder-projection.v1.fixture.json",
         )
@@ -203,6 +211,21 @@ class ProjectionContractTests(unittest.TestCase):
         finally:
             connection.close()
         with self.assertRaises(ProjectionContractError):
+            self._verify(fixture, snapshot, contract, path)
+
+    def test_accounts_contract_rejects_an_unmasked_iban_in_the_display_name(self) -> None:
+        fixture, snapshot, contract, path = self._materialize(
+            "accounts-balance-projection.v1.fixture.json"
+        )
+        connection = sqlite3.connect(path)
+        try:
+            connection.execute(
+                "UPDATE account_balances SET name = 'Haushalt DE89370400440532013000'"
+            )
+            connection.commit()
+        finally:
+            connection.close()
+        with self.assertRaisesRegex(ProjectionContractError, "pattern"):
             self._verify(fixture, snapshot, contract, path)
 
     def test_provenance_checkpoint_and_loop_guard_fail_closed(self) -> None:

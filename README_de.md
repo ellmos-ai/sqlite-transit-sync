@@ -273,11 +273,13 @@ geprüfte maximale Offline-Intervall. Der Verifier weist Loops, veraltete
 Checkpoints, zu kurze Tombstone-Aufbewahrung, nicht erlaubte Tabellen oder
 Spalten sowie nicht opake Datensatzreferenzen zurück.
 
-Mitgeliefert werden zwei enge Verträge für Medikamenten-Fälligkeiten und
-Bestandswarnungen sowie für Routinen-Fälligkeiten und Abschlussstatus:
+Mitgeliefert werden drei enge Verträge für Kontostandsübersichten,
+Medikamenten-Fälligkeiten und Bestandswarnungen sowie für Routinen-Fälligkeiten
+und Abschlussstatus: `accounts-balance-projection.v1`,
 `mediplaner-reminder-projection.v1` und `routinika-reminder-projection.v1`. Die
-Test-Fixtures sind synthetische JSON-Rezepte; Namen, Dosierungen, Mengen,
-Bestandswerte, Notizen und Medien sind keine Vertragsfelder. Siehe
+Test-Fixtures sind synthetische JSON-Rezepte; Quell-IDs, vollständige IBANs,
+Kontonummern, Inhaberdaten, Medikamentendetails, Notizen und Medien sind keine
+Vertragsfelder. Siehe
 [Read-only-Projektionsverträge](PROJECTION_CONTRACTS_de.md) und die
 [englische Begleitdatei](PROJECTION_CONTRACTS.md).
 

@@ -18,14 +18,15 @@ Multi-Writer-Engine.
 - Produktionsadapter, Live-Datenbanken, Hostpfade, Zugangsdaten und
   Cutover-Konfiguration sind nicht Bestandteil dieses Repositories.
 
-Die beiden mitgelieferten Verträge sind bewusst eng:
+Die drei mitgelieferten Verträge sind bewusst eng:
 
 | Vertrag | Erlaubte Datentabellen | Ausdrücklich nicht enthalten |
 |---|---|---|
+| `accounts-balance-projection.v1` | `account_balances` | Quell-IDs, vollständige IBANs, Kontonummern, Bank-/BIC-/Inhaberdaten, Notizen |
 | `mediplaner-reminder-projection.v1` | `medication_due`, `inventory_warning` | Namen, Klienten, Diagnosen, Dosierungen, Mengen, Bestandswerte, Notizen |
 | `routinika-reminder-projection.v1` | `routine_due` | Titel, Definitionen, Schritte, Notizen, Medienpfade, sachfremde Einstellungen |
 
-Beide verlangen zusätzlich genau eine Zeile in `projection_metadata` sowie eine
+Alle drei verlangen zusätzlich genau eine Zeile in `projection_metadata` sowie eine
 ausdrückliche Tabelle `projection_tombstones`. Stabile Referenzen sind opake
 Hex-Tokens in Kleinschreibung. Wie eine Anwendung sie ableitet, bestimmt der
 Vertrag nicht.
