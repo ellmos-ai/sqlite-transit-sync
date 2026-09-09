@@ -338,6 +338,11 @@ class RepublicaTransit(TransitSync):
         key_file = self.config.key_file
         if key_file is None:
             return
+        # Re-resolve here instead of trusting SyncConfig's construction-time
+        # normalisation. SyncConfig remains mutable and macOS commonly exposes
+        # temporary directories through the /var -> /private/var alias; either
+        # case must not let a key inside the transit evade the containment gate.
+        key_file = Path(key_file).expanduser().resolve()
         transit = self.config.transit
         if key_file == transit or transit in key_file.parents:
             raise SyncError(

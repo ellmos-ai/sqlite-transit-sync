@@ -1,5 +1,8 @@
 # Changelog
 
+- **Canonical path containment:** Re-resolved mutable key paths at the Republica
+  boundary and made sealed-envelope target assertions robust to macOS path aliases
+  such as `/var` and `/private/var` [F 2026-09-09].
 - **PEP 639 packaging compatibility:** Kept the SPDX `MIT` project license and
   removed the superseded license classifier so current isolated setuptools
   builds can install the package across the CI matrix [F 2026-09-09].

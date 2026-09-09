@@ -372,7 +372,7 @@ class SealedEnvelopeTests(unittest.TestCase):
 
         written = Path(receipt.written_to)
         self.assertEqual(self.SECRET, written.read_text(encoding="utf-8"))
-        self.assertTrue(written.is_relative_to(self.credentials))
+        self.assertTrue(written.is_relative_to(self.credentials.resolve()))
         # A secret must not keep lying in a shared folder after it arrived.
         self.assertEqual([], list(self.transit.rglob("*.envelope")))
         self.assertEqual([], list(self.transit.rglob("*.envelope.json")))
@@ -429,7 +429,7 @@ class SealedEnvelopeTests(unittest.TestCase):
 
         receipt = self.b.envelope_receive(self.credentials)[0]
         written = Path(receipt.written_to)
-        self.assertTrue(written.is_relative_to(self.credentials))
+        self.assertTrue(written.is_relative_to(self.credentials.resolve()))
         self.assertFalse((self.root / "escaped.txt").exists())
         self.assertFalse((self.root.parent / "escaped.txt").exists())
 
