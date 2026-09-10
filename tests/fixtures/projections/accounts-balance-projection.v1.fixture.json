@@ -1,0 +1,78 @@
+{
+  "consumer_id": "ocean-accounts-consumer",
+  "contract": "accounts-balance-projection.v1",
+  "fixture_schema": "sqlite-transit-sync.synthetic-projection-fixture.v1",
+  "minimum_offline_seconds": 2592000,
+  "snapshots": [
+    {
+      "name": "initial",
+      "previous_checkpoint": 4,
+      "tables": {
+        "account_balances": [
+          {
+            "account_type": "girokonto",
+            "balance": "1234.50",
+            "balance_date": "2026-09-09",
+            "iban_masked": "******************3000",
+            "name": "Haushaltskonto ******************3000",
+            "publisher_instance": "bach-primary",
+            "record_ref": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "record_version": 1,
+            "source_checkpoint": 5
+          }
+        ],
+        "projection_metadata": [
+          {
+            "contract_id": "org.ellmos.accounts.balance-projection",
+            "contract_version": "1.0.0",
+            "generated_at": "2026-09-09T06:45:00Z",
+            "publisher_component": "accounts-core-projection-adapter",
+            "publisher_instance": "bach-primary",
+            "source_checkpoint": 5
+          }
+        ],
+        "projection_tombstones": []
+      }
+    },
+    {
+      "name": "resumed-after-offline",
+      "previous_checkpoint": 5,
+      "tables": {
+        "account_balances": [
+          {
+            "account_type": "sparkonto",
+            "balance": "987.00",
+            "balance_date": "2026-09-10",
+            "iban_masked": null,
+            "name": "Rücklage",
+            "publisher_instance": "bach-primary",
+            "record_ref": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "record_version": 2,
+            "source_checkpoint": 7
+          }
+        ],
+        "projection_metadata": [
+          {
+            "contract_id": "org.ellmos.accounts.balance-projection",
+            "contract_version": "1.0.0",
+            "generated_at": "2026-09-10T06:45:00Z",
+            "publisher_component": "accounts-core-projection-adapter",
+            "publisher_instance": "bach-primary",
+            "source_checkpoint": 7
+          }
+        ],
+        "projection_tombstones": [
+          {
+            "deleted_at": "2026-09-10T06:30:00Z",
+            "publisher_instance": "bach-primary",
+            "record_ref": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "record_type": "account_balances",
+            "record_version": 2,
+            "retain_until": "2026-11-10T06:30:00Z",
+            "source_checkpoint": 7
+          }
+        ]
+      }
+    }
+  ]
+}

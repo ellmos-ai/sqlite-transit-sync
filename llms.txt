@@ -12,7 +12,7 @@
 
 ## System Overview
 
-`sqlite-transit-sync` is a Python 3.10+ library (zero dependencies for merge mode; the optional Republica mode adds `cryptography`) and CLI for synchronizing local SQLite databases across untrusted or asynchronous file transports (shared folders, object-store mounts, removable drives, or sync-master yards). Includes ownership-aware snapshot retention policies, HMAC-SHA256 authentication, and synthetic BACH golden comparison. Verified passing test suite on 2026-09-09 (109 passed, 100% green).
+`sqlite-transit-sync` is a Python 3.10+ library (zero dependencies for merge mode; the optional Republica mode adds `cryptography`) and CLI for synchronizing local SQLite databases across untrusted or asynchronous file transports (shared folders, object-store mounts, removable drives, or sync-master yards). Includes ownership-aware snapshot retention policies, HMAC-SHA256 authentication, strict read-only application projection verification, and synthetic BACH golden comparison. Verified passing test suite on 2026-09-09.
 
 It avoids live SQLite database locking over file sync by using:
 1. Online consistent snapshots via SQLite Backup API (`sqlite3.Connection.backup`).
@@ -34,6 +34,9 @@ It avoids live SQLite database locking over file sync by using:
 - **Configurable Merge Policies**: Built-in `LastWriteWinsPolicy` and support for custom domain `MergePolicy` implementations (tombstones, CRDTs).
 - **Data Privacy & Exclusion**: Exclude sensitive tables from transit snapshots with post-delete `VACUUM`.
 - **Conservative Retention**: `cleanup` verifies snapshot pairs and only plans local-node deletion by default; `--apply` and `--all-nodes` are explicit authority gates.
+- **Read-only Projection Verification**: exact versioned table/column allowlists,
+  opaque IDs, provenance, loop guard, checkpoint progression and application-supplied
+  offline tombstone retention; no adapter, merge, scheduler or state mutation.
 - **CLI & Python API**: Declarative JSON configuration (`node.json`) and programmatic `TransitSync` API.
 
 ## Core Workflows & CLI Reference
@@ -64,6 +67,13 @@ sqlite-transit-sync verify --config node.json
 
 # Plan retention cleanup (dry-run); add --apply only after reviewing the JSON result
 sqlite-transit-sync cleanup --config node.json [--keep-days 7] [--keep-per-node 10] [--all-nodes] [--apply]
+
+# Verify a closed minimal projection without a sync config or any state write
+sqlite-transit-sync verify-projection --contract mediplaner-reminder-projection.v1 \
+  --database ./closed-projection.sqlite --consumer-id reminder-consumer \
+  --minimum-offline-seconds 2592000 --previous-checkpoint 41
+
+# Bundled projection contracts also include accounts-balance-projection.v1
 ```
 
 ### Republica - the showcase method (one-way, encrypted; requires `[crypto]` extra)
@@ -142,6 +152,9 @@ cleanup_plan = sync.cleanup(keep_days=7, keep_per_node=10)
 
 ## Repository & Ecosystem Links
 
+- **Projection contracts**: `PROJECTION_CONTRACTS.md` / `PROJECTION_CONTRACTS_de.md`
+- **Bundled allowlists**: `sqlite_transit_sync/projection-contracts/*.json`
+- **Synthetic recipes**: `tests/fixtures/projections/*.json`
 - **Repository**: [ellmos-ai/sqlite-transit-sync](https://github.com/ellmos-ai/sqlite-transit-sync)
 - **File Transport Companion**: [dev-bricks/sync-master](https://github.com/dev-bricks/sync-master)
 - **Ecosystem Catalog**: [ellmos-ai/stacks](https://github.com/ellmos-ai/stacks)

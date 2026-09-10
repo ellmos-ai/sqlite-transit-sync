@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Any
 
 from .core import SyncConfig, SyncError, TransitSync
+from .projection import verify_projection_database
 from .republica import RepublicaTransit, generate_key
 
 
@@ -64,6 +65,25 @@ def build_parser() -> argparse.ArgumentParser:
         "--apply",
         action="store_true",
         help="Delete eligible snapshot and manifest pairs (default: dry-run)",
+    )
+
+    projection = sub.add_parser(
+        "verify-projection",
+        help="Verify a closed application-owned projection without writing it",
+    )
+    projection.add_argument("--contract", required=True, help="Contract path or bundled contract name")
+    projection.add_argument("--database", required=True, help="Closed projection SQLite file")
+    projection.add_argument("--consumer-id", required=True, help="Current consumer for loop protection")
+    projection.add_argument(
+        "--minimum-offline-seconds",
+        required=True,
+        type=int,
+        help="Application-owned maximum offline interval tombstones must cover",
+    )
+    projection.add_argument(
+        "--previous-checkpoint",
+        type=int,
+        help="Reject replay or stale projections at or before this checkpoint",
     )
 
     # Republica ("showcase method"): one-way, encrypted, never merged.
@@ -147,6 +167,17 @@ def main(argv: list[str] | None = None) -> int:
                     "note": "Distribute this key out of band. Never place it in the transit.",
                 }
             )
+            return 0
+
+        if args.command == "verify-projection":
+            result = verify_projection_database(
+                args.database,
+                args.contract,
+                consumer_id=args.consumer_id,
+                minimum_offline_seconds=args.minimum_offline_seconds,
+                previous_checkpoint=args.previous_checkpoint,
+            )
+            _print({"ok": True, "result": result.as_dict()})
             return 0
 
         config = SyncConfig.from_file(args.config)

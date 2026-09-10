@@ -14,7 +14,6 @@ keywords = ["sqlite", "synchronization", "local-first", "offline-first", "snapsh
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
-    "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.10",
@@ -54,7 +53,7 @@ include = ["sqlite_transit_sync*"]
 [tool.setuptools.package-data]
 # The credential triggers ship with the package: without this the scan would
 # raise on a pip-installed copy because the JSON never reaches the wheel.
-sqlite_transit_sync = ["credential-triggers.json"]
+sqlite_transit_sync = ["credential-triggers.json", "projection-contracts/*.json"]
 
 [tool.pytest.ini_options]
 minversion = "7.0"

@@ -1,0 +1,87 @@
+{
+  "consumer_id": "bach-reminder-consumer",
+  "contract": "mediplaner-reminder-projection.v1",
+  "fixture_schema": "sqlite-transit-sync.synthetic-projection-fixture.v1",
+  "minimum_offline_seconds": 2592000,
+  "snapshots": [
+    {
+      "name": "initial",
+      "previous_checkpoint": 40,
+      "tables": {
+        "inventory_warning": [
+          {
+            "event_at": "2026-08-22T08:00:00Z",
+            "publisher_instance": "mediplaner-primary",
+            "record_ref": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "record_version": 1,
+            "source_checkpoint": 41,
+            "warning_band": "attention"
+          }
+        ],
+        "medication_due": [
+          {
+            "due_at": "2026-08-22T08:00:00Z",
+            "publisher_instance": "mediplaner-primary",
+            "record_ref": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "record_version": 1,
+            "reminder_kind": "medication-due",
+            "source_checkpoint": 41,
+            "state": "due",
+            "window_end_at": "2026-08-22T08:30:00Z"
+          }
+        ],
+        "projection_metadata": [
+          {
+            "contract_id": "org.ellmos.mediplaner.reminder-projection",
+            "contract_version": "1.0.0",
+            "generated_at": "2026-08-22T08:00:00Z",
+            "publisher_component": "mediplaner-v5-projection-adapter",
+            "publisher_instance": "mediplaner-primary",
+            "source_checkpoint": 41
+          }
+        ],
+        "projection_tombstones": []
+      }
+    },
+    {
+      "name": "resumed-after-offline",
+      "previous_checkpoint": 41,
+      "tables": {
+        "inventory_warning": [],
+        "medication_due": [
+          {
+            "due_at": "2026-08-22T08:00:00Z",
+            "publisher_instance": "mediplaner-primary",
+            "record_ref": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "record_version": 2,
+            "reminder_kind": "medication-due",
+            "source_checkpoint": 43,
+            "state": "overdue",
+            "window_end_at": "2026-08-22T08:30:00Z"
+          }
+        ],
+        "projection_metadata": [
+          {
+            "contract_id": "org.ellmos.mediplaner.reminder-projection",
+            "contract_version": "1.0.0",
+            "generated_at": "2026-08-22T10:00:00Z",
+            "publisher_component": "mediplaner-v5-projection-adapter",
+            "publisher_instance": "mediplaner-primary",
+            "source_checkpoint": 43
+          }
+        ],
+        "projection_tombstones": [
+          {
+            "deleted_at": "2026-08-22T09:00:00Z",
+            "publisher_instance": "mediplaner-primary",
+            "record_ref": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "record_type": "inventory_warning",
+            "record_version": 2,
+            "retain_until": "2026-10-22T09:00:00Z",
+            "source_checkpoint": 43
+          }
+        ]
+      }
+    }
+  ]
+}

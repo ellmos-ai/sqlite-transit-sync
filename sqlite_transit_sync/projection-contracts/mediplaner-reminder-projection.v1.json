@@ -1,0 +1,304 @@
+{
+  "access": "read-only",
+  "contract_id": "org.ellmos.mediplaner.reminder-projection",
+  "contract_schema": "sqlite-transit-sync.projection-contract.v1",
+  "contract_version": "1.0.0",
+  "metadata_table": "projection_metadata",
+  "publisher_component": "mediplaner-v5-projection-adapter",
+  "publisher_policy": "single-canonical-app-adapter",
+  "record_tables": [
+    "medication_due",
+    "inventory_warning"
+  ],
+  "tables": [
+    {
+      "columns": [
+        {
+          "constraints": {
+            "const": "org.ellmos.mediplaner.reminder-projection"
+          },
+          "name": "contract_id",
+          "not_null": true,
+          "primary_key": 1,
+          "type": "TEXT"
+        },
+        {
+          "constraints": {
+            "const": "1.0.0"
+          },
+          "name": "contract_version",
+          "not_null": true,
+          "primary_key": 0,
+          "type": "TEXT"
+        },
+        {
+          "constraints": {
+            "const": "mediplaner-v5-projection-adapter"
+          },
+          "name": "publisher_component",
+          "not_null": true,
+          "primary_key": 0,
+          "type": "TEXT"
+        },
+        {
+          "constraints": {
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,79}$"
+          },
+          "name": "publisher_instance",
+          "not_null": true,
+          "primary_key": 0,
+          "type": "TEXT"
+        },
+        {
+          "constraints": {
+            "format": "utc-datetime"
+          },
+          "name": "generated_at",
+          "not_null": true,
+          "primary_key": 0,
+          "type": "TEXT"
+        },
+        {
+          "constraints": {
+            "minimum": 0
+          },
+          "name": "source_checkpoint",
+          "not_null": true,
+          "primary_key": 0,
+          "type": "INTEGER"
+        }
+      ],
+      "name": "projection_metadata"
+    },
+    {
+      "columns": [
+        {
+          "constraints": {
+            "pattern": "^[0-9a-f]{32,64}$"
+          },
+          "name": "record_ref",
+          "not_null": true,
+          "primary_key": 1,
+          "type": "TEXT"
+        },
+        {
+          "constraints": {
+            "format": "utc-datetime"
+          },
+          "name": "due_at",
+          "not_null": true,
+          "primary_key": 0,
+          "type": "TEXT"
+        },
+        {
+          "constraints": {
+            "format": "utc-datetime"
+          },
+          "name": "window_end_at",
+          "not_null": true,
+          "primary_key": 0,
+          "type": "TEXT"
+        },
+        {
+          "constraints": {
+            "const": "medication-due"
+          },
+          "name": "reminder_kind",
+          "not_null": true,
+          "primary_key": 0,
+          "type": "TEXT"
+        },
+        {
+          "constraints": {
+            "enum": [
+              "due",
+              "overdue",
+              "suppressed",
+              "cancelled"
+            ]
+          },
+          "name": "state",
+          "not_null": true,
+          "primary_key": 0,
+          "type": "TEXT"
+        },
+        {
+          "constraints": {
+            "minimum": 1
+          },
+          "name": "record_version",
+          "not_null": true,
+          "primary_key": 0,
+          "type": "INTEGER"
+        },
+        {
+          "constraints": {
+            "minimum": 0
+          },
+          "name": "source_checkpoint",
+          "not_null": true,
+          "primary_key": 0,
+          "type": "INTEGER"
+        },
+        {
+          "constraints": {
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,79}$"
+          },
+          "name": "publisher_instance",
+          "not_null": true,
+          "primary_key": 0,
+          "type": "TEXT"
+        }
+      ],
+      "datetime_orderings": [
+        [
+          "due_at",
+          "window_end_at"
+        ]
+      ],
+      "name": "medication_due"
+    },
+    {
+      "columns": [
+        {
+          "constraints": {
+            "pattern": "^[0-9a-f]{32,64}$"
+          },
+          "name": "record_ref",
+          "not_null": true,
+          "primary_key": 1,
+          "type": "TEXT"
+        },
+        {
+          "constraints": {
+            "enum": [
+              "none",
+              "attention",
+              "critical",
+              "unknown"
+            ]
+          },
+          "name": "warning_band",
+          "not_null": true,
+          "primary_key": 0,
+          "type": "TEXT"
+        },
+        {
+          "constraints": {
+            "format": "utc-datetime"
+          },
+          "name": "event_at",
+          "not_null": true,
+          "primary_key": 0,
+          "type": "TEXT"
+        },
+        {
+          "constraints": {
+            "minimum": 1
+          },
+          "name": "record_version",
+          "not_null": true,
+          "primary_key": 0,
+          "type": "INTEGER"
+        },
+        {
+          "constraints": {
+            "minimum": 0
+          },
+          "name": "source_checkpoint",
+          "not_null": true,
+          "primary_key": 0,
+          "type": "INTEGER"
+        },
+        {
+          "constraints": {
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,79}$"
+          },
+          "name": "publisher_instance",
+          "not_null": true,
+          "primary_key": 0,
+          "type": "TEXT"
+        }
+      ],
+      "name": "inventory_warning"
+    },
+    {
+      "columns": [
+        {
+          "constraints": {
+            "enum": [
+              "medication_due",
+              "inventory_warning"
+            ]
+          },
+          "name": "record_type",
+          "not_null": true,
+          "primary_key": 1,
+          "type": "TEXT"
+        },
+        {
+          "constraints": {
+            "pattern": "^[0-9a-f]{32,64}$"
+          },
+          "name": "record_ref",
+          "not_null": true,
+          "primary_key": 2,
+          "type": "TEXT"
+        },
+        {
+          "constraints": {
+            "format": "utc-datetime"
+          },
+          "name": "deleted_at",
+          "not_null": true,
+          "primary_key": 0,
+          "type": "TEXT"
+        },
+        {
+          "constraints": {
+            "format": "utc-datetime"
+          },
+          "name": "retain_until",
+          "not_null": true,
+          "primary_key": 0,
+          "type": "TEXT"
+        },
+        {
+          "constraints": {
+            "minimum": 1
+          },
+          "name": "record_version",
+          "not_null": true,
+          "primary_key": 0,
+          "type": "INTEGER"
+        },
+        {
+          "constraints": {
+            "minimum": 0
+          },
+          "name": "source_checkpoint",
+          "not_null": true,
+          "primary_key": 0,
+          "type": "INTEGER"
+        },
+        {
+          "constraints": {
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,79}$"
+          },
+          "name": "publisher_instance",
+          "not_null": true,
+          "primary_key": 0,
+          "type": "TEXT"
+        }
+      ],
+      "datetime_orderings": [
+        [
+          "deleted_at",
+          "retain_until"
+        ]
+      ],
+      "name": "projection_tombstones"
+    }
+  ],
+  "tombstone_table": "projection_tombstones"
+}

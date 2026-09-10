@@ -220,6 +220,9 @@ geprüfte Snapshots mit von der Anwendung wählbaren Merge-Policies.
 - Bereinigung geprüfter Snapshots mit Dry-Run als Standard, standardmäßiger Begrenzung
   auf den lokalen Knoten sowie ausdrücklichen Freigaben für Löschung und Verwaltung
   fremder Knoten;
+- strikte versionierte Read-only-Projektionsverträge mit exakten Schema- und
+  Datenschutz-Allowlists sowie Provenienz-, Checkpoint-, Loop- und
+  Offline-Tombstone-Prüfung;
 - optionaler [Republica-Schaufenster-Modus](#republica--die-schaufenster-methode), der eine Datenbank
   einseitig als verschlüsselte Nutzlast verteilt und als eigenständige,
   schreibgeschütztes Schaufenster materialisiert, statt sie zu mergen;
@@ -260,6 +263,34 @@ Das Anwendungsschema muss auf jedem Knoten bereits existieren. Ein automatisches
 Erstkopieren ist absichtlich deaktiviert, weil ein generisches Modul nicht
 entscheiden kann, welches Schema, welche Secrets, lokalen Tabellen oder Migrationen
 zu einer Anwendung gehören.
+
+## Read-only-Anwendungsprojektionen
+
+`verify-projection` prüft eine geschlossene, anwendungseigene SQLite-Projektion,
+ohne zu kopieren, zu mergen, zu migrieren, einen Scheduler zu starten oder
+Zustand fortzuschreiben. Die Anwendung übergibt ihre Consumer-Identität und das
+geprüfte maximale Offline-Intervall. Der Verifier weist Loops, veraltete
+Checkpoints, zu kurze Tombstone-Aufbewahrung, nicht erlaubte Tabellen oder
+Spalten sowie nicht opake Datensatzreferenzen zurück.
+
+Mitgeliefert werden drei enge Verträge für Kontostandsübersichten,
+Medikamenten-Fälligkeiten und Bestandswarnungen sowie für Routinen-Fälligkeiten
+und Abschlussstatus: `accounts-balance-projection.v1`,
+`mediplaner-reminder-projection.v1` und `routinika-reminder-projection.v1`. Die
+Test-Fixtures sind synthetische JSON-Rezepte; Quell-IDs, vollständige IBANs,
+Kontonummern, Inhaberdaten, Medikamentendetails, Notizen und Medien sind keine
+Vertragsfelder. Siehe
+[Read-only-Projektionsverträge](PROJECTION_CONTRACTS_de.md) und die
+[englische Begleitdatei](PROJECTION_CONTRACTS.md).
+
+```bash
+sqlite-transit-sync verify-projection \
+  --contract mediplaner-reminder-projection.v1 \
+  --database ./closed-projection.sqlite \
+  --consumer-id reminder-consumer \
+  --minimum-offline-seconds 2592000 \
+  --previous-checkpoint 41
+```
 
 ## Konfiguration
 
