@@ -761,4 +761,4 @@ module replaces BACH-specific paths, handlers, secrets and table assumptions
 with configuration and policy interfaces. It also merges per primary key and
 adds verified manifests.
 
-MIT — see [LICENSE](LICENSE).
+MIT — see [LICENSE](LICENSE) and [THIRD_PARTY_LICENSES.md](THIRD_PARTY_LICENSES.md).

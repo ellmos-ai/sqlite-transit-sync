@@ -1,6 +1,6 @@
 # STATE.md
 
-**Stand:** 2026-08-22
+**Stand:** 2026-09-10
 **Phase:** Alpha / neutrale Extraktion abgeschlossen (v0.4.0)
 
 ## Funktionsfähig
@@ -26,7 +26,7 @@
 - Synthetischer BACH-Golden-Vergleich mit absichtlich blockiertem Adapterstatus
 - zwei versionierte minimale Read-only-Projektionsverträge mit generischem
   Allowlist-Verifier und synthetischen Offline-/Resume-/Tombstone-Fixtures
-- eigenständige synthetische Tests (110/110 bestanden, 100 % grün)
+- eigenständige synthetische Tests (122/122 bestanden, 15 Subtests, 100 % grün)
 
 ## Noch nicht integriert
 
@@ -38,6 +38,7 @@
 
 ## Letzte Dokumentationsänderung
 
+- 2026-09-10: Security & Dependency Audit: Broken Editable Install repariert, PEP 639 license-files deklariert, THIRD_PARTY_LICENSES.md angelegt & .gitignore gehärtet (122 Tests).
 - 2026-08-16: Discoverability, README-Design, Badges & Metadata Parity Check (v0.4.0, 96 Tests).
 - 2026-08-13: Eigentumsgebundene Retention, Golden-Vergleich und die
   53-Test-Verifikation dokumentiert.
@@ -51,6 +52,7 @@
 
 ## Letzte Verifikation
 
+- 2026-09-10: Pytest 122/122 bestanden (15 Subtests, 100 % grün); Broken Editable Install auf kanonischem Klon repariert; Pip-Check 0 defekte Requirements; Ruff 100% sauber; AST- und Regex-Scan 0 Secrets, 0 Path Leaks.
 - 2026-08-22: Unittest und Pytest jeweils 110/110 grün; Compileall, Ruff,
   JSON-CLI-Verifier, Diff-, Secret-, Pfad- und Mojibake-Prüfung ohne Befund.
 - 2026-08-16: Pytest Testsuite (96/96 passed in 0.53s), `compileall` und Ruff 100% sauber.

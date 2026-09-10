@@ -801,4 +801,4 @@ eigenständige Fassung ersetzt BACH-spezifische Pfade, Handler, Secrets und
 Tabellenannahmen durch Konfigurations- und Policy-Schnittstellen. Sie führt den
 Merge außerdem je Primärschlüssel aus und ergänzt geprüfte Manifeste.
 
-MIT – siehe [LICENSE](LICENSE).
+MIT – siehe [LICENSE](LICENSE) und [THIRD_PARTY_LICENSES.md](THIRD_PARTY_LICENSES.md).

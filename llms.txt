@@ -2,11 +2,12 @@
 
 > Local-first SQLite synchronization through verified transit snapshots and configurable row-level merge policies. Extracted from the BACH ProSync architecture for standalone, zero-dependency Python projects.
 
-- Last-checked: 2026-09-09
+- Last-checked: 2026-09-10
 - Version: 0.4.0
 - Module status: `development`; visibility projection: `public-candidate`; release gate: `LOCKED`.
 - Metadata contract: `METADATA_CONTRACT.md` (version, status and verification authority).
 - Security policy: `SECURITY.md` (Supported Versions 0.4.x, 48h SLA + 5 business days triage, Direct Contacts).
+- License & inventory: `LICENSE`, `THIRD_PARTY_LICENSES.md` (MIT, zero external runtime dependencies).
 - Architecture: Local-First / Zero-Dependency / Snapshot-based Transit (Dual Mermaid diagrams & 10-point Invariants Matrix in README)
 - Module Family: `dev-bricks/sync-master` companion (`sync.database`)
 
@@ -156,6 +157,7 @@ cleanup_plan = sync.cleanup(keep_days=7, keep_per_node=10)
 - **Bundled allowlists**: `sqlite_transit_sync/projection-contracts/*.json`
 - **Synthetic recipes**: `tests/fixtures/projections/*.json`
 - **Repository**: [ellmos-ai/sqlite-transit-sync](https://github.com/ellmos-ai/sqlite-transit-sync)
+- **License & Inventory**: `THIRD_PARTY_LICENSES.md` (MIT, Zero-Runtime-Dependencies)
 - **File Transport Companion**: [dev-bricks/sync-master](https://github.com/dev-bricks/sync-master)
 - **Ecosystem Catalog**: [ellmos-ai/stacks](https://github.com/ellmos-ai/stacks)
 - **Main Organization**: [dev-bricks](https://github.com/dev-bricks)

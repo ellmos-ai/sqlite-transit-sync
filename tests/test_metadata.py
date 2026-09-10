@@ -305,6 +305,55 @@ class TestMetadata(unittest.TestCase):
                 f"Expected >= 15 sibling repos linked in {fname}, found {len(unique_repos)}",
             )
 
+    def test_third_party_licenses_inventory_and_zero_dependencies(self):
+        """THIRD_PARTY_LICENSES.md must exist and verify zero runtime dependencies for core."""
+        lic_file = ROOT / "THIRD_PARTY_LICENSES.md"
+        self.assertTrue(lic_file.is_file(), "THIRD_PARTY_LICENSES.md must exist in repository root")
+        text = lic_file.read_text(encoding="utf-8")
+        self.assertIn("Zero-Runtime-Dependency Guarantee", text)
+        self.assertIn("MIT License", text)
+        self.assertIn("Apache License 2.0", text)
+        self.assertIn("BSD 3-Clause License", text)
+        self.assertIn("Python Software Foundation License", text)
+        for dep in ["cryptography", "pytest", "ruff", "setuptools"]:
+            self.assertIn(dep, text)
+
+        pyproject = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
+        runtime_deps = pyproject.get("project", {}).get("dependencies", [])
+        self.assertEqual([], runtime_deps, "Core runtime dependencies must remain zero in pyproject.toml")
+
+    def test_pep639_license_files_metadata(self):
+        """pyproject.toml must declare PEP 639 license-files."""
+        pyproject = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
+        license_files = pyproject.get("project", {}).get("license-files", [])
+        self.assertIn("LICENSE", license_files)
+        self.assertIn("THIRD_PARTY_LICENSES.md", license_files)
+
+    def test_gitignore_secret_and_credential_patterns(self):
+        """gitignore must exclude secrets, tokens, private keys, and sync artifacts."""
+        gi_file = ROOT / ".gitignore"
+        self.assertTrue(gi_file.is_file(), ".gitignore must exist")
+        content = gi_file.read_text(encoding="utf-8")
+        required_patterns = [
+            "*.pem",
+            "*.key",
+            "*.token",
+            "*.secret",
+            ".npmrc",
+            ".pypirc",
+            "credentials.json",
+            "secrets.json",
+            "id_rsa*",
+            "id_ed25519*",
+            "*.orig",
+            "*.rej",
+            "*-WORKSTATION-LG.*",
+            "*-ASUS-GEI.*",
+        ]
+        for pattern in required_patterns:
+            self.assertIn(pattern, content, f"Security/conflict pattern '{pattern}' missing in .gitignore")
+
 
 if __name__ == "__main__":
     unittest.main()
+

@@ -23,7 +23,36 @@ data/
 .claude/.cache/
 .claude/state/
 
-# Sync conflicts and locks
+# Multi-Host Sync-Konflikte & Locks
+*-conflict-*
+*.sync-temp-*
 *.sync-conflict-*
+*-CONFLIT-*
 *.conflict
+*-WORKSTATION-LG.*
+*-ASUS-GEI.*
+*-LAPTOP.*
 LOCK*.txt
+LOCK.*
+*.lock
+
+# Secrets, Tokens & Private Keys (Supply-Chain & Privacy Protection)
+*.pem
+*.key
+*.pfx
+*.p12
+*.crt
+*.cert
+*.token
+*.secret
+.npmrc
+.pypirc
+credentials.json
+secrets.json
+id_rsa*
+id_ed25519*
+
+# Merge-Konflikt-Reste
+*.orig
+*.rej
+
