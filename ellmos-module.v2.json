@@ -7,7 +7,6 @@
   "kind": "library",
   "status": "development",
   "visibility": "public-candidate",
-  "last_verified": "2026-08-22",
   "provides": [
     "sync.database",
     "sync.database.sqlite",
@@ -24,8 +23,8 @@
     "cli"
   ],
   "state": {
-    "ownership": "module",
-    "location": "user-home"
+    "ownership": "external",
+    "location": "project"
   },
   "boundaries": {
     "network": "transport-defined",
@@ -37,7 +36,7 @@
     ]
   },
   "source_of_truth": {
-    "type": "local-directory",
+    "type": "git-repository",
     "path": ".",
     "repository": "https://github.com/ellmos-ai/sqlite-transit-sync"
   },
