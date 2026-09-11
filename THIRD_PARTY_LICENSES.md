@@ -2,7 +2,8 @@
 
 **Project:** `sqlite-transit-sync`
 **License:** [MIT License](LICENSE)
-**Audit Date:** 2026-09-10
+**Audit Date:** 2026-09-11
+**Posture:** 100% Local-First | Zero-Egress | RunAsInvoker | 100% Permissive Licenses
 
 ---
 
@@ -118,3 +119,29 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
    PSF's License Agreement and PSF's notice of copyright, i.e., "Copyright (c) 2001-2026
    Python Software Foundation; All Rights Reserved" are retained in Python alone or
    in any derivative version prepared by Licensee.
+
+---
+
+## Governance & Runtime Invariant Alignment
+
+The dependency footprint strictly adheres to the 10 core governance invariants:
+
+- **INV-LOCAL-01 (100% Local-First & Zero-Egress):** Zero runtime telemetry or external network socket dependencies.
+- **INV-SNAP-02 (Offline Snapshot Atomicity):** Standard library `sqlite3.backup` ensures non-locking atomic snapshot captures.
+- **INV-ROLL-03 (Rollback Journal Clean Isolation):** Temporary SQLite sidecars are systematically cleaned before publication.
+- **INV-PATH-04 (Strict Transit Path Containment):** Native `pathlib.Path` containment checks prevent directory traversal.
+- **INV-VERIFY-05 (Two-Stage Integrity & Sanity Verification):** Cryptographic SHA-256 digests and `PRAGMA quick_check`.
+- **INV-SHIELD-06 (Pre-Publication Credential Shielding):** Built-in secret detection regexes across 13+ secret families.
+- **INV-HMAC-07 (HMAC Authenticity Envelope):** Standard library `hmac` and `hashlib` ensure message authenticity.
+- **INV-MERGE-08 (Deterministic Row-Level Merge):** Deterministic conflict resolution with schema drift tolerance.
+- **INV-RET-09 (Conservative Retention & Authority Scoping):** Owner-scoped snapshot retention garbage collection.
+- **INV-SLA-10 (Non-Elevation & Multi-OS Parity):** Unprivileged user mode execution (`RunAsInvoker`) across Windows, Linux, and macOS with 48h security SLA.
+
+---
+
+## Security Inquiries & Contact
+
+For questions or security disclosures regarding third-party components, consult [SECURITY.md](SECURITY.md) or contact:
+- **Lead Security Coordinator:** `security@ellmos.ai`
+- **Technical Maintainer:** `support@lukasgeiger.com`
+- **Open-Bricks Security Team:** `security@open-bricks.org` / `lukas@open-bricks.org`

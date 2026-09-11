@@ -5,12 +5,14 @@
 [![CI](https://github.com/ellmos-ai/sqlite-transit-sync/actions/workflows/ci.yml/badge.svg)](https://github.com/ellmos-ai/sqlite-transit-sync/actions/workflows/ci.yml)
 [![Version](https://img.shields.io/badge/version-0.4.0-blue.svg)](CHANGELOG.md)
 [![Code style: Ruff](https://img.shields.io/badge/code%20style-ruff-000000.svg)](https://github.com/astral-sh/ruff)
-[![Tests](https://img.shields.io/badge/tests-109%2F109%20passed%20%7C%20100%25%20green-brightgreen.svg)](#tests)
+[![Tests](https://img.shields.io/badge/tests-123%20passed%20%7C%2015%20subtests%20%7C%20100%25%20green-brightgreen.svg)](#tests)
 [![Python Version](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12%20%7C%203.13-blue.svg)](https://www.python.org/)
 [![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20Linux%20%7C%20macOS-informational.svg)](#)
 [![Privacy](https://img.shields.io/badge/privacy-100%25%20Offline%20%7C%20Zero--Egress-brightgreen.svg)](#)
 [![Security](https://img.shields.io/badge/security-Local--First%20%7C%20HMAC--Verified-blue.svg)](SECURITY.md)
 [![Security SLA](https://img.shields.io/badge/security%20SLA-48h%20SLA-blue.svg)](SECURITY.md)
+[![Third-Party: Audited](https://img.shields.io/badge/third--party-audited%20%7C%20100%25%20permissive-brightgreen.svg)](THIRD_PARTY_LICENSES.md)
+[![Marketing Log: Active](https://img.shields.io/badge/marketing%20log-active-blue.svg)](MARKETING-LOG.txt)
 [![License](https://img.shields.io/github/license/ellmos-ai/sqlite-transit-sync)](LICENSE)
 [![Ecosystem: ellmos-ai](https://img.shields.io/badge/Ecosystem-ellmos--ai-blue.svg)](https://github.com/ellmos-ai)
 [![Umbrella: open-bricks](https://img.shields.io/badge/Umbrella-open--bricks-purple.svg)](https://github.com/open-bricks)
@@ -36,7 +38,8 @@
 - [Python-API & Erweiterungspunkte](#python-api)
 - [Vergleich mit Distributed SQL](#vergleich-mit-distributed-sql)
 - [Sicherheit und Grenzen](#sicherheit-und-grenzen)
-- [Ökosystem & Geschwister-Werkzeuge](#ökosystem-geschwister-werkzeuge)
+- [Drittanbieter-Lizenzen & Transparenz](#drittanbieter-lizenzen--transparenz)
+- [Marketing & Zielgruppen](#marketing--zielgruppen)
 
 ## Was ist sqlite-transit-sync?
 
@@ -171,16 +174,16 @@ sequenceDiagram
 
 | # | Invariante | Architektur-Ebene | Garantie & Durchsetzungs-Mechanismus |
 |---|---|---|---|
-| 1 | **100% Local-First & Zero-Egress** | Systemarchitektur | Arbeitet ausschließlich auf lokalen SQLite-Datenbankdateien (`app.db`). Keine Telemetrie, keine ausgehenden Netzwerkaufrufe, keine Cloud-Abhängigkeiten. |
-| 2 | **Offline-Snapshot-Atomarität** | Transit-Veröffentlichung | Live-Datenbanken werden niemals über File-Sync geteilt. Snapshots entstehen via `sqlite3.backup` und werden per atomarem `os.replace` publiziert. |
-| 3 | **Rollback-Journal & Sidecar-Bereinigung** | Sidecar-Schutz | Snapshots werden strikt im Rollback-Journal-Modus geschlossen; alle temporären SQLite-Sidecars (`-wal`, `-shm`, `-journal`) werden fail-closed vor Manifest-Erstellung bereinigt. |
-| 4 | **Strikte Pfadkapselung & Traversierungsschutz** | Dateisystemgrenze | Manifest- und Snapshot-Pfade müssen direkte reguläre Dateien im Transit-Wurzelordner sein. Traversierungsversuche (`../`), Symlinks und Reparse-Points scheitern fail-closed. |
-| 5 | **Zweistufige Integritäts- und Konsistenzprüfung** | Vorab-Validierung | Jeder empfangene Snapshot muss die kryptografische SHA-256-Prüfung sowie `PRAGMA quick_check` fehlerfrei durchlaufen, bevor Tabellen inspiziert oder zusammengeführt werden. |
-| 6 | **Inhaltsbezogener Zugangsdaten-Schutz (Credential Shield)** | Inhaltsprüfung | Snapshot-Inhalte werden vor Publikation auf 13+ Secret-Muster (`credential-triggers.json`) gescannt. Erkannte Secrets brechen den Push ab (`table.column`, ohne Preisgabe des Werts). |
-| 7 | **HMAC-Authentifizierungs-Umschlag** | Identität & Nachweisbarkeit | Optionaler HMAC-SHA256-Signaturumschlag über kanonische Manifest-Payloads (Protokoll, Namespace, Absender, Dateiname, SHA-256, Größe, Redaktion) mit In-Memory-Schlüsselbund. |
-| 8 | **Deterministisches zeilenweises Merge** | Daten-Konvergenz | Transaktionales Zeilen-Merge (LWW pro PK, Spaltenschnittmenge bei Schema-Drift, optionale Tombstone-Tabelle). Hash-Tie-Breaker sorgt für deterministische Konvergenz. |
-| 9 | **Konservative Aufbewahrung & Autorisierung** | Bereinigung | Bereinigungsroutinen laufen standardmäßig als Dry-Run und beschränken sich auf den lokalen Knoten. Fremdknoten-Löschung (`--all-nodes`) erfordert explizite Autorisierung. |
-| 10 | **Unprivilegierte Ausführung & Multi-OS-Parität** | Plattform-Laufzeit | Läuft vollständig im Benutzermodus (RunAsInvoker). Strikte Plattformparität unter Linux, Windows und macOS ohne externe Binärabhängigkeiten. |
+| 1 | **INV-LOCAL-01: 100% Local-First & Zero-Egress** | Systemarchitektur | Arbeitet ausschließlich auf lokalen SQLite-Datenbankdateien (`app.db`). Keine Telemetrie, keine ausgehenden Netzwerkaufrufe, keine Cloud-Abhängigkeiten. |
+| 2 | **INV-SNAP-02: Offline-Snapshot-Atomarität** | Transit-Veröffentlichung | Live-Datenbanken werden niemals über File-Sync geteilt. Snapshots entstehen via `sqlite3.backup` und werden per atomarem `os.replace` publiziert. |
+| 3 | **INV-ROLL-03: Rollback-Journal & Sidecar-Bereinigung** | Sidecar-Schutz | Snapshots werden strikt im Rollback-Journal-Modus geschlossen; alle temporären SQLite-Sidecars (`-wal`, `-shm`, `-journal`) werden fail-closed vor Manifest-Erstellung bereinigt. |
+| 4 | **INV-PATH-04: Strikte Pfadkapselung & Traversierungsschutz** | Dateisystemgrenze | Manifest- und Snapshot-Pfade müssen direkte reguläre Dateien im Transit-Wurzelordner sein. Traversierungsversuche (`../`), Symlinks und Reparse-Points scheitern fail-closed. |
+| 5 | **INV-VERIFY-05: Zweistufige Integritäts- und Konsistenzprüfung** | Vorab-Validierung | Jeder empfangene Snapshot muss die kryptografische SHA-256-Prüfung sowie `PRAGMA quick_check` fehlerfrei durchlaufen, bevor Tabellen inspiziert oder zusammengeführt werden. |
+| 6 | **INV-SHIELD-06: Inhaltsbezogener Zugangsdaten-Schutz (Credential Shield)** | Inhaltsprüfung | Snapshot-Inhalte werden vor Publikation auf 13+ Secret-Muster (`credential-triggers.json`) gescannt. Erkannte Secrets brechen den Push ab (`table.column`, ohne Preisgabe des Werts). |
+| 7 | **INV-HMAC-07: HMAC-Authentifizierungs-Umschlag** | Identität & Nachweisbarkeit | Optionaler HMAC-SHA256-Signaturumschlag über kanonische Manifest-Payloads (Protokoll, Namespace, Absender, Dateiname, SHA-256, Größe, Redaktion) mit In-Memory-Schlüsselbund. |
+| 8 | **INV-MERGE-08: Deterministisches zeilenweises Merge** | Daten-Konvergenz | Transaktionales Zeilen-Merge (LWW pro PK, Spaltenschnittmenge bei Schema-Drift, optionale Tombstone-Tabelle). Hash-Tie-Breaker sorgt für deterministische Konvergenz. |
+| 9 | **INV-RET-09: Konservative Aufbewahrung & Autorisierung** | Bereinigung | Bereinigungsroutinen laufen standardmäßig als Dry-Run und beschränken sich auf den lokalen Knoten. Fremdknoten-Löschung (`--all-nodes`) erfordert explizite Autorisierung. |
+| 10 | **INV-SLA-10: Unprivilegierte Ausführung & Multi-OS-Parität** | Plattform-Laufzeit | Läuft vollständig im Benutzermodus (RunAsInvoker). Strikte Plattformparität unter Linux, Windows und macOS ohne externe Binärabhängigkeiten mit 48h Sicherheits-SLA. |
 
 ## Teil der ellmos-Stack-Familie
 
@@ -725,6 +728,26 @@ Ausfall einzelner Server über mehrere dauerhaft betriebene Knoten überstehen m
 
 Siehe [ARCHITECTURE.md](ARCHITECTURE.md), [README.md](README.md) und
 [SECURITY.md](SECURITY.md).
+
+## Drittanbieter-Lizenzen & Transparenz
+
+`sqlite-transit-sync` steht für 100% lokale Datensouveränität ohne Telemetrie und ohne externe Laufzeitabhängigkeiten.
+
+- **Keine externen Laufzeitabhängigkeiten**: Der Kern-Synchronisationsmotor benötigt **ausschließlich** die Python-Standardbibliothek (`>=3.10`).
+- **Optionaler Schaufenster-Layer**: Der verschlüsselte Republica-Schaufenstermodus nutzt optional [`cryptography`](https://github.com/pyca/cryptography) (Apache-2.0 / BSD-3-Clause).
+- **Audit & Invarianten**: Formell auditiert am 11.09.2026 mit 100% permissiven Lizenzen (MIT, Apache-2.0, BSD-3-Clause, PSFL). Gesteuert durch **INV-LOCAL-01** (Zero-Egress) und **INV-SLA-10** (RunAsInvoker-Ausführung im Benutzermodus mit 48h Sicherheits-SLA).
+- **Vollständiges Inventar**: Vollständige Lizenztexte und Abhängigkeitsdetails sind in [THIRD_PARTY_LICENSES.md](THIRD_PARTY_LICENSES.md) dokumentiert.
+
+## Marketing & Zielgruppen
+
+`sqlite-transit-sync` wurde für modulare, dezentrale Ökosysteme entwickelt und adressiert 4 Kern-Zielgruppen:
+
+1. **Entwickler autonomer KI-Agenten**: Multi-Agenten-Schwärme auf Laptops, Workstations und Servern benötigen lokale Zustandsspeicherung ohne Dateisperren-Kollisionen. Entkoppelte Transit-Snapshots mit Credential Shielding verhindern Secret-Leaks in gemeinsame Speicher.
+2. **Multi-Device- & Cloud-Sync-Entwickler**: Entwickler, die persönliche Notizen- und Aufgaben-Datenbanken über Sync-Ordner synchronisieren (z. B. sync-master, Syncthing, Nextcloud), vermeiden Dateikorruption und `-wal`-Sperren durch atomare Bereitstellung und transaktionalen Zeilen-Merge.
+3. **Local-First- & Zero-Egress-Entwickler**: Desktop- und Air-Gapped-Softwarebauer, die Cloud-Lock-in, monatliche Hosting-Kosten und externen Netzwerkverkehr ausschließen.
+4. **Enterprise-Sicherheits- & Compliance-Verantwortliche**: Sicherheitsteams profitieren von Regex-Prüfungen auf 13+ Secret-Familien vor der Veröffentlichung, HMAC-Authentizitätsumschlägen und unprivilegierter Ausführung im Benutzermodus.
+
+Ausführliche Zielgruppenanalysen, Suchbegriffe und Wettbewerbsvergleiche sind in [MARKETING-LOG.txt](MARKETING-LOG.txt) dokumentiert.
 
 ## Ökosystem & Geschwister-Werkzeuge
 

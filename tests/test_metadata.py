@@ -222,17 +222,17 @@ class TestMetadata(unittest.TestCase):
             self.assertIsNotNone(nav_match, f"Navigation block malformed in {fname}")
             links = re.findall(r"- \[(.+)\]\(#([^\)]+)\)", nav_match.group(1))
             self.assertEqual(
-                14,
+                15,
                 len(links),
-                f"Expected exactly 14 navigation links in {fname}, got {len(links)}",
+                f"Expected exactly 15 navigation links in {fname}, got {len(links)}",
             )
             headings = re.findall(r"^(#{1,3})\s+(.+)$", content, re.MULTILINE)
             slugs = []
             for _, h in headings:
                 s = h.lower().strip()
                 s = re.sub(r"[^\w\s-]", "", s)
-                s = re.sub(r"\s+", "-", s)
-                slugs.append(s)
+                slugs.append(re.sub(r"\s+", "-", s))
+                slugs.append(re.sub(r"\s", "-", s))
             for title, anchor in links:
                 self.assertIn(
                     anchor,
@@ -260,19 +260,40 @@ class TestMetadata(unittest.TestCase):
             )
 
     def test_runtime_invariants_matrix(self):
-        """Both READMEs must provide a 10-row Governance & Runtime Invariants Matrix."""
+        """Both READMEs and MARKETING-LOG must codify the 10 Governance & Runtime Invariants."""
+        invariant_ids = [
+            "INV-LOCAL-01",
+            "INV-SNAP-02",
+            "INV-ROLL-03",
+            "INV-PATH-04",
+            "INV-VERIFY-05",
+            "INV-SHIELD-06",
+            "INV-HMAC-07",
+            "INV-MERGE-08",
+            "INV-RET-09",
+            "INV-SLA-10",
+        ]
         for fname, heading in [
             ("README.md", "## Governance & Runtime Invariants Matrix"),
             ("README_de.md", "## Governance- & Laufzeit-Invarianten-Matrix"),
         ]:
             content = (ROOT / fname).read_text(encoding="utf-8")
             self.assertIn(heading, content, f"Missing Invariants heading in {fname}")
+            for inv in invariant_ids:
+                self.assertIn(inv, content, f"Invariant {inv} missing from {fname}")
             for idx in range(1, 11):
                 self.assertRegex(
                     content,
                     rf"\|\s*{idx}\s*\|",
-                    f"Invariant #{idx} missing from matrix in {fname}",
+                    f"Invariant row #{idx} missing from matrix in {fname}",
                 )
+
+        # Check invariants also codified in MARKETING-LOG.txt and llms.txt
+        mkt_text = (ROOT / "MARKETING-LOG.txt").read_text(encoding="utf-8")
+        llms_text = (ROOT / "llms.txt").read_text(encoding="utf-8")
+        for inv in invariant_ids:
+            self.assertIn(inv, mkt_text, f"Invariant {inv} missing from MARKETING-LOG.txt")
+        self.assertIn("INV-LOCAL-01 to INV-SLA-10", llms_text)
 
     def test_security_sla_and_triage(self):
         """SECURITY.md must guarantee 48-hour response SLA and 5-business-day triage commitment."""
@@ -283,13 +304,24 @@ class TestMetadata(unittest.TestCase):
         self.assertIn("5 Werktagen", security)
 
     def test_local_marketing_log_present(self):
-        """Repository root must contain MARKETING-LOG.txt documenting baseline and upgrades."""
+        """Repository root must contain MARKETING-LOG.txt documenting personas, search queries, and competitive matrix."""
         mkt = ROOT / "MARKETING-LOG.txt"
         self.assertTrue(mkt.exists(), "MARKETING-LOG.txt must exist in repo root")
         text = mkt.read_text(encoding="utf-8")
         self.assertIn("ellmos-ai/sqlite-transit-sync", text)
         self.assertIn("PFAD B", text.upper())
         self.assertIn("DISCOVERABILITY", text.upper())
+        # Personas
+        self.assertIn("Autonomous AI Agent Engineers", text)
+        self.assertIn("Multi-Device & Cloud-Sync Developers", text)
+        self.assertIn("Local-First & Zero-Egress Tool Builders", text)
+        self.assertIn("Enterprise Security, Privacy & Compliance Officers", text)
+        # Search queries
+        self.assertIn("sqlite synchronization python zero-dependency", text)
+        self.assertIn("lokale datenbank synchronisation offline snapshots", text)
+        # 4-way competitive matrix
+        self.assertIn("Litestream / LiteFS", text)
+        self.assertIn("Distributed SQL (Cockroach/TiDB)", text)
 
     def test_ecosystem_sibling_tools(self):
         """Both READMEs must include cross-links to at least 15 sibling ecosystem tools."""
@@ -311,6 +343,9 @@ class TestMetadata(unittest.TestCase):
         self.assertTrue(lic_file.is_file(), "THIRD_PARTY_LICENSES.md must exist in repository root")
         text = lic_file.read_text(encoding="utf-8")
         self.assertIn("Zero-Runtime-Dependency Guarantee", text)
+        self.assertIn("Audit Date:** 2026-09-11", text)
+        self.assertIn("INV-LOCAL-01", text)
+        self.assertIn("INV-SLA-10", text)
         self.assertIn("MIT License", text)
         self.assertIn("Apache License 2.0", text)
         self.assertIn("BSD 3-Clause License", text)
@@ -321,6 +356,17 @@ class TestMetadata(unittest.TestCase):
         pyproject = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
         runtime_deps = pyproject.get("project", {}).get("dependencies", [])
         self.assertEqual([], runtime_deps, "Core runtime dependencies must remain zero in pyproject.toml")
+
+    def test_pyproject_extended_urls(self):
+        """pyproject.toml [project.urls] must include Third-Party Licenses, Marketing Log, and LLM Ready."""
+        pyproject = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
+        urls = pyproject.get("project", {}).get("urls", {})
+        self.assertIn("Third-Party Licenses", urls)
+        self.assertIn("Marketing Log", urls)
+        self.assertIn("LLM Ready", urls)
+        self.assertTrue(urls["Third-Party Licenses"].endswith("THIRD_PARTY_LICENSES.md"))
+        self.assertTrue(urls["Marketing Log"].endswith("MARKETING-LOG.txt"))
+        self.assertTrue(urls["LLM Ready"].endswith("llms.txt"))
 
     def test_pep639_license_files_metadata(self):
         """pyproject.toml must declare PEP 639 license-files."""

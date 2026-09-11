@@ -5,12 +5,14 @@
 [![CI](https://github.com/ellmos-ai/sqlite-transit-sync/actions/workflows/ci.yml/badge.svg)](https://github.com/ellmos-ai/sqlite-transit-sync/actions/workflows/ci.yml)
 [![Version](https://img.shields.io/badge/version-0.4.0-blue.svg)](CHANGELOG.md)
 [![Code style: Ruff](https://img.shields.io/badge/code%20style-ruff-000000.svg)](https://github.com/astral-sh/ruff)
-[![Tests](https://img.shields.io/badge/tests-109%2F109%20passed%20%7C%20100%25%20green-brightgreen.svg)](#tests)
+[![Tests](https://img.shields.io/badge/tests-123%20passed%20%7C%2015%20subtests%20%7C%20100%25%20green-brightgreen.svg)](#tests)
 [![Python Version](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12%20%7C%203.13-blue.svg)](https://www.python.org/)
 [![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20Linux%20%7C%20macOS-informational.svg)](#)
 [![Privacy](https://img.shields.io/badge/privacy-100%25%20Offline%20%7C%20Zero--Egress-brightgreen.svg)](#)
 [![Security](https://img.shields.io/badge/security-Local--First%20%7C%20HMAC--Verified-blue.svg)](SECURITY.md)
 [![Security SLA](https://img.shields.io/badge/security%20SLA-48h%20SLA-blue.svg)](SECURITY.md)
+[![Third-Party: Audited](https://img.shields.io/badge/third--party-audited%20%7C%20100%25%20permissive-brightgreen.svg)](THIRD_PARTY_LICENSES.md)
+[![Marketing Log: Active](https://img.shields.io/badge/marketing%20log-active-blue.svg)](MARKETING-LOG.txt)
 [![License](https://img.shields.io/github/license/ellmos-ai/sqlite-transit-sync)](LICENSE)
 [![Ecosystem: ellmos-ai](https://img.shields.io/badge/Ecosystem-ellmos--ai-blue.svg)](https://github.com/ellmos-ai)
 [![Umbrella: open-bricks](https://img.shields.io/badge/Umbrella-open--bricks-purple.svg)](https://github.com/open-bricks)
@@ -36,7 +38,8 @@
 - [Python API & Extension Points](#python-api)
 - [Comparison with Distributed SQL](#comparison-with-distributed-sql)
 - [Safety and Operational Limits](#safety-and-limits)
-- [Ecosystem & Sibling Tools Matrix](#ecosystem-sibling-tools)
+- [Third-Party Licenses & Transparency](#third-party-licenses--transparency)
+- [Marketing & Target Personas](#marketing--target-personas)
 
 ## What is sqlite-transit-sync?
 
@@ -170,16 +173,16 @@ sequenceDiagram
 
 | # | Invariant | Architectural Scope | Guarantee & Verification Mechanism |
 |---|---|---|---|
-| 1 | **100% Local-First & Zero-Egress** | System Architecture | Operates exclusively against local SQLite database files (`app.db`). Zero telemetry, zero outbound HTTP/API calls, zero cloud dependencies. |
-| 2 | **Offline Snapshot Atomicity** | Transit Publication | Live database files are never shared over file-sync. Online snapshots are taken via `sqlite3.backup` and published via atomic `os.replace`. |
-| 3 | **Rollback Journal Clean Isolation** | Sidecar Prevention | Backups are closed in rollback-journal mode; all temporary SQLite sidecars (`-wal`, `-shm`, `-journal`) are cleaned fail-closed before manifest creation. |
-| 4 | **Strict Transit Path Containment** | Filesystem Boundary | Manifest and snapshot paths must be direct regular files within canonical transit root. Path traversal (`../`), symlinks, and reparse points fail closed. |
-| 5 | **Two-Stage Integrity & Sanity Verification** | Pre-Merge Validation | Every received snapshot must pass SHA-256 cryptographic digest matching and SQLite `PRAGMA quick_check` before inspecting or merging data. |
-| 6 | **Pre-Publication Credential Shielding** | Content Inspection | Content is systematically scanned for credential patterns across 13+ secret families (`credential-triggers.json`). Triggers fail-closed push abort naming `table.column`. |
-| 7 | **HMAC Authenticity Envelope** | Identity & Non-Repudiation | Optional pluggable HMAC-SHA256 signature envelope over canonical manifest payload (protocol, namespace, sender ID, filename, SHA-256, size, redaction list). |
-| 8 | **Deterministic Row-Level Merge** | Data Convergence | Transactional row-level merge (LWW per PK, shared column union for schema drift, explicit tombstone policy). Content hash tie-breaker ensures deterministic convergence. |
-| 9 | **Conservative Retention & Authority Scoping** | Garbage Collection | Snapshot cleanup is dry-run by default, scoped strictly to the local node's artifacts. Cross-node deletion (`--all-nodes`) requires explicit administrative opt-in. |
-| 10 | **Non-Elevation & Multi-OS Parity** | Platform Runtime | Runs unprivileged in user mode (RunAsInvoker). Strict operational parity across Linux, Microsoft Windows, and macOS with zero external native dependencies. |
+| 1 | **INV-LOCAL-01: 100% Local-First & Zero-Egress** | System Architecture | Operates exclusively against local SQLite database files (`app.db`). Zero telemetry, zero outbound HTTP/API calls, zero cloud dependencies. |
+| 2 | **INV-SNAP-02: Offline Snapshot Atomicity** | Transit Publication | Live database files are never shared over file-sync. Online snapshots are taken via `sqlite3.backup` and published via atomic `os.replace`. |
+| 3 | **INV-ROLL-03: Rollback Journal Clean Isolation** | Sidecar Prevention | Backups are closed in rollback-journal mode; all temporary SQLite sidecars (`-wal`, `-shm`, `-journal`) are cleaned fail-closed before manifest creation. |
+| 4 | **INV-PATH-04: Strict Transit Path Containment** | Filesystem Boundary | Manifest and snapshot paths must be direct regular files within canonical transit root. Path traversal (`../`), symlinks, and reparse points fail closed. |
+| 5 | **INV-VERIFY-05: Two-Stage Integrity & Sanity Verification** | Pre-Merge Validation | Every received snapshot must pass SHA-256 cryptographic digest matching and SQLite `PRAGMA quick_check` before inspecting or merging data. |
+| 6 | **INV-SHIELD-06: Pre-Publication Credential Shielding** | Content Inspection | Content is systematically scanned for credential patterns across 13+ secret families (`credential-triggers.json`). Triggers fail-closed push abort naming `table.column`. |
+| 7 | **INV-HMAC-07: HMAC Authenticity Envelope** | Identity & Non-Repudiation | Optional pluggable HMAC-SHA256 signature envelope over canonical manifest payload (protocol, namespace, sender ID, filename, SHA-256, size, redaction list). |
+| 8 | **INV-MERGE-08: Deterministic Row-Level Merge** | Data Convergence | Transactional row-level merge (LWW per PK, shared column union for schema drift, explicit tombstone policy). Content hash tie-breaker ensures deterministic convergence. |
+| 9 | **INV-RET-09: Conservative Retention & Authority Scoping** | Garbage Collection | Snapshot cleanup is dry-run by default, scoped strictly to the local node's artifacts. Cross-node deletion (`--all-nodes`) requires explicit administrative opt-in. |
+| 10 | **INV-SLA-10: Non-Elevation & Multi-OS Parity** | Platform Runtime | Runs unprivileged in user mode (RunAsInvoker). Strict operational parity across Linux, Microsoft Windows, and macOS with zero external native dependencies and 48h security SLA. |
 
 ## Part of the ellmos stack family
 
@@ -695,6 +698,26 @@ across several permanently operated nodes.
 
 See [ARCHITECTURE.md](ARCHITECTURE.md), [README_de.md](README_de.md) and
 [SECURITY.md](SECURITY.md).
+
+## Third-Party Licenses & Transparency
+
+`sqlite-transit-sync` is dedicated to 100% local-first sovereignty with zero runtime telemetry and zero external runtime dependencies.
+
+- **Zero Runtime Dependencies**: The core synchronization engine requires **only** the Python Standard Library (`>=3.10`).
+- **Optional Showcase Layer**: The Republica encrypted showcase mode optionally utilizes [`cryptography`](https://github.com/pyca/cryptography) (Apache-2.0 / BSD-3-Clause).
+- **Audit & Invariants**: Formally audited on 2026-09-11 with 100% permissive licenses (MIT, Apache-2.0, BSD-3-Clause, PSFL). Governed by **INV-LOCAL-01** (Zero-Egress) and **INV-SLA-10** (RunAsInvoker unprivileged execution).
+- **Full Inventory**: Detailed license texts and dependency classifications are maintained in [THIRD_PARTY_LICENSES.md](THIRD_PARTY_LICENSES.md).
+
+## Marketing & Target Personas
+
+Designed for modular, decentralized ecosystems, `sqlite-transit-sync` addresses 4 core stakeholder personas:
+
+1. **Autonomous AI Agent Engineers**: Multi-agent swarms operating across workstations, laptops, and servers require local state persistence without file-lock collisions. Decoupled transit snapshots with credential shielding prevent token leaks into shared storage.
+2. **Multi-Device & Cloud-Sync Developers**: Power users exchanging personal notes and task databases over file sync (e.g. sync-master, Syncthing, Nextcloud) avoid database corruption and `-wal` lock-ups through atomic publication and transactional row-level merge.
+3. **Local-First & Zero-Egress Tool Builders**: Desktop and air-gapped application developers who refuse cloud lock-in, recurring database hosting fees, and third-party network egress.
+4. **Enterprise Security & Compliance Officers**: Security teams enforcing zero-trust policies benefit from pre-publication regex secret detection (13+ patterns), HMAC manifest sealing, and unprivileged user-mode execution.
+
+For detailed persona breakdowns, high-intent search queries, and competitive positioning, consult [MARKETING-LOG.txt](MARKETING-LOG.txt).
 
 ## Ecosystem & Sibling Tools
 

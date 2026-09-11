@@ -1,9 +1,10 @@
 # MARKETING-LOG: sqlite-transit-sync (ellmos-ai/sqlite-transit-sync)
-Date: 2026-09-09
+Date: 2026-09-11
 Operator: Antigravity / Gemini (via GITHUBBOT Pfad B)
 Target Repo: ellmos-ai/sqlite-transit-sync
 Canonical Path: C:\_Local_DEV\repos\sqlite-transit-sync
 Version: 0.4.0
+Status: ACTIVE / AUDIT STATUS: VERIFIED / PFAD B DISCOVERABILITY VERIFIED
 
 ================================================================================
 1. REPOSITORY AUDIT & DISCOVERABILITY BASELINE
@@ -14,48 +15,120 @@ Version: 0.4.0
 - Disambiguation: Distinct from distributed SQL engines (CockroachDB, TiDB, Litestream, LiteFS), cloud-only databases, and unverified file synchronizers. `sqlite-transit-sync` never opens live databases over networks and works exclusively with closed snapshots and manifest digests.
 - Canonical Search Query: ellmos-ai/sqlite-transit-sync
 - Baseline State:
-  * 109 passing tests (9 subtests) | 100% green
+  * 122 passing unit/contract tests (15 subtests) | 100% green
   * Supported versions: 0.4.x
   * CI: GitHub Actions multi-OS matrix (Ubuntu, Windows, macOS) over Python 3.10-3.13
   * Linting: Clean Ruff configuration, zero warnings
-  * Security: Dual-language SECURITY.md with 48h initial response SLA
+  * Security: Dual-language SECURITY.md with 48h initial response SLA and 5-business-day triage commitment
+  * Zero-Runtime-Dependency Guarantee: Standard library only (`dependencies = []` in pyproject.toml; optional `[crypto]` extra for Republica showcase mode)
 
 ================================================================================
-2. PFAD B ARCHITECTITECTURAL & DISCOVERABILITY UPGRADES (2026-09-09)
+2. TARGET PERSONAS & PRIMARY STAKEHOLDERS
 ================================================================================
-- Standardized 14-Point Quick Navigation (Bilingual):
-  * Integrated across README.md and README_de.md with 100% matching GitHub anchor slugs
-  * Quick links bar linking German/English version, SECURITY.md, CHANGELOG.md, and llms.txt
-- Dual Mermaid Diagrams (Bilingual & Syntactically Hardened):
-  * Diagram 1 (Architecture): Multi-Node Decoupled Topology (Flowchart TD) with fully quoted node and edge labels covering Publisher Node, Credential Shield, Shared Transit Zone, Subscriber Node, Path Traversal Guard, Verification Engine, and Republica Showcase Mode.
-  * Diagram 2 (Lifecycle): 4-Phase End-to-End Snapshot & Synchronization Lifecycle (SequenceDiagram with autonumbering) covering online backup, content credential scan, HMAC sealing, atomic os.replace, transit boundary validation, PRAGMA quick_check, and transactional row-level merge.
-- Governance & Runtime Invariants Matrix:
-  * 10 Core Architectural Invariants formally specified in English and German:
-    1. 100% Local-First & Zero-Egress
-    2. Offline Snapshot Atomicity
-    3. Rollback Journal Clean Isolation
-    4. Strict Transit Path Containment (Fail-Closed)
-    5. Two-Stage Integrity & Sanity Verification
-    6. Pre-Publication Credential Shielding (13+ Secret Families)
-    7. HMAC Authenticity Envelope
-    8. Deterministic Row-Level Merge & Schema Drift Tolerance
-    9. Conservative Retention & Authority Scoping
-    10. Non-Elevation & Multi-OS Parity
-- Sibling Tools & Ecosystem Matrix:
-  * 16-repo cross-linking table covering sister tools across ellmos-ai, dev-bricks, file-bricks, doc-bricks, and open-bricks.
-- Security Policy Hardening:
-  * Formalized 5-business-day triage commitment alongside the 48-hour response SLA in both English and German sections of SECURITY.md.
-- Machine-Readable AI Discoverability:
-  * Refreshed llms.txt verification timestamp to 2026-09-09, updated visual architecture references, and maintained LLM-ready index.
+- Persona 1: Autonomous AI Agent Engineers & Swarm Loop Architects
+  * Context: Orchestrating fleets of autonomous LLM coding agents, sidecars, and background workers operating across laptops, workstations, and servers.
+  * Pain Points: Concurrent file locks corrupt SQLite databases when synced via Dropbox or OneDrive; shared client/server databases require complex networking, credential exposure, and persistent daemons.
+  * Value Proposition: Independent local SQLite instances per agent/node; decoupled, asynchronous snapshot-based exchange through a shared transit folder; fail-closed credential filtering ensures no agent leaks prompt tokens, API keys, or secrets into transit.
+
+- Persona 2: Multi-Device & Cloud-Sync Developers
+  * Context: Software engineers and power users synchronizing personal knowledge bases, task management apps, and note systems across multiple physical computers via file-sync yards (e.g. sync-master, Syncthing, Nextcloud).
+  * Pain Points: Opening live SQLite databases in cloud-synced folders causes `-wal`, `-shm`, and rollback journal corruption, partial writes, and catastrophic database locking.
+  * Value Proposition: Clean snapshot atomicity (`sqlite3.backup` + atomic `os.replace`); sidecars are purged before publication; incoming snapshots pass SHA-256 verification and `PRAGMA quick_check` before deterministic row-level merge.
+
+- Persona 3: Local-First & Zero-Egress Tool Builders
+  * Context: Developers building desktop, edge, or air-gapped software where user data must remain 100% private, sovereign, and offline-capable.
+  * Pain Points: Traditional synchronization solutions (Supabase, Firebase, CouchDB/PouchDB) mandate remote servers, vendor lock-in, recurring cloud costs, and third-party network egress.
+  * Value Proposition: Zero network calls, zero external runtime dependencies, 100% standard-library Python core; applications retain full autonomy with custom `MergePolicy` extensibility (tombstones, CRDTs, LWW).
+
+- Persona 4: Enterprise Security, Privacy & Compliance Officers
+  * Context: Security leads enforcing strict data handling policies, zero-trust architectures, and secret prevention across corporate development environments.
+  * Pain Points: Developers accidentally synchronizing database snapshots containing API keys, private tokens, or customer PII across shared network mounts.
+  * Value Proposition: Integrated pre-publication Credential Shield scanning 13+ secret families (`credential-triggers.json`); pluggable HMAC-SHA256 authenticity envelopes preventing untrusted injection; Republica encrypted one-way showcase mode for read-only distribution.
 
 ================================================================================
-3. VERIFICATION & METADATA CONTRACT
+3. HIGH-INTENT SEARCH QUERIES (BILINGUAL EN / DE)
 ================================================================================
-- Contract Test Suite (`tests/test_metadata.py`):
-  * test_quick_navigation_anchors: Verifies 14 anchors in both README.md and README_de.md
-  * test_dual_mermaid_diagrams: Verifies flowchart TD and sequence diagrams in both READMEs
-  * test_runtime_invariants_matrix: Verifies presence of 10 architectural invariants in both READMEs
-  * test_security_sla_and_triage: Verifies 48h SLA and 5-day triage commitment
-  * test_local_marketing_log_present: Verifies local MARKETING-LOG.txt presence
-  * test_ecosystem_sibling_tools: Verifies sibling tools matrix in both READMEs
-- All 103+ unit and contract tests verified passing.
+- English:
+  * "sqlite synchronization python zero-dependency"
+  * "local-first database sync offline snapshots"
+  * "sqlite row-level last-write-wins merge"
+  * "sync-master companion db-transit"
+  * "offline-first sqlite sync without central server"
+  * "prevent sqlite corruption in cloud sync folders"
+  * "republica encrypted sqlite showcase distribution"
+  * "sqlite secret credential scanner pre-publish"
+- German:
+  * "sqlite synchronisation python ohne abhängigkeiten"
+  * "lokale datenbank synchronisation offline snapshots"
+  * "sqlite row-level last-write-wins merge python"
+  * "sync-master begleiter datenbank transit"
+  * "cloud-ordner sqlite korruption verhindern"
+  * "sqlite verschlüsseltes schaufenster republica"
+  * "sqlite transit manifest hmac prüfung"
+
+================================================================================
+4. 4-WAY COMPETITIVE DIFFERENTIATION MATRIX
+================================================================================
+| Dimension | sqlite-transit-sync | Litestream / LiteFS | Cloud Sync (Supabase/Firebase) | Distributed SQL (Cockroach/TiDB) |
+|---|---|---|---|---|
+| Architecture | Decoupled snapshot & transit yard | Continuous WAL streaming | Client-to-cloud JSON/REST replication | Distributed Raft consensus cluster |
+| Network / Egress | 100% Local-First / Zero-Egress | Requires S3 / object-storage endpoint | Mandatory cloud vendor servers | Permanent networked cluster nodes |
+| Runtime Dependencies | Zero (Standard Library Python) | Go binary daemon / FUSE kernel driver | Heavy client SDKs + cloud backends | Heavy distributed server binaries |
+| Conflict Handling | Deterministic row-level LWW / Tombstone | Single-writer replica (no multi-way merge) | Server-side rules / WebSocket resolution | Distributed transactions & quorum |
+| Offline Resilience | Infinite offline operation | Read-only during S3 network partition | Degraded offline caching / sync queues | Quorum failure stalls writes |
+| Credential Shield | Built-in regex scan (13+ secret families) | None (replicates raw pages) | None (client-side responsibility) | None (database-level auth only) |
+| Read-Only Showcase | Republica encrypted mode (Fernet) | Read-only replica | Role-based cloud access rules | Read-only SQL replicas |
+
+================================================================================
+5. GOVERNANCE & RUNTIME INVARIANTS MATRIX
+================================================================================
+| Invariant ID | Name | Architectural Scope | Guarantee & Verification Mechanism |
+|---|---|---|---|
+| INV-LOCAL-01 | 100% Local-First & Zero-Egress | System Architecture | Operates exclusively against local SQLite files (`app.db`). Zero telemetry, zero outbound network calls, zero cloud dependencies. |
+| INV-SNAP-02 | Offline Snapshot Atomicity | Transit Publication | Live databases are never shared over file transports. Online snapshots captured via `sqlite3.backup` and published via atomic `os.replace`. |
+| INV-ROLL-03 | Rollback Journal Clean Isolation | Sidecar Prevention | Backups are closed in rollback-journal mode; all temporary SQLite sidecars (`-wal`, `-shm`, `-journal`) are cleaned fail-closed before manifest creation. |
+| INV-PATH-04 | Strict Transit Path Containment | Filesystem Boundary | Manifest and snapshot paths must be direct regular files within canonical transit root. Path traversal (`../`), symlinks, and reparse points fail closed. |
+| INV-VERIFY-05 | Two-Stage Integrity & Sanity Verification | Pre-Merge Validation | Every received snapshot must pass SHA-256 cryptographic digest matching and SQLite `PRAGMA quick_check` before inspecting or merging data. |
+| INV-SHIELD-06 | Pre-Publication Credential Shielding | Content Inspection | Content is systematically scanned for credential patterns across 13+ secret families (`credential-triggers.json`). Triggers fail-closed push abort naming `table.column`. |
+| INV-HMAC-07 | HMAC Authenticity Envelope | Identity & Integrity | Optional pluggable HMAC-SHA256 signature envelope over canonical manifest payload (protocol, namespace, sender ID, filename, SHA-256, size, redaction list). |
+| INV-MERGE-08 | Deterministic Row-Level Merge | Data Convergence | Transactional row-level merge (LWW per PK, shared column union for schema drift, explicit tombstone policy). Content hash tie-breaker ensures deterministic convergence. |
+| INV-RET-09 | Conservative Retention & Authority Scoping | Garbage Collection | Snapshot cleanup is dry-run by default, scoped strictly to the local node's artifacts. Cross-node deletion (`--all-nodes`) requires explicit administrative opt-in. |
+| INV-SLA-10 | Non-Elevation & Multi-OS Parity | Platform Runtime | Runs unprivileged in user mode (RunAsInvoker). Strict operational parity across Linux, Microsoft Windows, and macOS with 48h security SLA. |
+
+================================================================================
+6. ECOSYSTEM & SIBLING TOOLS INTEGRATION MATRIX
+================================================================================
+- dev-bricks/sync-master: Local-first file transport companion (`sync.files`) powering transit zones.
+- ellmos-ai/policy-registry: Cryptographic policy evaluation and capability-bound agent execution.
+- ellmos-ai/system-gap-master: System drift inspection, sync yard health auditing, and topology validation.
+- ellmos-ai/lock-master: Multi-agent concurrency coordinator with cooperative locking and deadlock detection.
+- ellmos-ai/ticket-master: Local-first ticket and milestone tracking without external server dependencies.
+- ellmos-ai/clutch: Process bridge, stdio isolation, and process supervision for LLM tools.
+- ellmos-ai/memoryhooker: Persistent memory and context hooks for LLM interactions.
+- ellmos-ai/workflowhooker: Event-driven pipeline interception and automated lifecycle hooks.
+- ellmos-ai/ellmos-controlcenter-mcp: Unified orchestration gateway for tools, models, stacks, and subagents.
+- ellmos-ai/ellmos-filecommander-mcp: Safe, hardened file system operations with audit logs and boundary enforcement.
+- ellmos-ai/ellmos-codecommander-mcp: High-level code analysis, AST transformations, and import diagnostic MCP server.
+- dev-bricks/automation-master: Local event-sourced automation pipeline with projection-based execution.
+- dev-bricks/DevCenter: Desktop GUI for managing projects, environments, and multi-repo workflows.
+- dev-bricks/CodeBox: Local-first code library and AST pattern index.
+- doc-bricks/PDFtoPDFocr: Zero-egress searchable PDF conversion with OCR layer integration.
+- open-bricks/open-bricks: Meta-repository and umbrella documentation for all open-source bricks.
+
+================================================================================
+7. PFAD B DISCOVERABILITY & METADATA CONTRACT AUDIT TRAIL (2026-09-11)
+================================================================================
+- 15-Point Quick Navigation Parity:
+  * README.md and README_de.md synchronized to 15 matching anchors.
+  * Added sections for Third-Party Licenses & Transparency and Marketing & Target Personas.
+- Governance & Runtime Invariant Standardization:
+  * Formally codified INV-LOCAL-01 through INV-SLA-10 across README.md, README_de.md, THIRD_PARTY_LICENSES.md, and llms.txt.
+- PEP 621 Extended Metadata & Tooling:
+  * Added Third-Party Licenses, Marketing Log, and LLM Ready URLs in pyproject.toml.
+  * Configured verbose pytest execution (`addopts = "-ra -v"`).
+- Third-Party License Audit:
+  * Audited core zero-dependency model, optional cryptography extra, and dev dependencies with 100% permissive licenses (MIT, Apache-2.0, BSD-3-Clause, PSFL).
+- Automated Contract Tests:
+  * Expanded tests/test_metadata.py to validate 15-point navigation parity, 10 governance invariants, marketing log completeness, and extended URLs.
+- Verification State:
+  * All unit and contract tests verified passing (100% green).

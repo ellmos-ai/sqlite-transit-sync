@@ -37,6 +37,9 @@ Changelog = "https://github.com/ellmos-ai/sqlite-transit-sync/blob/main/CHANGELO
 Security = "https://github.com/ellmos-ai/sqlite-transit-sync/blob/main/SECURITY.md"
 "Parent Organization" = "https://github.com/ellmos-ai"
 "Umbrella Ecosystem" = "https://github.com/open-bricks"
+"Third-Party Licenses" = "https://github.com/ellmos-ai/sqlite-transit-sync/blob/main/THIRD_PARTY_LICENSES.md"
+"Marketing Log" = "https://github.com/ellmos-ai/sqlite-transit-sync/blob/main/MARKETING-LOG.txt"
+"LLM Ready" = "https://github.com/ellmos-ai/sqlite-transit-sync/blob/main/llms.txt"
 
 [project.optional-dependencies]
 dev = ["pytest>=7", "cryptography>=42", "tomli>=2; python_version < '3.11'", "ruff>=0.8"]
@@ -58,7 +61,7 @@ sqlite_transit_sync = ["credential-triggers.json", "projection-contracts/*.json"
 
 [tool.pytest.ini_options]
 minversion = "7.0"
-addopts = "-ra -q"
+addopts = "-ra -v"
 testpaths = ["tests"]
 pythonpath = "."
 
