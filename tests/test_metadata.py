@@ -111,7 +111,7 @@ class TestMetadata(unittest.TestCase):
         self.assertIn("projection-contracts/*.json", package_data)
 
     def test_ci_workflow_integrity(self):
-        """CI workflow must test Python 3.10-3.13 across triple OS matrix with concurrency."""
+        """CI workflow must test Python 3.10-3.13 across triple OS matrix with concurrency and timeout."""
         ci_file = ROOT / ".github" / "workflows" / "ci.yml"
         self.assertTrue(ci_file.is_file(), ".github/workflows/ci.yml must exist")
         content = ci_file.read_text(encoding="utf-8")
@@ -123,6 +123,21 @@ class TestMetadata(unittest.TestCase):
         self.assertIn("actions/checkout@v4", content)
         self.assertIn("actions/setup-python@v5", content)
         self.assertIn("cancel-in-progress: true", content)
+        self.assertIn("timeout-minutes: 15", content)
+        self.assertIn("permissions:", content)
+        self.assertIn("contents: read", content)
+
+    def test_stale_workflow_integrity(self):
+        """Stale workflow must manage issues and PRs with actions/stale@v9 and timeout."""
+        stale_file = ROOT / ".github" / "workflows" / "stale.yml"
+        self.assertTrue(stale_file.is_file(), ".github/workflows/stale.yml must exist")
+        content = stale_file.read_text(encoding="utf-8")
+        self.assertIn("actions/stale@v9", content)
+        self.assertIn("timeout-minutes: 10", content)
+        self.assertIn("days-before-stale: 30", content)
+        self.assertIn("days-before-close: 7", content)
+        self.assertIn("issues: write", content)
+        self.assertIn("pull-requests: write", content)
 
     def test_pyproject_pep621_classifiers(self):
         """pyproject.toml must contain standard PEP 621 classifiers."""
@@ -158,11 +173,22 @@ class TestMetadata(unittest.TestCase):
         self.assertEqual(urls.get("Umbrella Ecosystem"), "https://github.com/open-bricks")
 
     def test_gitignore_hygiene(self):
-        """gitignore must ignore caches, conflict patterns and locks."""
+        """gitignore must ignore caches, conflict patterns, copy artifacts, and locks."""
         gi_file = ROOT / ".gitignore"
         self.assertTrue(gi_file.is_file(), ".gitignore must exist")
         content = gi_file.read_text(encoding="utf-8")
-        for pattern in [".pytest_cache/", ".ruff_cache/", "*.sync-conflict-*", "*.conflict", "LOCK*.txt"]:
+        for pattern in [
+            ".pytest_cache/",
+            ".ruff_cache/",
+            "*.sync-conflict-*",
+            "*.conflict",
+            "* (kopie)*",
+            "* (copy)*",
+            "*-WORKSTATION*",
+            "LOCK*.txt",
+            "LOCK",
+            "uv.lock",
+        ]:
             self.assertIn(pattern, content, f"Pattern '{pattern}' should be in .gitignore")
 
     def test_badges_parity(self):
