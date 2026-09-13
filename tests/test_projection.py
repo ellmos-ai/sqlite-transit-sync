@@ -95,6 +95,7 @@ class ProjectionContractTests(unittest.TestCase):
                 "accounts-balance-projection.v1",
                 "mediplaner-reminder-projection.v1",
                 "routinika-reminder-projection.v1",
+                "versicherungsmanager-deadline-projection.v1",
             ),
             bundled_projection_contracts(),
         )
@@ -117,6 +118,11 @@ class ProjectionContractTests(unittest.TestCase):
                         "medication_name",
                         "note",
                         "notes",
+                        "policy_area",
+                        "policy_number",
+                        "policy_title",
+                        "premium_amount",
+                        "provider",
                         "quantity",
                         "routine_title",
                         "stock_level",
@@ -129,6 +135,7 @@ class ProjectionContractTests(unittest.TestCase):
             "accounts-balance-projection.v1.fixture.json",
             "mediplaner-reminder-projection.v1.fixture.json",
             "routinika-reminder-projection.v1.fixture.json",
+            "versicherungsmanager-deadline-projection.v1.fixture.json",
         )
         for fixture_name in fixture_names:
             for index in (0, 1):

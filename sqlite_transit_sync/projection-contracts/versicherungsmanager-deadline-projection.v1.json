@@ -1,0 +1,242 @@
+{
+  "access": "read-only",
+  "contract_id": "org.ellmos.versicherungsmanager.deadline-projection",
+  "contract_schema": "sqlite-transit-sync.projection-contract.v1",
+  "contract_version": "1.0.0",
+  "metadata_table": "projection_metadata",
+  "publisher_component": "versicherungsmanager-projection-adapter",
+  "publisher_policy": "single-canonical-app-adapter",
+  "record_tables": [
+    "policy_deadline_due"
+  ],
+  "tables": [
+    {
+      "columns": [
+        {
+          "constraints": {
+            "const": "org.ellmos.versicherungsmanager.deadline-projection"
+          },
+          "name": "contract_id",
+          "not_null": true,
+          "primary_key": 1,
+          "type": "TEXT"
+        },
+        {
+          "constraints": {
+            "const": "1.0.0"
+          },
+          "name": "contract_version",
+          "not_null": true,
+          "primary_key": 0,
+          "type": "TEXT"
+        },
+        {
+          "constraints": {
+            "const": "versicherungsmanager-projection-adapter"
+          },
+          "name": "publisher_component",
+          "not_null": true,
+          "primary_key": 0,
+          "type": "TEXT"
+        },
+        {
+          "constraints": {
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,79}$"
+          },
+          "name": "publisher_instance",
+          "not_null": true,
+          "primary_key": 0,
+          "type": "TEXT"
+        },
+        {
+          "constraints": {
+            "format": "utc-datetime"
+          },
+          "name": "generated_at",
+          "not_null": true,
+          "primary_key": 0,
+          "type": "TEXT"
+        },
+        {
+          "constraints": {
+            "minimum": 0
+          },
+          "name": "source_checkpoint",
+          "not_null": true,
+          "primary_key": 0,
+          "type": "INTEGER"
+        }
+      ],
+      "name": "projection_metadata"
+    },
+    {
+      "columns": [
+        {
+          "constraints": {
+            "pattern": "^[0-9a-f]{32,64}$"
+          },
+          "name": "record_ref",
+          "not_null": true,
+          "primary_key": 1,
+          "type": "TEXT"
+        },
+        {
+          "constraints": {
+            "format": "utc-datetime"
+          },
+          "name": "due_at",
+          "not_null": true,
+          "primary_key": 0,
+          "type": "TEXT"
+        },
+        {
+          "constraints": {
+            "format": "utc-datetime"
+          },
+          "name": "window_end_at",
+          "not_null": true,
+          "primary_key": 0,
+          "type": "TEXT"
+        },
+        {
+          "constraints": {
+            "enum": [
+              "app_reminder",
+              "cancellation_deadline",
+              "renewal_due"
+            ]
+          },
+          "name": "deadline_kind",
+          "not_null": true,
+          "primary_key": 0,
+          "type": "TEXT"
+        },
+        {
+          "constraints": {
+            "enum": [
+              "due",
+              "overdue",
+              "completed",
+              "cancelled"
+            ]
+          },
+          "name": "state",
+          "not_null": true,
+          "primary_key": 0,
+          "type": "TEXT"
+        },
+        {
+          "constraints": {
+            "minimum": 1
+          },
+          "name": "record_version",
+          "not_null": true,
+          "primary_key": 0,
+          "type": "INTEGER"
+        },
+        {
+          "constraints": {
+            "minimum": 0
+          },
+          "name": "source_checkpoint",
+          "not_null": true,
+          "primary_key": 0,
+          "type": "INTEGER"
+        },
+        {
+          "constraints": {
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,79}$"
+          },
+          "name": "publisher_instance",
+          "not_null": true,
+          "primary_key": 0,
+          "type": "TEXT"
+        }
+      ],
+      "datetime_orderings": [
+        [
+          "due_at",
+          "window_end_at"
+        ]
+      ],
+      "name": "policy_deadline_due"
+    },
+    {
+      "columns": [
+        {
+          "constraints": {
+            "enum": [
+              "policy_deadline_due"
+            ]
+          },
+          "name": "record_type",
+          "not_null": true,
+          "primary_key": 1,
+          "type": "TEXT"
+        },
+        {
+          "constraints": {
+            "pattern": "^[0-9a-f]{32,64}$"
+          },
+          "name": "record_ref",
+          "not_null": true,
+          "primary_key": 2,
+          "type": "TEXT"
+        },
+        {
+          "constraints": {
+            "format": "utc-datetime"
+          },
+          "name": "deleted_at",
+          "not_null": true,
+          "primary_key": 0,
+          "type": "TEXT"
+        },
+        {
+          "constraints": {
+            "format": "utc-datetime"
+          },
+          "name": "retain_until",
+          "not_null": true,
+          "primary_key": 0,
+          "type": "TEXT"
+        },
+        {
+          "constraints": {
+            "minimum": 1
+          },
+          "name": "record_version",
+          "not_null": true,
+          "primary_key": 0,
+          "type": "INTEGER"
+        },
+        {
+          "constraints": {
+            "minimum": 0
+          },
+          "name": "source_checkpoint",
+          "not_null": true,
+          "primary_key": 0,
+          "type": "INTEGER"
+        },
+        {
+          "constraints": {
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,79}$"
+          },
+          "name": "publisher_instance",
+          "not_null": true,
+          "primary_key": 0,
+          "type": "TEXT"
+        }
+      ],
+      "datetime_orderings": [
+        [
+          "deleted_at",
+          "retain_until"
+        ]
+      ],
+      "name": "projection_tombstones"
+    }
+  ],
+  "tombstone_table": "projection_tombstones"
+}
