@@ -16,15 +16,16 @@ second domain database or a multi-writer engine.
 - Production adapters, live databases, host paths, credentials, and cutover
   configuration are not included in this repository.
 
-The three bundled contracts are deliberately narrow:
+The four bundled contracts are deliberately narrow:
 
 | Contract | Allowed record tables | Explicitly absent |
 |---|---|---|
 | `accounts-balance-projection.v1` | `account_balances` | source IDs, full IBANs, account numbers, bank/BIC/holder data, notes |
 | `mediplaner-reminder-projection.v1` | `medication_due`, `inventory_warning` | names, clients, diagnoses, doses, quantities, stock values, notes |
 | `routinika-reminder-projection.v1` | `routine_due` | titles, definitions, steps, notes, media paths, unrelated settings |
+| `versicherungsmanager-deadline-projection.v1` | `policy_deadline_due` | policy titles, providers, policy numbers, insurance areas, premiums, contacts, documents, notes |
 
-All three also require one `projection_metadata` row and an explicit
+All four also require one `projection_metadata` row and an explicit
 `projection_tombstones` table. Stable references are opaque lowercase hex
 tokens; the contract does not define how an application derives them.
 
