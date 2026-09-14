@@ -568,20 +568,39 @@ Datenmechanik zu kopieren.
 Wenn Timestamp-LWW nicht ausreicht, kann `TransitSync` ein Objekt erhalten, das
 `MergePolicy.merge(local, remote, snapshot)` implementiert.
 
-### Optionale authentifizierte Manifeste
+### Optionale authentifizierte Manifeste und Read-only-Preflight
 
-Eine integrierende Anwendung kann einen eigenen Authenticator injizieren; JSON-
-Konfiguration und CLI transportieren niemals Schlüsselmaterial:
+Eine integrierende Anwendung beschreibt Schlüssel über geheimnisfreie
+`HMACKeyReference`-Werte. `load_hmac_authenticator()` bezieht die Bytes
+ausschließlich über einen injizierten `SecretResolver`;
+`OSKeyringSecretResolver` ist ein optionaler, lazy geladener Adapter für das
+separat installierte Paket `keyring`. JSON-Konfiguration und CLI transportieren
+niemals Schlüsselmaterial:
 
 ```python
-from sqlite_transit_sync import HMACKey, HMACSnapshotAuthenticator, TransitSync
+from sqlite_transit_sync import (
+    HMACKeyReference,
+    OSKeyringSecretResolver,
+    load_hmac_authenticator,
+    verify_authenticated_snapshot,
+)
 
-auth = HMACSnapshotAuthenticator(
-    keys={"node-a-v2": HMACKey(sender="node-a", secret=key_store.read_bytes())},
+auth = load_hmac_authenticator(
+    [HMACKeyReference(
+        key_id="node-a-v2",
+        service="ellmos-ocean-transit",
+        account="node-a-v2",
+        sender="node-a",
+    )],
     active_key_id="node-a-v2",
+    resolver=OSKeyringSecretResolver(),
     trusted_senders={"node-a"},
 )
-sync = TransitSync(config, authenticator=auth)
+snapshot = verify_authenticated_snapshot(
+    manifest_path,
+    snapshot_path,
+    authenticator=auth,
+)
 ```
 
 Die Referenzimplementierung nutzt Shared-Key-HMAC-SHA256, keine nicht
@@ -589,7 +608,12 @@ abstreitbaren Public-Key-Signaturen. Die kanonische Nutzlast umfasst Protokoll,
 Namespace, Knoten, Snapshotname, SHA-256, Größe, Redaktionsliste sowie
 Algorithmus-/Schlüssel-/Sender-/Vertrauensquellen-Header. Alte Schlüssel bleiben während einer
 Rotation im Verifier-Keyring. Ein konfigurierter Verifier weist fehlende,
-fehlerhafte, fremde oder nicht passende Signaturen vor Prüfung/Merge zurück;
+fehlerhafte, fremde oder nicht passende Signaturen zurück. Der explizite
+Preflight weist außerdem fehlende Dateien und SQLite-Sidecars vor dem Hashen ab;
+er öffnet niemals SQLite, führt keinen Merge aus und liest oder schreibt keinen
+Sync-State. Sein Erfolg authentifiziert die benannten Dateibytes, nicht deren
+SQLite-Schema oder Anwendungssemantik. Bestehende Aufrufer können weiterhin
+`TransitSync(..., authenticator=auth)` verwenden;
 ein bereits gepullter Replay ist über den State ein No-op, aber keine
 Frischegarantie. Ein Leser ohne Adapter behauptet keine Authentizität.
 

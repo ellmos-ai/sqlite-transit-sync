@@ -28,9 +28,16 @@ authenticated transport when the transit is not fully trusted.
 namespace, sender/node, snapshot filename, SHA-256, size, redaction list and
 the algorithm/key/sender/trust-source header. It uses an application-owned in-memory key
 ring; no secret is written to a manifest, transit file, log or JSON config.
+`HMACKeyReference` stores only service/account/sender locators. Secret bytes are
+resolved exclusively through an injected `SecretResolver` or the lazy optional
+`OSKeyringSecretResolver`; a missing resolver result or keyring dependency fails
+closed without exposing key material.
 Keep old key IDs available to verifiers during rotation and change only the
 active signing key. A configured verifier rejects missing, malformed, unknown,
 foreign or mismatched envelopes before checksum/SQLite verification or merge.
+`verify_authenticated_snapshot()` is the narrower read-only boundary for an
+explicit manifest/snapshot pair: it checks identity, HMAC, sidecars, size and
+SHA-256 without opening SQLite and without reading or advancing sync state.
 Without an adapter, the module remains compatible but makes no authenticity
 claim. Duplicate delivery after `last_pulled` is an idempotent state behavior,
 not a freshness or anti-replay service.
@@ -122,7 +129,7 @@ Empfänger akzeptieren ausschließlich direkte, reguläre Manifestdateien im kan
 
 ### Optionaler HMAC-Authentifizierungs-Adapter
 
-`TransitSync(..., authenticator=...)` stellt eine optionale Sicherheitsgrenze dar. Der integrierte `HMACSnapshotAuthenticator` signiert ein kanonisches JSON-Payload (Protokoll, Namespace, Sender/Knoten, Snapshot-Dateiname, SHA-256-Hash, Dateigröße, Redaktionsliste und Schlüssel-Header). Verwendet wird ein anwendungseigener In-Memory-Schlüsselbund; keine Geheimnisse werden in Manifeste, Transit-Dateien, Logs oder JSON-Konfigurationen geschrieben.
+`TransitSync(..., authenticator=...)` stellt eine optionale Sicherheitsgrenze dar. Der integrierte `HMACSnapshotAuthenticator` signiert ein kanonisches JSON-Payload (Protokoll, Namespace, Sender/Knoten, Snapshot-Dateiname, SHA-256-Hash, Dateigröße, Redaktionsliste und Schlüssel-Header). Verwendet wird ein anwendungseigener In-Memory-Schlüsselbund; keine Geheimnisse werden in Manifeste, Transit-Dateien, Logs oder JSON-Konfigurationen geschrieben. `HMACKeyReference` speichert nur Service-/Account-/Sender-Referenzen. Schlüsselbytes kommen ausschließlich aus einem injizierten `SecretResolver` oder dem optionalen, lazy geladenen `OSKeyringSecretResolver`; fehlende Resolver-Ergebnisse oder die fehlende Keyring-Abhängigkeit schlagen fail-closed fehl. `verify_authenticated_snapshot()` prüft ein explizites Manifest-/Snapshot-Paar auf Identität, HMAC, Sidecars, Größe und SHA-256, ohne SQLite zu öffnen oder Sync-State zu lesen beziehungsweise fortzuschreiben.
 
 ### Inhaltsbezogener Zugangsdaten-Schutzscan (Credential Shield)
 

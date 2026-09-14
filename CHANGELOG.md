@@ -1,5 +1,11 @@
 # Changelog
 
+- **Neutraler Auth-Preflight (T-20260915-486495819):** Öffentliche, geheimnisfreie
+  `HMACKeyReference`-/`SecretResolver`-API mit optionalem lazy OS-Keyring-Resolver
+  ergänzt. `verify_authenticated_snapshot()` authentifiziert ein explizites
+  Manifest-/Snapshot-Paar inklusive Sidecar-, Größen- und Hashprüfung, ohne
+  SQLite zu öffnen, Daten zu mergen oder Sync-State fortzuschreiben.
+
 - **Projektionsvertrag `versicherungsmanager-deadline-projection.v1`:** vierter mitgelieferter Vertrag, eine Record-Tabelle `policy_deadline_due` mit `deadline_kind` (`app_reminder` | `cancellation_deadline` | `renewal_due`). Er projiziert ausschliesslich, WANN eine Frist laeuft -- nicht, worum es geht: Vertragstitel, Anbieter, Versicherungsnummer, Sparte (`policies.area`), Beitrag, Kontakte, Dokumente und Notizen bleiben draussen. Die Sparte ist bewusst ausgeschlossen, weil sie fuer sich genommen sensibel ist (z. B. Berufsunfaehigkeit, Rechtsschutz). Synthetische Fixture mit Initial- und Resume-Snapshot; die Verbotsliste des Datenschutztests ist um `policy_area`, `policy_number`, `policy_title`, `premium_amount` und `provider` erweitert. Vorarbeit fuer den App-seitigen Publisher (T-20260906-496406575, Einheit 2) [C 2026-09-13].
 
 - **Pfad A Technische Hygiene, CI Matrix Timeout-Härtung, Stale Lifecycle Workflow & Multi-Host Sync-Schutz:** Gehärtete CI-Konfiguration in `.github/workflows/ci.yml` durch `timeout-minutes: 15` (Schutz vor unbegrenzter Ausführung über 12 Multi-OS Matrix-Runner) und `permissions: contents: read` (Least-Privilege-Standard); neu hinzugefügter automatisierter Lifecycle-Workflow `.github/workflows/stale.yml` (`actions/stale@v9`, `timeout-minutes: 10`, 30 Tage Stale-Frist, 7 Tage Schließfrist für inaktive Issues und Pull Requests); Multi-Host-Synchronisations- und Lock-Schutz in `.gitignore` erweitert um Kopien-Muster (`* (kopie)*`, `* (Kopie)*`, `* (copy)*`, `* (Copy)*`, `*conflicted copy*`, `*-WORKSTATION*`, `LOCK`, `uv.lock`); Metadaten-Vertragstestsuite in `tests/test_metadata.py` ausgebaut um automatische CI-Timeout-, Stale-Workflow- und erweiterte Gitignore-Prüfungen (25/25 Metadaten-Tests, 127 Gesamt-Tests 100% grün); maschinenlesbaren Kontext in `llms.txt` auf Stand 2026-09-13 synchronisiert [G 2026-09-13].

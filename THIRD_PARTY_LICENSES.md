@@ -18,13 +18,14 @@
 | *None* | `n/a` | `n/a` | External | The core `sqlite-transit-sync` engine has **0** external runtime dependencies (`dependencies = []` in `pyproject.toml`). Push, pull, merge, retention cleanup, and projection verification rely exclusively on Python standard library modules. |
 | *Python Standard Library* | `>=3.10` | PSF License | Built-in | `argparse`, `dataclasses`, `datetime`, `hashlib`, `hmac`, `json`, `os`, `pathlib`, `re`, `shutil`, `sqlite3`, `sys`, `typing`, `uuid` |
 
-### Optional Runtime Dependencies (Showcase & Envelope Mode)
+### Optional Runtime Dependencies
 
-For the optional, encrypted showcase layer (**Republica**) and sealed envelopes, users may opt-in to the `[crypto]` extra:
+For the encrypted showcase layer (**Republica**) and sealed envelopes, users may opt in to `[crypto]`. Applications that choose OS-native HMAC key lookup may opt in to `[keyring]`; injected custom resolvers keep the core dependency-free:
 
 | Package | Version Spec | License | Type | Purpose |
 |---------|-------------|---------|------|---------|
 | [cryptography](https://github.com/pyca/cryptography) | `>=42` | Apache-2.0 OR BSD-3-Clause | Optional Extra (`[crypto]`) | Authenticated symmetric Fernet encryption for Republica showcases and out-of-band credential sealed envelopes. |
+| [keyring](https://github.com/jaraco/keyring) | `>=25` | MIT | Optional Extra (`[keyring]`) | Lazy access to the operating system's configured credential-store backend for resolving HMAC key references. |
 
 ---
 
@@ -45,7 +46,7 @@ The following tools and libraries are utilized exclusively during development, l
 
 ## License Texts & Attribution
 
-### MIT License (`sqlite-transit-sync`, `pytest`, `ruff`, `tomli`, `setuptools`, `wheel`)
+### MIT License (`sqlite-transit-sync`, `keyring`, `pytest`, `ruff`, `tomli`, `setuptools`, `wheel`)
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
