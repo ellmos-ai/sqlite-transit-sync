@@ -1,6 +1,6 @@
 # STATE.md
 
-**Stand:** 2026-09-10
+**Stand:** 2026-09-15
 **Phase:** Alpha / neutrale Extraktion abgeschlossen (v0.4.0)
 
 ## Funktionsfähig
@@ -16,6 +16,10 @@
 - Merge-Ausschlüsse und Snapshot-Redaktion
 - Credential-Scan des Snapshot-Inhalts vor Veröffentlichung (fail-closed, ADR-005)
 - optionaler HMAC-Snapshot-Authenticator mit kanonischem Manifest und Key-Rotation
+- geheimnisfreie HMAC-Key-Referenzen mit injiziertem Resolver oder optionalem,
+  lazy geladenem OS-Keyring-Resolver
+- expliziter read-only Auth-Preflight für Manifest/Snapshot ohne SQLite-Öffnung,
+  Merge oder State-Fortschreibung
 - explizite State-/Transit-Trennung beim Config-/CLI-Aufbau
 - TombstoneMergePolicy als opt-in Referenz für fachliche Löschungen
 - SnapshotRetentionPolicy als opt-in, eigentumsgebundener Dry-Run-/Audit-Vertrag
@@ -26,7 +30,7 @@
 - Synthetischer BACH-Golden-Vergleich mit absichtlich blockiertem Adapterstatus
 - zwei versionierte minimale Read-only-Projektionsverträge mit generischem
   Allowlist-Verifier und synthetischen Offline-/Resume-/Tombstone-Fixtures
-- eigenständige synthetische Tests (122/122 bestanden, 15 Subtests, 100 % grün)
+- eigenständige synthetische Tests (131/131 bestanden, 15 Subtests, 100 % grün)
 
 ## Noch nicht integriert
 
@@ -38,6 +42,8 @@
 
 ## Letzte Dokumentationsänderung
 
+- 2026-09-15: Neutraler Auth-Preflight mit geheimnisfreien Key-Referenzen,
+  injizierbarem Resolver und optionalem OS-Keyring dokumentiert.
 - 2026-09-10: Security & Dependency Audit: Broken Editable Install repariert, PEP 639 license-files deklariert, THIRD_PARTY_LICENSES.md angelegt & .gitignore gehärtet (122 Tests).
 - 2026-08-16: Discoverability, README-Design, Badges & Metadata Parity Check (v0.4.0, 96 Tests).
 - 2026-08-13: Eigentumsgebundene Retention, Golden-Vergleich und die
@@ -52,6 +58,8 @@
 
 ## Letzte Verifikation
 
+- 2026-09-15: Pytest und Unittest jeweils 131/131 bestanden; fokussierte
+  Auth-Tests 11/11, Metadaten-Tests 25/25, Ruff und Compileall ohne Befund.
 - 2026-09-10: Pytest 122/122 bestanden (15 Subtests, 100 % grün); Broken Editable Install auf kanonischem Klon repariert; Pip-Check 0 defekte Requirements; Ruff 100% sauber; AST- und Regex-Scan 0 Secrets, 0 Path Leaks.
 - 2026-08-22: Unittest und Pytest jeweils 110/110 grün; Compileall, Ruff,
   JSON-CLI-Verifier, Diff-, Secret-, Pfad- und Mojibake-Prüfung ohne Befund.

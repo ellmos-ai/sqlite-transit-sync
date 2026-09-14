@@ -544,27 +544,49 @@ print(
 the same verification, merge and state gates as `pull()`. A thin lifecycle adapter can therefore
 choose one eligible snapshot without copying the carrier's data mechanics.
 
-### Optional authenticated manifests
+### Optional authenticated manifests and read-only preflight
 
-An integrating application can inject an application-owned authenticator; the
-JSON config and CLI never carry key material:
+An integrating application can describe keys with non-secret
+`HMACKeyReference` values. `load_hmac_authenticator()` obtains the bytes only
+through an injected `SecretResolver`; `OSKeyringSecretResolver` is an optional,
+lazy adapter for the separately installed `keyring` package. JSON config and
+the CLI never carry key material:
 
 ```python
-from sqlite_transit_sync import HMACKey, HMACSnapshotAuthenticator, TransitSync
+from sqlite_transit_sync import (
+    HMACKeyReference,
+    OSKeyringSecretResolver,
+    load_hmac_authenticator,
+    verify_authenticated_snapshot,
+)
 
-auth = HMACSnapshotAuthenticator(
-    keys={"node-a-v2": HMACKey(sender="node-a", secret=key_store.read_bytes())},
+auth = load_hmac_authenticator(
+    [HMACKeyReference(
+        key_id="node-a-v2",
+        service="ellmos-ocean-transit",
+        account="node-a-v2",
+        sender="node-a",
+    )],
     active_key_id="node-a-v2",
+    resolver=OSKeyringSecretResolver(),
     trusted_senders={"node-a"},
 )
-sync = TransitSync(config, authenticator=auth)
+snapshot = verify_authenticated_snapshot(
+    manifest_path,
+    snapshot_path,
+    authenticator=auth,
+)
 ```
 
 The reference adapter uses shared-key HMAC-SHA256, not non-repudiating public
 signatures. Its canonical payload covers protocol, namespace, node, snapshot
 name, SHA-256, size, redaction list and the algorithm/key/sender/trust-source header. Keep
 old keys in the verifier key ring during rotation. A configured verifier rejects
-missing, malformed, foreign or mismatched signatures before verification/merge;
+missing, malformed, foreign or mismatched signatures. The explicit preflight
+also rejects missing files and SQLite sidecars before hashing; it never opens
+SQLite, merges rows, or reads/writes sync state. Its success authenticates the
+named file bytes, not their SQLite schema or application semantics.
+`TransitSync(..., authenticator=auth)` remains available for existing callers;
 an already-pulled replay is a state-backed no-op, not a freshness guarantee. An
 unconfigured reader makes no authenticity claim. Freshness and key storage
 remain application concerns.

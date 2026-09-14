@@ -46,6 +46,8 @@ dev = ["pytest>=7", "cryptography>=42", "tomli>=2; python_version < '3.11'", "ru
 # The core stays dependency free on purpose: push/pull needs nothing but the standard
 # library. Only publish-replica mode encrypts, so its cipher is opt-in.
 crypto = ["cryptography>=42"]
+# Loaded only when OSKeyringSecretResolver is explicitly used.
+keyring = ["keyring>=25"]
 
 [project.scripts]
 sqlite-transit-sync = "sqlite_transit_sync.cli:main"

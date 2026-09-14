@@ -1,5 +1,13 @@
 """Public API for sqlite-transit-sync."""
 
+from .auth import (
+    HMACKeyReference,
+    OSKeyringSecretResolver,
+    SecretResolutionError,
+    SecretResolver,
+    load_hmac_authenticator,
+    verify_authenticated_snapshot,
+)
 from .core import (
     TOMBSTONE_TABLE,
     HMACKey,
@@ -46,8 +54,10 @@ __all__ = [
     "Envelope",
     "EnvelopeReceipt",
     "HMACKey",
+    "HMACKeyReference",
     "HMACSnapshotAuthenticator",
     "MergeReport",
+    "OSKeyringSecretResolver",
     "PROJECTION_CONTRACT_SCHEMA",
     "ProjectionContract",
     "ProjectionContractError",
@@ -60,6 +70,8 @@ __all__ = [
     "RetentionPolicy",
     "RetentionReport",
     "SecretPattern",
+    "SecretResolutionError",
+    "SecretResolver",
     "Snapshot",
     "SnapshotAuthenticator",
     "SnapshotRetentionPolicy",
@@ -74,8 +86,10 @@ __all__ = [
     "ensure_tombstone_table",
     "generate_key",
     "load_secret_patterns",
+    "load_hmac_authenticator",
     "projection_contract_path",
     "verify_projection_database",
+    "verify_authenticated_snapshot",
 ]
 
 __version__ = "0.4.0"

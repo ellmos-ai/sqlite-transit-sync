@@ -62,8 +62,12 @@ not authenticate who supplied a manifest.
 An application may inject `SnapshotAuthenticator` into `TransitSync`. The
 reference `HMACSnapshotAuthenticator` signs a canonical manifest envelope
 including the protocol version, sender/node, snapshot name, SHA-256, size,
-redaction metadata and trust-source identifier. This is opt-in shared-key authentication; key storage,
-rotation and freshness remain outside the module.
+redaction metadata and trust-source identifier. `HMACKeyReference` plus an
+injected `SecretResolver` keeps secret values outside configuration; the optional
+OS-keyring adapter imports `keyring` only when used. The transport-independent
+`verify_authenticated_snapshot` preflight verifies an explicit file pair without
+opening SQLite or touching sync state. This is opt-in shared-key authentication;
+key custody, rotation policy and freshness remain application concerns.
 
 ## Data flow — Republica mode
 
@@ -87,6 +91,8 @@ The key travels out of band and must live outside the transport; the same applie
   prunes direct snapshots and records local state.
 - `Snapshot`: immutable reference to a database snapshot and its manifest.
 - `SnapshotAuthenticator`: optional canonical-manifest authentication boundary.
+- `HMACKeyReference` / `SecretResolver`: non-secret key lookup boundary.
+- `verify_authenticated_snapshot`: explicit read-only HMAC/hash/sidecar preflight.
 - `MergePolicy`: application extension point.
 - `TimestampMergePolicy`: safe generic baseline for timestamped rows with primary keys.
 - `TombstoneMergePolicy`: opt-in explicit deletion reference policy.
