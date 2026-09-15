@@ -3,7 +3,9 @@ from __future__ import annotations
 import hashlib
 import json
 import tempfile
+import traceback
 import unittest
+from collections.abc import Callable
 from pathlib import Path
 from unittest.mock import patch
 
@@ -50,6 +52,34 @@ class AuthPreflightTests(unittest.TestCase):
 
     def tearDown(self) -> None:
         self.temp.cleanup()
+
+    def assert_sanitized_secret_failure(
+        self,
+        operation: Callable[[], object],
+        *,
+        expected_message: str,
+        backend_secret: str,
+    ) -> None:
+        outer_secret = "synthetic-prior-backend-secret-sentinel"
+
+        def assert_failure(*, active_outer: bool) -> None:
+            with self.subTest(active_outer=active_outer):
+                with self.assertRaises(SecretResolutionError) as caught:
+                    operation()
+
+                error = caught.exception
+                rendered = "".join(traceback.format_exception(error))
+                self.assertEqual(expected_message, str(error))
+                self.assertIsNone(error.__cause__)
+                self.assertIsNone(error.__context__)
+                self.assertNotIn(backend_secret, rendered)
+                self.assertNotIn(outer_secret, rendered)
+
+        assert_failure(active_outer=False)
+        try:
+            raise RuntimeError(outer_secret)
+        except RuntimeError:
+            assert_failure(active_outer=True)
 
     def _write_pair(
         self,
@@ -198,10 +228,74 @@ class AuthPreflightTests(unittest.TestCase):
 
         with patch(
             "sqlite_transit_sync.auth.importlib.import_module",
-            side_effect=ModuleNotFoundError("keyring"),
+            side_effect=ModuleNotFoundError("keyring", name="keyring"),
         ):
             with self.assertRaisesRegex(SecretResolutionError, "optional 'keyring'"):
                 OSKeyringSecretResolver().resolve_secret(self.old_ref)
+
+    def test_resolver_exception_drops_secret_text_and_exception_chain(self) -> None:
+        secret_sentinel = "synthetic-resolver-secret-sentinel"
+
+        class ExplodingResolver:
+            def resolve_secret(self, reference: HMACKeyReference) -> bytes:
+                raise RuntimeError(secret_sentinel)
+
+        self.assert_sanitized_secret_failure(
+            lambda: load_hmac_authenticator(
+                [self.old_ref],
+                active_key_id="node-a-v1",
+                resolver=ExplodingResolver(),
+            ),
+            expected_message="Secret resolver failed for HMAC key reference 'node-a-v1'",
+            backend_secret=secret_sentinel,
+        )
+
+    def test_keyring_exceptions_drop_secret_text_and_exception_chain(self) -> None:
+        secret_sentinel = "synthetic-keyring-secret-sentinel"
+
+        class ExplodingKeyring:
+            @staticmethod
+            def get_password(service: str, account: str) -> str:
+                raise RuntimeError(secret_sentinel)
+
+        failures = (
+            (
+                ModuleNotFoundError(secret_sentinel, name="keyring"),
+                "OS keyring resolution requires the optional 'keyring' package",
+            ),
+            (
+                ModuleNotFoundError(secret_sentinel, name="dbus"),
+                "OS keyring backend initialization failed",
+            ),
+            (
+                ImportError(secret_sentinel),
+                "OS keyring backend initialization failed",
+            ),
+            (
+                RuntimeError(secret_sentinel),
+                "OS keyring backend initialization failed",
+            ),
+            (
+                ExplodingKeyring,
+                "OS keyring lookup failed for HMAC key reference 'node-a-v1'",
+            ),
+        )
+        for import_result, expected_message in failures:
+            with self.subTest(expected_message=expected_message):
+                patch_kwargs = (
+                    {"side_effect": import_result}
+                    if isinstance(import_result, Exception)
+                    else {"return_value": import_result}
+                )
+                with patch(
+                    "sqlite_transit_sync.auth.importlib.import_module",
+                    **patch_kwargs,
+                ):
+                    self.assert_sanitized_secret_failure(
+                        lambda: OSKeyringSecretResolver().resolve_secret(self.old_ref),
+                        expected_message=expected_message,
+                        backend_secret=secret_sentinel,
+                    )
 
 
 if __name__ == "__main__":
