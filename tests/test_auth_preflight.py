@@ -61,19 +61,25 @@ class AuthPreflightTests(unittest.TestCase):
         backend_secret: str,
     ) -> None:
         outer_secret = "synthetic-prior-backend-secret-sentinel"
+
+        def assert_failure(*, active_outer: bool) -> None:
+            with self.subTest(active_outer=active_outer):
+                with self.assertRaises(SecretResolutionError) as caught:
+                    operation()
+
+                error = caught.exception
+                rendered = "".join(traceback.format_exception(error))
+                self.assertEqual(expected_message, str(error))
+                self.assertIsNone(error.__cause__)
+                self.assertIsNone(error.__context__)
+                self.assertNotIn(backend_secret, rendered)
+                self.assertNotIn(outer_secret, rendered)
+
+        assert_failure(active_outer=False)
         try:
             raise RuntimeError(outer_secret)
         except RuntimeError:
-            with self.assertRaises(SecretResolutionError) as caught:
-                operation()
-
-        error = caught.exception
-        rendered = "".join(traceback.format_exception(error))
-        self.assertEqual(expected_message, str(error))
-        self.assertIsNone(error.__cause__)
-        self.assertIsNone(error.__context__)
-        self.assertNotIn(backend_secret, rendered)
-        self.assertNotIn(outer_secret, rendered)
+            assert_failure(active_outer=True)
 
     def _write_pair(
         self,
@@ -222,7 +228,7 @@ class AuthPreflightTests(unittest.TestCase):
 
         with patch(
             "sqlite_transit_sync.auth.importlib.import_module",
-            side_effect=ModuleNotFoundError("keyring"),
+            side_effect=ModuleNotFoundError("keyring", name="keyring"),
         ):
             with self.assertRaisesRegex(SecretResolutionError, "optional 'keyring'"):
                 OSKeyringSecretResolver().resolve_secret(self.old_ref)
@@ -254,12 +260,16 @@ class AuthPreflightTests(unittest.TestCase):
 
         failures = (
             (
-                ModuleNotFoundError(secret_sentinel),
+                ModuleNotFoundError(secret_sentinel, name="keyring"),
                 "OS keyring resolution requires the optional 'keyring' package",
             ),
             (
+                ModuleNotFoundError(secret_sentinel, name="dbus"),
+                "OS keyring backend initialization failed",
+            ),
+            (
                 ImportError(secret_sentinel),
-                "OS keyring resolution requires the optional 'keyring' package",
+                "OS keyring backend initialization failed",
             ),
             (
                 RuntimeError(secret_sentinel),

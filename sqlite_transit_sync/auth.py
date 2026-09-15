@@ -75,15 +75,17 @@ _SECRET_BACKEND_MISSING_DEPENDENCY = object()
 
 
 def _call_secret_backend(
-    operation: Callable[[], Any], *, classify_import_error: bool = False
+    operation: Callable[[], Any], *, missing_dependency: str | None = None
 ) -> Any:
     """Call a secret backend without retaining its exception or traceback."""
 
     try:
         return operation()
-    except (ImportError, ModuleNotFoundError):
-        if classify_import_error:
+    except ModuleNotFoundError as error:
+        if missing_dependency is not None and error.name == missing_dependency:
             return _SECRET_BACKEND_MISSING_DEPENDENCY
+        return _SECRET_BACKEND_FAILURE
+    except ImportError:
         return _SECRET_BACKEND_FAILURE
     except Exception:
         return _SECRET_BACKEND_FAILURE
@@ -106,7 +108,7 @@ class OSKeyringSecretResolver:
 
     def resolve_secret(self, reference: HMACKeyReference) -> str | None:
         keyring = _call_secret_backend(
-            lambda: importlib.import_module("keyring"), classify_import_error=True
+            lambda: importlib.import_module("keyring"), missing_dependency="keyring"
         )
         if keyring is _SECRET_BACKEND_MISSING_DEPENDENCY:
             _raise_secret_resolution_error(
