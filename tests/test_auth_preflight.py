@@ -5,6 +5,7 @@ import json
 import tempfile
 import traceback
 import unittest
+from collections.abc import Callable
 from pathlib import Path
 from unittest.mock import patch
 
@@ -51,6 +52,28 @@ class AuthPreflightTests(unittest.TestCase):
 
     def tearDown(self) -> None:
         self.temp.cleanup()
+
+    def assert_sanitized_secret_failure(
+        self,
+        operation: Callable[[], object],
+        *,
+        expected_message: str,
+        backend_secret: str,
+    ) -> None:
+        outer_secret = "synthetic-prior-backend-secret-sentinel"
+        try:
+            raise RuntimeError(outer_secret)
+        except RuntimeError:
+            with self.assertRaises(SecretResolutionError) as caught:
+                operation()
+
+        error = caught.exception
+        rendered = "".join(traceback.format_exception(error))
+        self.assertEqual(expected_message, str(error))
+        self.assertIsNone(error.__cause__)
+        self.assertIsNone(error.__context__)
+        self.assertNotIn(backend_secret, rendered)
+        self.assertNotIn(outer_secret, rendered)
 
     def _write_pair(
         self,
@@ -211,18 +234,15 @@ class AuthPreflightTests(unittest.TestCase):
             def resolve_secret(self, reference: HMACKeyReference) -> bytes:
                 raise RuntimeError(secret_sentinel)
 
-        with self.assertRaisesRegex(SecretResolutionError, "Secret resolver failed") as caught:
-            load_hmac_authenticator(
+        self.assert_sanitized_secret_failure(
+            lambda: load_hmac_authenticator(
                 [self.old_ref],
                 active_key_id="node-a-v1",
                 resolver=ExplodingResolver(),
-            )
-
-        error = caught.exception
-        self.assertIsNone(error.__cause__)
-        self.assertIsNone(error.__context__)
-        self.assertNotIn(secret_sentinel, str(error))
-        self.assertNotIn(secret_sentinel, "".join(traceback.format_exception(error)))
+            ),
+            expected_message="Secret resolver failed for HMAC key reference 'node-a-v1'",
+            backend_secret=secret_sentinel,
+        )
 
     def test_keyring_exceptions_drop_secret_text_and_exception_chain(self) -> None:
         secret_sentinel = "synthetic-keyring-secret-sentinel"
@@ -233,8 +253,22 @@ class AuthPreflightTests(unittest.TestCase):
                 raise RuntimeError(secret_sentinel)
 
         failures = (
-            (RuntimeError(secret_sentinel), "requires the optional 'keyring' package"),
-            (ExplodingKeyring, "OS keyring lookup failed"),
+            (
+                ModuleNotFoundError(secret_sentinel),
+                "OS keyring resolution requires the optional 'keyring' package",
+            ),
+            (
+                ImportError(secret_sentinel),
+                "OS keyring resolution requires the optional 'keyring' package",
+            ),
+            (
+                RuntimeError(secret_sentinel),
+                "OS keyring backend initialization failed",
+            ),
+            (
+                ExplodingKeyring,
+                "OS keyring lookup failed for HMAC key reference 'node-a-v1'",
+            ),
         )
         for import_result, expected_message in failures:
             with self.subTest(expected_message=expected_message):
@@ -247,18 +281,11 @@ class AuthPreflightTests(unittest.TestCase):
                     "sqlite_transit_sync.auth.importlib.import_module",
                     **patch_kwargs,
                 ):
-                    with self.assertRaisesRegex(
-                        SecretResolutionError, expected_message
-                    ) as caught:
-                        OSKeyringSecretResolver().resolve_secret(self.old_ref)
-
-                error = caught.exception
-                self.assertIsNone(error.__cause__)
-                self.assertIsNone(error.__context__)
-                self.assertNotIn(secret_sentinel, str(error))
-                self.assertNotIn(
-                    secret_sentinel, "".join(traceback.format_exception(error))
-                )
+                    self.assert_sanitized_secret_failure(
+                        lambda: OSKeyringSecretResolver().resolve_secret(self.old_ref),
+                        expected_message=expected_message,
+                        backend_secret=secret_sentinel,
+                    )
 
 
 if __name__ == "__main__":
