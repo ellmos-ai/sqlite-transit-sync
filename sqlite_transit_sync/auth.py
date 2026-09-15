@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import importlib
 import json
-from collections.abc import Iterable, Mapping
+from collections.abc import Callable, Iterable, Mapping
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Protocol
@@ -70,22 +70,35 @@ class SecretResolver(Protocol):
         """Return secret bytes/text, or ``None`` when the reference is unknown."""
 
 
+_SECRET_BACKEND_FAILURE = object()
+
+
+def _call_secret_backend(operation: Callable[[], Any]) -> Any:
+    """Call a secret backend without retaining its exception or traceback."""
+
+    try:
+        return operation()
+    except Exception:
+        return _SECRET_BACKEND_FAILURE
+
+
 class OSKeyringSecretResolver:
     """Resolve references through the optional ``keyring`` package, loaded lazily."""
 
     def resolve_secret(self, reference: HMACKeyReference) -> str | None:
-        try:
-            keyring = importlib.import_module("keyring")
-        except (ImportError, ModuleNotFoundError) as error:
+        keyring = _call_secret_backend(lambda: importlib.import_module("keyring"))
+        if keyring is _SECRET_BACKEND_FAILURE:
             raise SecretResolutionError(
                 "OS keyring resolution requires the optional 'keyring' package"
-            ) from error
-        try:
-            return keyring.get_password(reference.service, reference.account)
-        except Exception as error:
+            )
+        secret = _call_secret_backend(
+            lambda: keyring.get_password(reference.service, reference.account)
+        )
+        if secret is _SECRET_BACKEND_FAILURE:
             raise SecretResolutionError(
                 f"OS keyring lookup failed for HMAC key reference {reference.key_id!r}"
-            ) from error
+            )
+        return secret
 
 
 def load_hmac_authenticator(
@@ -120,14 +133,11 @@ def load_hmac_authenticator(
 
     keys: dict[str, HMACKey] = {}
     for key_id, reference in by_id.items():
-        try:
-            secret = resolver.resolve_secret(reference)
-        except SecretResolutionError:
-            raise
-        except Exception as error:
+        secret = _call_secret_backend(lambda: resolver.resolve_secret(reference))
+        if secret is _SECRET_BACKEND_FAILURE:
             raise SecretResolutionError(
                 f"Secret resolver failed for HMAC key reference {key_id!r}"
-            ) from error
+            )
         if isinstance(secret, str):
             material = secret.encode("utf-8")
         elif isinstance(secret, bytes):

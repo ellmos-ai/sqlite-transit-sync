@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 import tempfile
+import traceback
 import unittest
 from pathlib import Path
 from unittest.mock import patch
@@ -202,6 +203,62 @@ class AuthPreflightTests(unittest.TestCase):
         ):
             with self.assertRaisesRegex(SecretResolutionError, "optional 'keyring'"):
                 OSKeyringSecretResolver().resolve_secret(self.old_ref)
+
+    def test_resolver_exception_drops_secret_text_and_exception_chain(self) -> None:
+        secret_sentinel = "synthetic-resolver-secret-sentinel"
+
+        class ExplodingResolver:
+            def resolve_secret(self, reference: HMACKeyReference) -> bytes:
+                raise RuntimeError(secret_sentinel)
+
+        with self.assertRaisesRegex(SecretResolutionError, "Secret resolver failed") as caught:
+            load_hmac_authenticator(
+                [self.old_ref],
+                active_key_id="node-a-v1",
+                resolver=ExplodingResolver(),
+            )
+
+        error = caught.exception
+        self.assertIsNone(error.__cause__)
+        self.assertIsNone(error.__context__)
+        self.assertNotIn(secret_sentinel, str(error))
+        self.assertNotIn(secret_sentinel, "".join(traceback.format_exception(error)))
+
+    def test_keyring_exceptions_drop_secret_text_and_exception_chain(self) -> None:
+        secret_sentinel = "synthetic-keyring-secret-sentinel"
+
+        class ExplodingKeyring:
+            @staticmethod
+            def get_password(service: str, account: str) -> str:
+                raise RuntimeError(secret_sentinel)
+
+        failures = (
+            (RuntimeError(secret_sentinel), "requires the optional 'keyring' package"),
+            (ExplodingKeyring, "OS keyring lookup failed"),
+        )
+        for import_result, expected_message in failures:
+            with self.subTest(expected_message=expected_message):
+                patch_kwargs = (
+                    {"side_effect": import_result}
+                    if isinstance(import_result, Exception)
+                    else {"return_value": import_result}
+                )
+                with patch(
+                    "sqlite_transit_sync.auth.importlib.import_module",
+                    **patch_kwargs,
+                ):
+                    with self.assertRaisesRegex(
+                        SecretResolutionError, expected_message
+                    ) as caught:
+                        OSKeyringSecretResolver().resolve_secret(self.old_ref)
+
+                error = caught.exception
+                self.assertIsNone(error.__cause__)
+                self.assertIsNone(error.__context__)
+                self.assertNotIn(secret_sentinel, str(error))
+                self.assertNotIn(
+                    secret_sentinel, "".join(traceback.format_exception(error))
+                )
 
 
 if __name__ == "__main__":
