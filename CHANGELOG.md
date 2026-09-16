@@ -1,5 +1,16 @@
 # Changelog
 
+- **Projektionsvertrag `abotracker-subscription-status-projection.v1`:**
+  fünfter mitgelieferter Vertrag mit einer minimalen Tabelle
+  `subscription_status`. Er erlaubt nur opake Referenz, UTC-Beobachtungszeit
+  und den belegten Zustand (`scheduled`, `confirmed`, `likely`, `inactive`).
+  Anbieter- und Tarifnamen, Preise, Abrechnungszyklen, Zahlungs-/Startdaten,
+  Kündigungslinks, Mail-/Fensterbegriffe sowie abgeleitete Fälligkeiten bleiben
+  ausgeschlossen. Das AboTracker-Exportschema v1 enthält kein bestätigtes
+  nächstes Fälligkeits- oder Verlängerungsdatum; der Vertrag behauptet deshalb
+  ausdrücklich keinen Reminder. Synthetische Initial-/Resume-/Tombstone-Fixture
+  als Vorarbeit für T-20260906-496406575 ergänzt [C 2026-09-16].
+
 - **Neutraler Auth-Preflight (T-20260915-486495819):** Öffentliche, geheimnisfreie
   `HMACKeyReference`-/`SecretResolver`-API mit optionalem lazy OS-Keyring-Resolver
   ergänzt. `verify_authenticated_snapshot()` authentifiziert ein explizites

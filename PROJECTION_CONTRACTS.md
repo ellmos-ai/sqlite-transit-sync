@@ -16,16 +16,21 @@ second domain database or a multi-writer engine.
 - Production adapters, live databases, host paths, credentials, and cutover
   configuration are not included in this repository.
 
-The four bundled contracts are deliberately narrow:
+The five bundled contracts are deliberately narrow:
 
 | Contract | Allowed record tables | Explicitly absent |
 |---|---|---|
 | `accounts-balance-projection.v1` | `account_balances` | source IDs, full IBANs, account numbers, bank/BIC/holder data, notes |
+| `abotracker-subscription-status-projection.v1` | `subscription_status` | provider and model names, prices, billing cycles, payment/start dates, cancellation links, mail/window terms, inferred due dates |
 | `mediplaner-reminder-projection.v1` | `medication_due`, `inventory_warning` | names, clients, diagnoses, doses, quantities, stock values, notes |
 | `routinika-reminder-projection.v1` | `routine_due` | titles, definitions, steps, notes, media paths, unrelated settings |
 | `versicherungsmanager-deadline-projection.v1` | `policy_deadline_due` | policy titles, providers, policy numbers, insurance areas, premiums, contacts, documents, notes |
 
-All four also require one `projection_metadata` row and an explicit
+The AboTracker contract is intentionally status-only. Export schema v1 has no
+confirmed next due or renewal date, so the contract permits an observation
+timestamp but no `due_at`, billing-derived date, or reminder claim.
+
+All five also require one `projection_metadata` row and an explicit
 `projection_tombstones` table. Stable references are opaque lowercase hex
 tokens; the contract does not define how an application derives them.
 

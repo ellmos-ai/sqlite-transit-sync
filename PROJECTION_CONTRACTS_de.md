@@ -18,16 +18,23 @@ Multi-Writer-Engine.
 - Produktionsadapter, Live-Datenbanken, Hostpfade, Zugangsdaten und
   Cutover-Konfiguration sind nicht Bestandteil dieses Repositories.
 
-Die vier mitgelieferten Verträge sind bewusst eng:
+Die fünf mitgelieferten Verträge sind bewusst eng:
 
 | Vertrag | Erlaubte Datentabellen | Ausdrücklich nicht enthalten |
 |---|---|---|
 | `accounts-balance-projection.v1` | `account_balances` | Quell-IDs, vollständige IBANs, Kontonummern, Bank-/BIC-/Inhaberdaten, Notizen |
+| `abotracker-subscription-status-projection.v1` | `subscription_status` | Anbieter- und Tarifnamen, Preise, Abrechnungszyklen, Zahlungs-/Startdaten, Kündigungslinks, Mail-/Fensterbegriffe, abgeleitete Fälligkeiten |
 | `mediplaner-reminder-projection.v1` | `medication_due`, `inventory_warning` | Namen, Klienten, Diagnosen, Dosierungen, Mengen, Bestandswerte, Notizen |
 | `routinika-reminder-projection.v1` | `routine_due` | Titel, Definitionen, Schritte, Notizen, Medienpfade, sachfremde Einstellungen |
-| `versicherungsmanager-deadline-projection.v1` | `policy_deadline_due` | Vertragstitel, Anbieter, Versicherungsnummern, Versicherungssparten, Beitraege, Kontakte, Dokumente, Notizen |
+| `versicherungsmanager-deadline-projection.v1` | `policy_deadline_due` | Vertragstitel, Anbieter, Versicherungsnummern, Versicherungssparten, Beiträge, Kontakte, Dokumente, Notizen |
 
-Alle vier verlangen zusätzlich genau eine Zeile in `projection_metadata` sowie eine
+Der AboTracker-Vertrag ist bewusst auf Statusbeobachtungen begrenzt. Das
+Exportschema v1 enthält kein bestätigtes nächstes Fälligkeits- oder
+Verlängerungsdatum. Der Vertrag erlaubt deshalb einen Beobachtungszeitpunkt,
+aber weder `due_at` noch aus Abrechnungsdaten abgeleitete Termine oder
+Reminder-Behauptungen.
+
+Alle fünf verlangen zusätzlich genau eine Zeile in `projection_metadata` sowie eine
 ausdrückliche Tabelle `projection_tombstones`. Stabile Referenzen sind opake
 Hex-Tokens in Kleinschreibung. Wie eine Anwendung sie ableitet, bestimmt der
 Vertrag nicht.

@@ -92,6 +92,7 @@ class ProjectionContractTests(unittest.TestCase):
     def test_bundled_contracts_are_versioned_and_loadable(self) -> None:
         self.assertEqual(
             (
+                "abotracker-subscription-status-projection.v1",
                 "accounts-balance-projection.v1",
                 "mediplaner-reminder-projection.v1",
                 "routinika-reminder-projection.v1",
@@ -111,11 +112,16 @@ class ProjectionContractTests(unittest.TestCase):
                         "account_number",
                         "bank_name",
                         "bic",
+                        "billing_cycle",
+                        "cancellation_url",
                         "diagnosis",
                         "dose",
                         "holder_name",
                         "iban",
+                        "last_payment_date",
+                        "mail_query",
                         "medication_name",
+                        "model_name",
                         "note",
                         "notes",
                         "policy_area",
@@ -123,16 +129,50 @@ class ProjectionContractTests(unittest.TestCase):
                         "policy_title",
                         "premium_amount",
                         "provider",
+                        "provider_name",
                         "quantity",
                         "routine_title",
                         "stock_level",
+                        "subscription_price",
+                        "valid_from",
+                        "window_keywords",
                     }
                 )
             )
 
+    def test_abotracker_contract_excludes_identity_cost_and_inferred_deadlines(self) -> None:
+        contract = ProjectionContract.from_file("abotracker-subscription-status-projection.v1")
+        columns = {column.name for column in contract.table("subscription_status").columns}
+        self.assertEqual(
+            {
+                "record_ref",
+                "observed_at",
+                "state",
+                "record_version",
+                "source_checkpoint",
+                "publisher_instance",
+            },
+            columns,
+        )
+        self.assertTrue(
+            columns.isdisjoint(
+                {
+                    "provider",
+                    "model_name",
+                    "price",
+                    "billing_cycle",
+                    "last_payment_date",
+                    "valid_from",
+                    "due_at",
+                    "window_end_at",
+                }
+            )
+        )
+
     def test_all_synthetic_initial_and_resume_fixtures_verify_without_mutation(self) -> None:
         fixture_names = (
             "accounts-balance-projection.v1.fixture.json",
+            "abotracker-subscription-status-projection.v1.fixture.json",
             "mediplaner-reminder-projection.v1.fixture.json",
             "routinika-reminder-projection.v1.fixture.json",
             "versicherungsmanager-deadline-projection.v1.fixture.json",
