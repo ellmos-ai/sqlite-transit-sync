@@ -1,0 +1,84 @@
+{
+  "consumer_id": "ocean-household-consumer",
+  "contract": "hauslagerist-replenishment-projection.v1",
+  "fixture_schema": "sqlite-transit-sync.synthetic-projection-fixture.v1",
+  "minimum_offline_seconds": 2592000,
+  "snapshots": [
+    {
+      "name": "initial",
+      "previous_checkpoint": 19,
+      "tables": {
+        "projection_metadata": [
+          {
+            "contract_id": "org.ellmos.hauslagerist.replenishment-projection",
+            "contract_version": "1.0.0",
+            "generated_at": "2026-09-16T09:00:00Z",
+            "publisher_component": "hauslagerist-projection-adapter",
+            "publisher_instance": "hauslagerist-primary",
+            "source_checkpoint": 20
+          }
+        ],
+        "projection_tombstones": [],
+        "replenishment_due": [
+          {
+            "due_on": "2026-09-18",
+            "publisher_instance": "hauslagerist-primary",
+            "record_ref": "fffffffffffffffffffffffffffffff1",
+            "record_version": 1,
+            "source_checkpoint": 20
+          },
+          {
+            "due_on": "2026-09-15",
+            "publisher_instance": "hauslagerist-primary",
+            "record_ref": "fffffffffffffffffffffffffffffff2",
+            "record_version": 1,
+            "source_checkpoint": 20
+          }
+        ]
+      }
+    },
+    {
+      "name": "resumed-after-offline-with-undated-transition-tombstone",
+      "previous_checkpoint": 20,
+      "tables": {
+        "projection_metadata": [
+          {
+            "contract_id": "org.ellmos.hauslagerist.replenishment-projection",
+            "contract_version": "1.0.0",
+            "generated_at": "2026-09-18T09:00:00Z",
+            "publisher_component": "hauslagerist-projection-adapter",
+            "publisher_instance": "hauslagerist-primary",
+            "source_checkpoint": 22
+          }
+        ],
+        "projection_tombstones": [
+          {
+            "deleted_at": "2026-09-17T09:00:00Z",
+            "publisher_instance": "hauslagerist-primary",
+            "record_ref": "fffffffffffffffffffffffffffffff2",
+            "record_type": "replenishment_due",
+            "record_version": 2,
+            "retain_until": "2026-11-17T09:00:00Z",
+            "source_checkpoint": 22
+          }
+        ],
+        "replenishment_due": [
+          {
+            "due_on": "2026-09-19",
+            "publisher_instance": "hauslagerist-primary",
+            "record_ref": "fffffffffffffffffffffffffffffff1",
+            "record_version": 2,
+            "source_checkpoint": 22
+          },
+          {
+            "due_on": "2026-09-18",
+            "publisher_instance": "hauslagerist-primary",
+            "record_ref": "fffffffffffffffffffffffffffffff3",
+            "record_version": 1,
+            "source_checkpoint": 22
+          }
+        ]
+      }
+    }
+  ]
+}

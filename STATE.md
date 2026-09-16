@@ -28,9 +28,9 @@
 - gezielter Pull eines ausdrücklich ausgewählten Pending-Ausschnitts für dünne
   Lebenszyklus-Adapter, mit denselben Prüf-, Transaktions- und State-Gates (ADR-015)
 - Synthetischer BACH-Golden-Vergleich mit absichtlich blockiertem Adapterstatus
-- fünf versionierte minimale Read-only-Projektionsverträge mit generischem
+- sechs versionierte minimale Read-only-Projektionsverträge mit generischem
   Allowlist-Verifier und synthetischen Offline-/Resume-/Tombstone-Fixtures
-- eigenständige synthetische Tests (134/134 bestanden, 15 Subtests, 100 % grün)
+- eigenständige synthetische Tests (136/136 bestanden, 15 Subtests, 100 % grün)
 
 ## Noch nicht integriert
 
@@ -42,6 +42,8 @@
 
 ## Letzte Dokumentationsänderung
 
+- 2026-09-16: HausLagerist-Nachfüllprojektion mit validem lokalem Kalenderdatum
+  und ohne Artikel-, Bestands-, Mengen- oder Bedarfsdetails ergänzt.
 - 2026-09-16: AboTracker-Statusprojektion ohne Identitäts-, Kosten- oder
   abgeleitete Fälligkeitsfelder ergänzt und die fünf Verträge synchronisiert.
 - 2026-09-15: Neutraler Auth-Preflight mit geheimnisfreien Key-Referenzen,
@@ -60,6 +62,8 @@
 
 ## Letzte Verifikation
 
+- 2026-09-16: Pytest und Unittest jeweils 136/136 bestanden; Projektions- und
+  Metadatentests 37/37, Ruff, Compileall, JSON- und Diff-Prüfung ohne Befund.
 - 2026-09-16: Pytest und Unittest jeweils 134/134 bestanden; Projektions- und
   Metadatentests 35/35, Ruff, Compileall, JSON- und Diff-Prüfung ohne Befund.
 - 2026-09-15: Pytest und Unittest jeweils 131/131 bestanden; fokussierte

@@ -100,6 +100,7 @@ class TestMetadata(unittest.TestCase):
         for token in (
             "abotracker-subscription-status-projection.v1",
             "accounts-balance-projection.v1",
+            "hauslagerist-replenishment-projection.v1",
             "mediplaner-reminder-projection.v1",
             "routinika-reminder-projection.v1",
             "verify-projection",

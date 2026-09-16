@@ -16,12 +16,13 @@ second domain database or a multi-writer engine.
 - Production adapters, live databases, host paths, credentials, and cutover
   configuration are not included in this repository.
 
-The five bundled contracts are deliberately narrow:
+The six bundled contracts are deliberately narrow:
 
 | Contract | Allowed record tables | Explicitly absent |
 |---|---|---|
 | `accounts-balance-projection.v1` | `account_balances` | source IDs, full IBANs, account numbers, bank/BIC/holder data, notes |
 | `abotracker-subscription-status-projection.v1` | `subscription_status` | provider and model names, prices, billing cycles, payment/start dates, cancellation links, mail/window terms, inferred due dates |
+| `hauslagerist-replenishment-projection.v1` | `replenishment_due` | article IDs/names, categories, rooms, suppliers, stock, deficits, quantities, demand calculations, urgency values, order IDs/reasons |
 | `mediplaner-reminder-projection.v1` | `medication_due`, `inventory_warning` | names, clients, diagnoses, doses, quantities, stock values, notes |
 | `routinika-reminder-projection.v1` | `routine_due` | titles, definitions, steps, notes, media paths, unrelated settings |
 | `versicherungsmanager-deadline-projection.v1` | `policy_deadline_due` | policy titles, providers, policy numbers, insurance areas, premiums, contacts, documents, notes |
@@ -30,7 +31,15 @@ The AboTracker contract is intentionally status-only. Export schema v1 has no
 confirmed next due or renewal date, so the contract permits an observation
 timestamp but no `due_at`, billing-derived date, or reminder claim.
 
-All five also require one `projection_metadata` row and an explicit
+The HausLagerist contract preserves a dated source `pull_date` as `due_on`, a
+validated local calendar date. It does not invent a time of day or UTC offset
+that `hauslagerist-export-v1` does not contain. Entries whose `pull_date` is
+`null` are deliberately outside this due-date projection. A transition from a
+date to `null`, or removal from the source pull list, is represented by a
+retained tombstone. A full active snapshot has only opaque references and
+`due_on`; source article, stock, quantity and demand details remain private.
+
+All six also require one `projection_metadata` row and an explicit
 `projection_tombstones` table. Stable references are opaque lowercase hex
 tokens; the contract does not define how an application derives them.
 
@@ -53,8 +62,8 @@ and then enforces:
    and primary-key order;
 2. contract ID, version, publisher component, publisher instance, and a single
    metadata row;
-3. opaque identifiers, UTC timestamps, enums, non-negative checkpoints, and
-   valid time windows;
+3. opaque identifiers, UTC timestamps, canonical local dates, enums,
+   non-negative checkpoints, and valid time windows;
 4. matching publisher/checkpoint provenance on every record;
 5. a loop guard (`consumer_id != publisher_instance`);
 6. a strictly newer source checkpoint when `previous_checkpoint` is supplied;
@@ -72,9 +81,9 @@ freshness beyond the supplied checkpoint, or production activation.
 materialise them only in temporary directories. Each contract has an initial
 snapshot and a later offline-resume snapshot with a skipped checkpoint and an
 explicit retained tombstone. Negative tests cover privacy expansion, unknown
-tables/columns, malformed identifiers and states, provenance drift, replay,
-looping, inadequate tombstone retention, stale active rows, and unclosed
-sidecars. No live application data is used.
+tables/columns, malformed identifiers, states and calendar dates, provenance
+drift, replay, looping, inadequate tombstone retention, stale active rows, and
+unclosed sidecars. No live application data is used.
 
 ## Adapter hand-off
 

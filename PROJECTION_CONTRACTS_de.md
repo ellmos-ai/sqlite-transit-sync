@@ -18,12 +18,13 @@ Multi-Writer-Engine.
 - Produktionsadapter, Live-Datenbanken, Hostpfade, Zugangsdaten und
   Cutover-Konfiguration sind nicht Bestandteil dieses Repositories.
 
-Die fünf mitgelieferten Verträge sind bewusst eng:
+Die sechs mitgelieferten Verträge sind bewusst eng:
 
 | Vertrag | Erlaubte Datentabellen | Ausdrücklich nicht enthalten |
 |---|---|---|
 | `accounts-balance-projection.v1` | `account_balances` | Quell-IDs, vollständige IBANs, Kontonummern, Bank-/BIC-/Inhaberdaten, Notizen |
 | `abotracker-subscription-status-projection.v1` | `subscription_status` | Anbieter- und Tarifnamen, Preise, Abrechnungszyklen, Zahlungs-/Startdaten, Kündigungslinks, Mail-/Fensterbegriffe, abgeleitete Fälligkeiten |
+| `hauslagerist-replenishment-projection.v1` | `replenishment_due` | Artikel-IDs und -Namen, Kategorien, Räume, Lieferanten, Bestände, Fehlmengen, Mengen, Bedarfsberechnungen, Dringlichkeitswerte, Order-IDs und -Begründungen |
 | `mediplaner-reminder-projection.v1` | `medication_due`, `inventory_warning` | Namen, Klienten, Diagnosen, Dosierungen, Mengen, Bestandswerte, Notizen |
 | `routinika-reminder-projection.v1` | `routine_due` | Titel, Definitionen, Schritte, Notizen, Medienpfade, sachfremde Einstellungen |
 | `versicherungsmanager-deadline-projection.v1` | `policy_deadline_due` | Vertragstitel, Anbieter, Versicherungsnummern, Versicherungssparten, Beiträge, Kontakte, Dokumente, Notizen |
@@ -34,7 +35,16 @@ Verlängerungsdatum. Der Vertrag erlaubt deshalb einen Beobachtungszeitpunkt,
 aber weder `due_at` noch aus Abrechnungsdaten abgeleitete Termine oder
 Reminder-Behauptungen.
 
-Alle fünf verlangen zusätzlich genau eine Zeile in `projection_metadata` sowie eine
+Der HausLagerist-Vertrag bewahrt ein datiertes `pull_date` aus der Quelle als
+`due_on`, also als geprüftes lokales Kalenderdatum. Er erfindet weder Uhrzeit
+noch UTC-Offset, die in `hauslagerist-export-v1` nicht vorhanden sind. Einträge
+mit `pull_date = null` liegen bewusst außerhalb dieser Terminprojektion. Der
+Übergang von einem Datum zu `null` oder das Verschwinden aus der Quell-Pull-Liste
+wird durch einen aufbewahrten Tombstone ausgedrückt. Ein vollständiger aktiver
+Snapshot enthält nur opake Referenzen und `due_on`; Artikel-, Bestands-, Mengen-
+und Bedarfsdetails bleiben privat.
+
+Alle sechs verlangen zusätzlich genau eine Zeile in `projection_metadata` sowie eine
 ausdrückliche Tabelle `projection_tombstones`. Stabile Referenzen sind opake
 Hex-Tokens in Kleinschreibung. Wie eine Anwendung sie ableitet, bestimmt der
 Vertrag nicht.
@@ -58,8 +68,8 @@ Der Befehl gibt JSON aus und öffnet die Datenbank mit SQLite-`mode=ro` sowie
    Nullbarkeit und Primärschlüsselreihenfolge;
 2. Vertrags-ID, Version, Publisher-Komponente und -Instanz sowie genau eine
    Metadatenzeile;
-3. opake Kennungen, UTC-Zeitstempel, erlaubte Zustände, nicht negative
-   Checkpoints und gültige Zeitfenster;
+3. opake Kennungen, UTC-Zeitstempel, kanonische lokale Kalenderdaten, erlaubte
+   Zustände, nicht negative Checkpoints und gültige Zeitfenster;
 4. übereinstimmende Publisher- und Checkpoint-Provenienz in jeder Datenzeile;
 5. einen Loop-Schutz (`consumer_id != publisher_instance`);
 6. einen strikt neueren Quell-Checkpoint, wenn `previous_checkpoint` angegeben
@@ -81,9 +91,9 @@ Tests materialisieren sie ausschließlich in temporären Ordnern. Für jeden
 Vertrag gibt es einen Anfangsstand und einen späteren Offline-Resume-Stand mit
 übersprungenem Checkpoint und ausdrücklich aufbewahrtem Tombstone. Negativtests
 decken Datenschutzerweiterungen, unbekannte Tabellen oder Spalten, ungültige
-Kennungen und Zustände, Provenienzabweichungen, Replay, Loops, zu kurze
-Tombstone-Aufbewahrung, veraltete aktive Zeilen und nicht geschlossene Sidecars
-ab. Es werden keine Live-Anwendungsdaten verwendet.
+Kennungen, Zustände und Kalenderdaten, Provenienzabweichungen, Replay, Loops, zu
+kurze Tombstone-Aufbewahrung, veraltete aktive Zeilen und nicht geschlossene
+Sidecars ab. Es werden keine Live-Anwendungsdaten verwendet.
 
 ## Übergabe an Anwendungsadapter
 

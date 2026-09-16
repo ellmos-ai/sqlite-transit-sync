@@ -78,6 +78,7 @@ sqlite-transit-sync verify-projection --contract mediplaner-reminder-projection.
 
 # Bundled projection contracts also include accounts-balance-projection.v1,
 # abotracker-subscription-status-projection.v1,
+# hauslagerist-replenishment-projection.v1,
 # routinika-reminder-projection.v1 and
 # versicherungsmanager-deadline-projection.v1
 ```
