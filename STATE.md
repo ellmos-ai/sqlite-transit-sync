@@ -28,9 +28,9 @@
 - gezielter Pull eines ausdrücklich ausgewählten Pending-Ausschnitts für dünne
   Lebenszyklus-Adapter, mit denselben Prüf-, Transaktions- und State-Gates (ADR-015)
 - Synthetischer BACH-Golden-Vergleich mit absichtlich blockiertem Adapterstatus
-- zwei versionierte minimale Read-only-Projektionsverträge mit generischem
+- sechs versionierte minimale Read-only-Projektionsverträge mit generischem
   Allowlist-Verifier und synthetischen Offline-/Resume-/Tombstone-Fixtures
-- eigenständige synthetische Tests (131/131 bestanden, 15 Subtests, 100 % grün)
+- eigenständige synthetische Tests (136/136 bestanden, 15 Subtests, 100 % grün)
 
 ## Noch nicht integriert
 
@@ -42,6 +42,10 @@
 
 ## Letzte Dokumentationsänderung
 
+- 2026-09-16: HausLagerist-Nachfüllprojektion mit validem lokalem Kalenderdatum
+  und ohne Artikel-, Bestands-, Mengen- oder Bedarfsdetails ergänzt.
+- 2026-09-16: AboTracker-Statusprojektion ohne Identitäts-, Kosten- oder
+  abgeleitete Fälligkeitsfelder ergänzt und die fünf Verträge synchronisiert.
 - 2026-09-15: Neutraler Auth-Preflight mit geheimnisfreien Key-Referenzen,
   injizierbarem Resolver und optionalem OS-Keyring dokumentiert.
 - 2026-09-10: Security & Dependency Audit: Broken Editable Install repariert, PEP 639 license-files deklariert, THIRD_PARTY_LICENSES.md angelegt & .gitignore gehärtet (122 Tests).
@@ -58,6 +62,10 @@
 
 ## Letzte Verifikation
 
+- 2026-09-16: Pytest und Unittest jeweils 136/136 bestanden; Projektions- und
+  Metadatentests 37/37, Ruff, Compileall, JSON- und Diff-Prüfung ohne Befund.
+- 2026-09-16: Pytest und Unittest jeweils 134/134 bestanden; Projektions- und
+  Metadatentests 35/35, Ruff, Compileall, JSON- und Diff-Prüfung ohne Befund.
 - 2026-09-15: Pytest und Unittest jeweils 131/131 bestanden; fokussierte
   Auth-Tests 11/11, Metadaten-Tests 25/25, Ruff und Compileall ohne Befund.
 - 2026-09-10: Pytest 122/122 bestanden (15 Subtests, 100 % grün); Broken Editable Install auf kanonischem Klon repariert; Pip-Check 0 defekte Requirements; Ruff 100% sauber; AST- und Regex-Scan 0 Secrets, 0 Path Leaks.

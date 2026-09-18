@@ -5,7 +5,7 @@
 [![CI](https://github.com/ellmos-ai/sqlite-transit-sync/actions/workflows/ci.yml/badge.svg)](https://github.com/ellmos-ai/sqlite-transit-sync/actions/workflows/ci.yml)
 [![Version](https://img.shields.io/badge/version-0.4.0-blue.svg)](CHANGELOG.md)
 [![Code style: Ruff](https://img.shields.io/badge/code%20style-ruff-000000.svg)](https://github.com/astral-sh/ruff)
-[![Tests](https://img.shields.io/badge/tests-123%20passed%20%7C%2015%20subtests%20%7C%20100%25%20green-brightgreen.svg)](#tests)
+[![Tests](https://img.shields.io/badge/tests-136%20passed%20%7C%2015%20subtests%20%7C%20100%25%20green-brightgreen.svg)](#tests)
 [![Python Version](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12%20%7C%203.13-blue.svg)](https://www.python.org/)
 [![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20Linux%20%7C%20macOS-informational.svg)](#)
 [![Privacy](https://img.shields.io/badge/privacy-100%25%20Offline%20%7C%20Zero--Egress-brightgreen.svg)](#)
@@ -276,13 +276,22 @@ geprüfte maximale Offline-Intervall. Der Verifier weist Loops, veraltete
 Checkpoints, zu kurze Tombstone-Aufbewahrung, nicht erlaubte Tabellen oder
 Spalten sowie nicht opake Datensatzreferenzen zurück.
 
-Mitgeliefert werden drei enge Verträge für Kontostandsübersichten,
-Medikamenten-Fälligkeiten und Bestandswarnungen sowie für Routinen-Fälligkeiten
-und Abschlussstatus: `accounts-balance-projection.v1`,
-`mediplaner-reminder-projection.v1` und `routinika-reminder-projection.v1`. Die
-Test-Fixtures sind synthetische JSON-Rezepte; Quell-IDs, vollständige IBANs,
-Kontonummern, Inhaberdaten, Medikamentendetails, Notizen und Medien sind keine
-Vertragsfelder. Siehe
+Mitgeliefert werden sechs enge Verträge für Kontostandsübersichten,
+AboTracker-Abozustände, HausLagerist-Nachfülltermine, Medikamenten-Fälligkeiten
+und Bestandswarnungen, Routinen-Fälligkeiten und Abschlussstatus sowie
+Versicherungsfristen. Der
+AboTracker-Vertrag ist nur eine Statusprojektion, weil Exportschema v1 kein
+bestätigtes nächstes Fälligkeits- oder Verlängerungsdatum enthält; aus
+Zahlungsdatum und Abrechnungszyklus wird kein Reminder abgeleitet. Die
+Test-Fixtures sind synthetische JSON-Rezepte, fachliche Identitäten und private
+Details bleiben außerhalb der Allowlists.
+
+Die mitgelieferten Namen sind
+`abotracker-subscription-status-projection.v1`,
+`accounts-balance-projection.v1`, `hauslagerist-replenishment-projection.v1`,
+`mediplaner-reminder-projection.v1`,
+`routinika-reminder-projection.v1` und
+`versicherungsmanager-deadline-projection.v1`. Siehe
 [Read-only-Projektionsverträge](PROJECTION_CONTRACTS_de.md) und die
 [englische Begleitdatei](PROJECTION_CONTRACTS.md).
 

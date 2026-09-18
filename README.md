@@ -5,7 +5,7 @@
 [![CI](https://github.com/ellmos-ai/sqlite-transit-sync/actions/workflows/ci.yml/badge.svg)](https://github.com/ellmos-ai/sqlite-transit-sync/actions/workflows/ci.yml)
 [![Version](https://img.shields.io/badge/version-0.4.0-blue.svg)](CHANGELOG.md)
 [![Code style: Ruff](https://img.shields.io/badge/code%20style-ruff-000000.svg)](https://github.com/astral-sh/ruff)
-[![Tests](https://img.shields.io/badge/tests-123%20passed%20%7C%2015%20subtests%20%7C%20100%25%20green-brightgreen.svg)](#tests)
+[![Tests](https://img.shields.io/badge/tests-136%20passed%20%7C%2015%20subtests%20%7C%20100%25%20green-brightgreen.svg)](#tests)
 [![Python Version](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12%20%7C%203.13-blue.svg)](https://www.python.org/)
 [![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20Linux%20%7C%20macOS-informational.svg)](#)
 [![Privacy](https://img.shields.io/badge/privacy-100%25%20Offline%20%7C%20Zero--Egress-brightgreen.svg)](#)
@@ -269,12 +269,20 @@ application supplies its consumer identity and reviewed maximum offline interval
 the verifier rejects loops, stale checkpoints, insufficient tombstone retention,
 unlisted tables or columns, and non-opaque record references.
 
-Three narrow contracts are bundled for account-balance summaries, medication
-due/inventory-warning state, and routine due/completion state:
-`accounts-balance-projection.v1`, `mediplaner-reminder-projection.v1`, and
-`routinika-reminder-projection.v1`. Their test fixtures are synthetic JSON recipes;
-source IDs, full IBANs, account numbers, holder data, medication details, notes,
-and media are not contract fields.
+Six narrow contracts are bundled for account-balance summaries, AboTracker
+subscription status, HausLagerist replenishment dates, medication
+due/inventory-warning state, routine due/completion state, and insurance
+deadlines. The AboTracker contract is
+status-only because export schema v1 has no confirmed next due or renewal date;
+it never derives a reminder from payment date plus billing cycle. Test fixtures
+are synthetic JSON recipes, and domain identities or private details remain
+outside the allowlists.
+
+The bundled names are `abotracker-subscription-status-projection.v1`,
+`accounts-balance-projection.v1`, `hauslagerist-replenishment-projection.v1`,
+`mediplaner-reminder-projection.v1`,
+`routinika-reminder-projection.v1`, and
+`versicherungsmanager-deadline-projection.v1`.
 See [Read-only projection contracts](PROJECTION_CONTRACTS.md) and the
 [German companion](PROJECTION_CONTRACTS_de.md).
 

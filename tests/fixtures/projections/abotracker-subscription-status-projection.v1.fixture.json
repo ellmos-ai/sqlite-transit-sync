@@ -1,0 +1,88 @@
+{
+  "consumer_id": "ocean-subscription-consumer",
+  "contract": "abotracker-subscription-status-projection.v1",
+  "fixture_schema": "sqlite-transit-sync.synthetic-projection-fixture.v1",
+  "minimum_offline_seconds": 2592000,
+  "snapshots": [
+    {
+      "name": "initial",
+      "previous_checkpoint": 4,
+      "tables": {
+        "projection_metadata": [
+          {
+            "contract_id": "org.ellmos.abotracker.subscription-status-projection",
+            "contract_version": "1.0.0",
+            "generated_at": "2026-09-16T08:00:00Z",
+            "publisher_component": "abotracker-projection-adapter",
+            "publisher_instance": "abotracker-primary",
+            "source_checkpoint": 5
+          }
+        ],
+        "projection_tombstones": [],
+        "subscription_status": [
+          {
+            "observed_at": "2026-09-16T08:00:00Z",
+            "publisher_instance": "abotracker-primary",
+            "record_ref": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeee1",
+            "record_version": 1,
+            "source_checkpoint": 5,
+            "state": "confirmed"
+          },
+          {
+            "observed_at": "2026-09-16T08:00:00Z",
+            "publisher_instance": "abotracker-primary",
+            "record_ref": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeee2",
+            "record_version": 1,
+            "source_checkpoint": 5,
+            "state": "scheduled"
+          }
+        ]
+      }
+    },
+    {
+      "name": "resumed-after-offline",
+      "previous_checkpoint": 5,
+      "tables": {
+        "projection_metadata": [
+          {
+            "contract_id": "org.ellmos.abotracker.subscription-status-projection",
+            "contract_version": "1.0.0",
+            "generated_at": "2026-09-16T12:00:00Z",
+            "publisher_component": "abotracker-projection-adapter",
+            "publisher_instance": "abotracker-primary",
+            "source_checkpoint": 7
+          }
+        ],
+        "projection_tombstones": [
+          {
+            "deleted_at": "2026-09-16T10:00:00Z",
+            "publisher_instance": "abotracker-primary",
+            "record_ref": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeee2",
+            "record_type": "subscription_status",
+            "record_version": 2,
+            "retain_until": "2026-11-16T10:00:00Z",
+            "source_checkpoint": 7
+          }
+        ],
+        "subscription_status": [
+          {
+            "observed_at": "2026-09-16T12:00:00Z",
+            "publisher_instance": "abotracker-primary",
+            "record_ref": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeee1",
+            "record_version": 2,
+            "source_checkpoint": 7,
+            "state": "likely"
+          },
+          {
+            "observed_at": "2026-09-16T12:00:00Z",
+            "publisher_instance": "abotracker-primary",
+            "record_ref": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeee3",
+            "record_version": 1,
+            "source_checkpoint": 7,
+            "state": "inactive"
+          }
+        ]
+      }
+    }
+  ]
+}

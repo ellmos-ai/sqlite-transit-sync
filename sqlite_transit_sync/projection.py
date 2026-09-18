@@ -12,7 +12,7 @@ import re
 import sqlite3
 import stat
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import date, datetime
 from pathlib import Path
 from typing import Any
 
@@ -331,7 +331,7 @@ def _parse_table(raw: Any) -> ProjectionTable:
             raise ProjectionContractError(f"Invalid enum for {name}.{column_name}")
         if "minimum" in constraints and not isinstance(constraints["minimum"], (int, float)):
             raise ProjectionContractError(f"Invalid minimum for {name}.{column_name}")
-        if "format" in constraints and constraints["format"] != "utc-datetime":
+        if "format" in constraints and constraints["format"] not in {"local-date", "utc-datetime"}:
             raise ProjectionContractError(f"Unsupported format for {name}.{column_name}")
         columns.append(ProjectionColumn(column_name, sqlite_type, not_null, primary_key, constraints))
     if len({column.name for column in columns}) != len(columns):
@@ -423,6 +423,8 @@ def _verify_constraints(table: str, column: ProjectionColumn, value: Any, index:
         raise ProjectionContractError(f"Value below minimum in {table}.{column.name} row {index}")
     if constraints.get("format") == "utc-datetime":
         _parse_timestamp(value, f"{table}.{column.name}")
+    if constraints.get("format") == "local-date":
+        _parse_local_date(value, f"{table}.{column.name}")
 
 
 def _verify_provenance(row: sqlite3.Row, checkpoint: int, publisher_instance: str, table: str) -> None:
@@ -480,6 +482,18 @@ def _parse_timestamp(value: Any, label: str) -> datetime:
         raise ProjectionContractError(f"{label} must be an ISO-8601 UTC timestamp") from error
     if parsed.tzinfo is None or parsed.utcoffset() is None or parsed.utcoffset().total_seconds() != 0:
         raise ProjectionContractError(f"{label} must use UTC")
+    return parsed
+
+
+def _parse_local_date(value: Any, label: str) -> date:
+    if not isinstance(value, str):
+        raise ProjectionContractError(f"{label} must be an ISO-8601 local date")
+    try:
+        parsed = date.fromisoformat(value)
+    except ValueError as error:
+        raise ProjectionContractError(f"{label} must be an ISO-8601 local date") from error
+    if value != parsed.isoformat():
+        raise ProjectionContractError(f"{label} must be a canonical ISO-8601 local date")
     return parsed
 
 

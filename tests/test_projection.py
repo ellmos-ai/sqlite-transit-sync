@@ -92,7 +92,9 @@ class ProjectionContractTests(unittest.TestCase):
     def test_bundled_contracts_are_versioned_and_loadable(self) -> None:
         self.assertEqual(
             (
+                "abotracker-subscription-status-projection.v1",
                 "accounts-balance-projection.v1",
+                "hauslagerist-replenishment-projection.v1",
                 "mediplaner-reminder-projection.v1",
                 "routinika-reminder-projection.v1",
                 "versicherungsmanager-deadline-projection.v1",
@@ -111,11 +113,17 @@ class ProjectionContractTests(unittest.TestCase):
                         "account_number",
                         "bank_name",
                         "bic",
+                        "billing_cycle",
+                        "cancellation_url",
                         "diagnosis",
                         "dose",
                         "holder_name",
+                        "article_name",
                         "iban",
+                        "last_payment_date",
+                        "mail_query",
                         "medication_name",
+                        "model_name",
                         "note",
                         "notes",
                         "policy_area",
@@ -123,16 +131,87 @@ class ProjectionContractTests(unittest.TestCase):
                         "policy_title",
                         "premium_amount",
                         "provider",
+                        "provider_name",
                         "quantity",
+                        "room",
                         "routine_title",
                         "stock_level",
+                        "supplier",
+                        "subscription_price",
+                        "valid_from",
+                        "window_keywords",
                     }
                 )
             )
 
+    def test_abotracker_contract_excludes_identity_cost_and_inferred_deadlines(self) -> None:
+        contract = ProjectionContract.from_file("abotracker-subscription-status-projection.v1")
+        columns = {column.name for column in contract.table("subscription_status").columns}
+        self.assertEqual(
+            {
+                "record_ref",
+                "observed_at",
+                "state",
+                "record_version",
+                "source_checkpoint",
+                "publisher_instance",
+            },
+            columns,
+        )
+        self.assertTrue(
+            columns.isdisjoint(
+                {
+                    "provider",
+                    "model_name",
+                    "price",
+                    "billing_cycle",
+                    "last_payment_date",
+                    "valid_from",
+                    "due_at",
+                    "window_end_at",
+                }
+            )
+        )
+
+    def test_hauslagerist_contract_keeps_source_date_semantics_and_minimises_inventory_data(self) -> None:
+        contract = ProjectionContract.from_file("hauslagerist-replenishment-projection.v1")
+        columns = {column.name for column in contract.table("replenishment_due").columns}
+        self.assertEqual(
+            {
+                "record_ref",
+                "due_on",
+                "record_version",
+                "source_checkpoint",
+                "publisher_instance",
+            },
+            columns,
+        )
+        self.assertTrue(
+            columns.isdisjoint(
+                {
+                    "article_id",
+                    "article_name",
+                    "category",
+                    "room",
+                    "supplier",
+                    "stock",
+                    "missing",
+                    "packs_needed",
+                    "total_demand",
+                    "pull_quotient",
+                    "urgency",
+                    "order_ids",
+                    "demand_breakdown",
+                    "due_at",
+                }
+            )
+        )
+
     def test_all_synthetic_initial_and_resume_fixtures_verify_without_mutation(self) -> None:
         fixture_names = (
             "accounts-balance-projection.v1.fixture.json",
+            "abotracker-subscription-status-projection.v1.fixture.json",
+            "hauslagerist-replenishment-projection.v1.fixture.json",
             "mediplaner-reminder-projection.v1.fixture.json",
             "routinika-reminder-projection.v1.fixture.json",
             "versicherungsmanager-deadline-projection.v1.fixture.json",
@@ -234,6 +313,28 @@ class ProjectionContractTests(unittest.TestCase):
             connection.close()
         with self.assertRaisesRegex(ProjectionContractError, "pattern"):
             self._verify(fixture, snapshot, contract, path)
+
+    def test_hauslagerist_contract_rejects_noncanonical_or_nontext_calendar_dates(self) -> None:
+        fixture, snapshot, contract, path = self._materialize(
+            "hauslagerist-replenishment-projection.v1.fixture.json"
+        )
+        invalid_values = (
+            "2026-02-30",
+            "20260918",
+            "2026-W38-5",
+            "2026-09-18T00:00:00",
+            sqlite3.Binary(b"2026-09-18"),
+        )
+        for value in invalid_values:
+            with self.subTest(value=repr(value)):
+                connection = sqlite3.connect(path)
+                try:
+                    connection.execute("UPDATE replenishment_due SET due_on = ?", (value,))
+                    connection.commit()
+                finally:
+                    connection.close()
+                with self.assertRaises(ProjectionContractError):
+                    self._verify(fixture, snapshot, contract, path)
 
     def test_provenance_checkpoint_and_loop_guard_fail_closed(self) -> None:
         fixture, snapshot, contract, path = self._materialize(
