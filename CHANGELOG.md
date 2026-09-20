@@ -1,5 +1,7 @@
 # Changelog
 
+- **Pfad B Marketing, Discoverability, 18-Punkte Navigations-Parität, Zielgruppen, Vergleichsmatrix & Level 1 SBOM Upgrade:** Vollständige Standardisierung der zweisprachigen 18-Punkte-Schnellnavigation in `README.md` und `README_de.md` mit reziproken HTML-Ankern (`<a id="..."></a>`); Integration von Abschnitt 4 (Zielgruppen `[PERSONA-01]` bis `[PERSONA-04]` & zweisprachige High-Intent-Suchanfragen); Erweiterung von Abschnitt 5 um die 10-dimensionale Vergleichsmatrix gegenüber 4 Architekturansätzen (Distributed SQL, Litestream/LiteFS, Cloud-Sync, Ad-Hoc-Skripte) entlang der Invarianten `INV-LOCAL-01` bis `INV-SLA-10`; Etablierung von Abschnitt 18 mit dem gesetzlichen Haftungsausschluss nach § 521 BGB (Gefälligkeitsrecht) und englischer Zusammenfassung; Erstellung der Wurzeldatei `NOTICE` (Lukas Geiger, ellmos-ai, open-bricks); Upgrade von `THIRD_PARTY_LICENSES.md` zum Level 1 SBOM mit Invarianten-Matrix, Zero-Copyleft-Isolationsgarantie und RunAsInvoker-Zertifizierung; Aufnahme von `"NOTICE"` in PEP 639 `license-files` in `pyproject.toml`; Aktualisierung der Shields.io-Badges und von `llms.txt`; Erweiterung der Metadaten-Vertragstestsuite in `tests/test_metadata.py` um Prüfungen für 18-Punkte-Navigation, § 521 BGB, NOTICE, Level 1 SBOM, Zielgruppen und Vergleichsmatrix [G 2026-09-20].
+
 - **Projektionsvertrag `hauslagerist-replenishment-projection.v1`:** sechster
   mitgelieferter Vertrag mit der minimalen Tabelle `replenishment_due`. Er
   übernimmt ausschließlich die opake Artikelreferenz und das bereits vom

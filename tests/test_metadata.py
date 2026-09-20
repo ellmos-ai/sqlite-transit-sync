@@ -237,7 +237,7 @@ class TestMetadata(unittest.TestCase):
         self.assertEqual([], findings)
 
     def test_quick_navigation_anchors(self):
-        """Both README.md and README_de.md must have 14 matching navigation links."""
+        """Both README.md and README_de.md must have 18 matching navigation links."""
         for fname, nav_header in [
             ("README.md", "## 🧭 Quick Navigation"),
             ("README_de.md", "## 🧭 Schnellnavigation"),
@@ -245,17 +245,19 @@ class TestMetadata(unittest.TestCase):
             content = (ROOT / fname).read_text(encoding="utf-8")
             self.assertIn(nav_header, content, f"Navigation header missing in {fname}")
             nav_match = re.search(
-                rf"{re.escape(nav_header)}\s*\n\n((?:- \[.+\]\(#.+\)\s*\n)+)", content
+                rf"{re.escape(nav_header)}\s*\n\n((?:[0-9]+\.\s*\[.+\]\(#.+\)\s*\n)+)", content
             )
             self.assertIsNotNone(nav_match, f"Navigation block malformed in {fname}")
-            links = re.findall(r"- \[(.+)\]\(#([^\)]+)\)", nav_match.group(1))
+            links = re.findall(r"[0-9]+\.\s*\[(.+)\]\(#([^\)]+)\)", nav_match.group(1))
             self.assertEqual(
-                15,
+                18,
                 len(links),
-                f"Expected exactly 15 navigation links in {fname}, got {len(links)}",
+                f"Expected exactly 18 navigation links in {fname}, got {len(links)}",
             )
-            headings = re.findall(r"^(#{1,3})\s+(.+)$", content, re.MULTILINE)
             slugs = []
+            for tag_id in re.findall(r'<a\s+id="([^"]+)"', content):
+                slugs.append(tag_id)
+            headings = re.findall(r"^(#{1,3})\s+(.+)$", content, re.MULTILINE)
             for _, h in headings:
                 s = h.lower().strip()
                 s = re.sub(r"[^\w\s-]", "", s)
@@ -265,7 +267,7 @@ class TestMetadata(unittest.TestCase):
                 self.assertIn(
                     anchor,
                     slugs,
-                    f"Navigation link '{title}' -> #{anchor} has no matching heading slug in {fname}",
+                    f"Navigation link '{title}' -> #{anchor} has no matching heading slug or anchor id in {fname}",
                 )
 
     def test_dual_mermaid_diagrams(self):
@@ -302,8 +304,8 @@ class TestMetadata(unittest.TestCase):
             "INV-SLA-10",
         ]
         for fname, heading in [
-            ("README.md", "## Governance & Runtime Invariants Matrix"),
-            ("README_de.md", "## Governance- & Laufzeit-Invarianten-Matrix"),
+            ("README.md", "Governance & Runtime Invariants Matrix"),
+            ("README_de.md", "Governance- & Laufzeit-Invarianten-Matrix"),
         ]:
             content = (ROOT / fname).read_text(encoding="utf-8")
             self.assertIn(heading, content, f"Missing Invariants heading in {fname}")
@@ -371,7 +373,10 @@ class TestMetadata(unittest.TestCase):
         self.assertTrue(lic_file.is_file(), "THIRD_PARTY_LICENSES.md must exist in repository root")
         text = lic_file.read_text(encoding="utf-8")
         self.assertIn("Zero-Runtime-Dependency Guarantee", text)
-        self.assertIn("Audit Date:** 2026-09-11", text)
+        self.assertIn("Audit Date:** 2026-09-20", text)
+        self.assertIn("Level 1 SBOM", text)
+        self.assertIn("RunAsInvoker", text)
+        self.assertIn("Zero-Copyleft Isolation Guarantee", text)
         self.assertIn("INV-LOCAL-01", text)
         self.assertIn("INV-SLA-10", text)
         self.assertIn("MIT License", text)
@@ -401,6 +406,7 @@ class TestMetadata(unittest.TestCase):
         pyproject = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
         license_files = pyproject.get("project", {}).get("license-files", [])
         self.assertIn("LICENSE", license_files)
+        self.assertIn("NOTICE", license_files)
         self.assertIn("THIRD_PARTY_LICENSES.md", license_files)
 
     def test_gitignore_secret_and_credential_patterns(self):
@@ -426,6 +432,62 @@ class TestMetadata(unittest.TestCase):
         ]
         for pattern in required_patterns:
             self.assertIn(pattern, content, f"Security/conflict pattern '{pattern}' missing in .gitignore")
+
+    def test_notice_attribution_file(self):
+        """NOTICE file must exist in repository root with required attribution fields."""
+        notice_file = ROOT / "NOTICE"
+        self.assertTrue(notice_file.is_file(), "NOTICE must exist in repository root")
+        content = notice_file.read_text(encoding="utf-8")
+        self.assertIn("Lukas Geiger", content)
+        self.assertIn("ellmos-ai", content)
+        self.assertIn("open-bricks", content)
+        self.assertIn("MIT", content)
+
+    def test_statutory_disclaimer_521_bgb(self):
+        """Both READMEs must include the statutory liability limitation under § 521 BGB Gefälligkeitsrecht."""
+        for fname in ["README.md", "README_de.md"]:
+            content = (ROOT / fname).read_text(encoding="utf-8")
+            self.assertIn("§ 521 BGB", content, f"§ 521 BGB missing in {fname}")
+            self.assertIn("Gefälligkeitsrecht", content, f"Gefälligkeitsrecht missing in {fname}")
+            self.assertIn("unentgeltliche Schenkung", content, f"unentgeltliche Schenkung missing in {fname}")
+            self.assertIn("Vorsatz und grobe Fahrlässigkeit", content, f"Liability standard missing in {fname}")
+
+    def test_target_personas_sections(self):
+        """Both READMEs must contain formal target personas [PERSONA-01] to [PERSONA-04]."""
+        for fname in ["README.md", "README_de.md"]:
+            content = (ROOT / fname).read_text(encoding="utf-8")
+            for pid in ["[PERSONA-01]", "[PERSONA-02]", "[PERSONA-03]", "[PERSONA-04]"]:
+                self.assertIn(pid, content, f"Persona {pid} missing in {fname}")
+
+    def test_comparative_matrix_sections(self):
+        """Both READMEs must contain the 10-dimension comparative matrix vs 4 alternatives."""
+        for fname in ["README.md", "README_de.md"]:
+            content = (ROOT / fname).read_text(encoding="utf-8")
+            self.assertIn("Distributed SQL", content, f"Distributed SQL missing in {fname}")
+            self.assertIn("Litestream / LiteFS", content, f"Litestream / LiteFS missing in {fname}")
+            for inv in [
+                "INV-LOCAL-01",
+                "INV-SNAP-02",
+                "INV-ROLL-03",
+                "INV-PATH-04",
+                "INV-VERIFY-05",
+                "INV-SHIELD-06",
+                "INV-HMAC-07",
+                "INV-MERGE-08",
+                "INV-RET-09",
+                "INV-SLA-10",
+            ]:
+                self.assertIn(inv, content, f"Comparative matrix missing invariant {inv} in {fname}")
+
+    def test_mermaid_semicolons_free(self):
+        """All mermaid blocks across markdown files must be free of trailing semicolons."""
+        for md_file in ROOT.glob("*.md"):
+            content = md_file.read_text(encoding="utf-8")
+            for block in re.findall(r"```mermaid\s*\n(.*?)\n```", content, re.DOTALL):
+                for line_no, line in enumerate(block.splitlines(), 1):
+                    stripped = line.strip()
+                    if stripped.endswith(";") and not stripped.startswith("%%"):
+                        self.fail(f"Trailing semicolon in {md_file.name}:{line_no}: {line}")
 
 
 if __name__ == "__main__":

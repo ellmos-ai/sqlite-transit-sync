@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # SPDX-License-Identifier: MIT
 """Tests for SingleFlightLock in sqlite-transit-sync."""
 
@@ -46,8 +45,8 @@ def test_single_flight_stale_recovery(tmp_path: Path):
     }
     lock_file.write_text(json.dumps(stale), encoding="utf-8")
 
-    l = SingleFlightLock(lock_file, ttl_seconds=60)
-    with l:
+    lock = SingleFlightLock(lock_file, ttl_seconds=60)
+    with lock:
         assert lock_file.exists()
-        assert json.loads(lock_file.read_text(encoding="utf-8"))["session_token"] == l.session_token
+        assert json.loads(lock_file.read_text(encoding="utf-8"))["session_token"] == lock.session_token
     assert not lock_file.exists()

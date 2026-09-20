@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # SPDX-License-Identifier: MIT
 """
 Copyright (c) 2026 ellmos-ai / OPEN OCEAN Contributors
@@ -19,7 +18,6 @@ import time
 import uuid
 from dataclasses import asdict, dataclass
 from pathlib import Path
-from typing import Optional
 
 
 class SingleFlightLockError(RuntimeError):
@@ -44,7 +42,7 @@ class SingleFlightLock:
         lock_path: Path | str,
         ttl_seconds: int = 300,
         purpose: str = "sqlite-transit-sync",
-        machine_token: Optional[str] = None,
+        machine_token: str | None = None,
     ) -> None:
         self.lock_path = Path(lock_path)
         self.ttl_seconds = ttl_seconds

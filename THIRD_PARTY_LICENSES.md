@@ -1,9 +1,42 @@
-# Third-Party Licenses & Software Inventory
+# Third-Party Licenses & Transparency Notice (Level 1 SBOM)
 
-**Project:** `sqlite-transit-sync`
-**License:** [MIT License](LICENSE)
-**Audit Date:** 2026-09-11
-**Posture:** 100% Local-First | Zero-Egress | RunAsInvoker | 100% Permissive Licenses
+> **Project:** `ellmos-ai/sqlite-transit-sync`<br>
+> **Audit Date:** 2026-09-20<br>
+> **Repository License:** [MIT License](LICENSE)<br>
+> **Repository Attribution Notice:** [NOTICE](NOTICE)<br>
+> **Architecture & Privacy:** 100% Local-First, Zero-Egress by default, Unprivileged User-Mode (`RunAsInvoker`)
+
+---
+
+## Executive Summary & Compliance Assurance
+
+`sqlite-transit-sync` is engineered from the ground up under strict architectural and security invariants: **100% Local-First, Zero-Egress by default, and unprivileged user-mode execution (`RunAsInvoker`)**. All snapshot capture, table redaction, credential scanning, cryptographic digest verification, and row-level merging execute entirely within local process boundaries.
+
+All direct, optional, and development dependencies utilized across `sqlite-transit-sync` are distributed under strictly **permissive open-source licenses** (MIT, Apache-2.0, BSD-3-Clause, PSFL-2.0). There are **zero copyleft, GPL, or AGPL dependencies**, ensuring unencumbered portability for local desktop software, embedded edge systems, and automated agent swarms.
+
+### Invariant Cross-Reference Matrix
+
+| Invariant ID | Security & Operational Mandate | Technical Enforcement Mechanism | License & Isolation Scope |
+|:---|:---|:---|:---|
+| `INV-LOCAL-01` | **100% Offline / Zero-Egress** | Operates exclusively against local SQLite database files (`app.db`), zero outbound network telemetry | [PSFL-2.0](https://docs.python.org/3/license.html) |
+| `INV-SNAP-02` | **Offline Snapshot Atomicity** | Non-locking snapshot capture via `sqlite3.backup`, published via atomic `os.replace` | [PSFL-2.0](https://docs.python.org/3/license.html) |
+| `INV-ROLL-03` | **Rollback Journal Clean Isolation** | Backups closed in rollback-journal mode; fail-closed purge of `-wal`, `-shm`, and `-journal` sidecars | [PSFL-2.0](https://docs.python.org/3/license.html) |
+| `INV-PATH-04` | **Strict Transit Path Containment** | Rejection of directory traversal (`../`), absolute paths, symlinks, and reparse points | [PSFL-2.0](https://docs.python.org/3/license.html) |
+| `INV-VERIFY-05` | **Two-Stage Integrity & Sanity** | Pre-merge validation via cryptographic SHA-256 manifest matching and SQLite `PRAGMA quick_check` | [PSFL-2.0](https://docs.python.org/3/license.html) |
+| `INV-SHIELD-06` | **Pre-Publication Credential Shield** | Content-level regex scanning across 13+ secret families (`credential-triggers.json`) with push abort | [PSFL-2.0](https://docs.python.org/3/license.html) |
+| `INV-HMAC-07` | **HMAC Authenticity Envelope** | Optional HMAC-SHA256 signature envelope over canonical manifest payload and sender ID | [PSFL-2.0](https://docs.python.org/3/license.html) |
+| `INV-MERGE-08` | **Deterministic Row-Level Merge** | Transactional row-level merge (LWW per PK, shared column union for schema drift, tombstone policy) | [MIT](LICENSE) |
+| `INV-RET-09` | **Conservative Retention Scoping** | Snapshot cleanup is dry-run by default, scoped strictly to local node artifacts | [MIT](LICENSE) |
+| `INV-SLA-10` | **Non-Elevation & Multi-OS Parity** | Unprivileged execution (`RunAsInvoker`) across Linux, Windows, macOS with 48h security SLA | [SECURITY.md](SECURITY.md) |
+
+---
+
+## Zero-Copyleft Isolation Guarantee & RunAsInvoker Certification
+
+1. **Zero-Copyleft Guarantee:** No component of `sqlite-transit-sync` links against, vendors, or invokes any code under GPLv2, GPLv3, AGPLv3, LGPL, SSPL, or CC-BY-SA licenses. All dependencies are strictly permissive (MIT, Apache-2.0, BSD-3-Clause, PSFL-2.0).
+2. **Zero-Runtime-Dependency Core:** The core synchronization engine requires **zero** external runtime dependencies (`dependencies = []` in `pyproject.toml`). All core primitives (snapshotting, redaction, hashing, HMAC, merging, retention) rely entirely on standard library modules.
+3. **Unprivileged Execution (`RunAsInvoker`):** `sqlite-transit-sync` requires no administrative privileges, no daemon services, and no root credentials. It operates entirely in unprivileged user space.
+4. **Zero-Egress Perimeter:** By default, no network traffic is emitted by `sqlite-transit-sync`. Snapshots are published and pulled exclusively via local filesystem directories, mount points, or sync yards.
 
 ---
 
@@ -120,23 +153,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
    PSF's License Agreement and PSF's notice of copyright, i.e., "Copyright (c) 2001-2026
    Python Software Foundation; All Rights Reserved" are retained in Python alone or
    in any derivative version prepared by Licensee.
-
----
-
-## Governance & Runtime Invariant Alignment
-
-The dependency footprint strictly adheres to the 10 core governance invariants:
-
-- **INV-LOCAL-01 (100% Local-First & Zero-Egress):** Zero runtime telemetry or external network socket dependencies.
-- **INV-SNAP-02 (Offline Snapshot Atomicity):** Standard library `sqlite3.backup` ensures non-locking atomic snapshot captures.
-- **INV-ROLL-03 (Rollback Journal Clean Isolation):** Temporary SQLite sidecars are systematically cleaned before publication.
-- **INV-PATH-04 (Strict Transit Path Containment):** Native `pathlib.Path` containment checks prevent directory traversal.
-- **INV-VERIFY-05 (Two-Stage Integrity & Sanity Verification):** Cryptographic SHA-256 digests and `PRAGMA quick_check`.
-- **INV-SHIELD-06 (Pre-Publication Credential Shielding):** Built-in secret detection regexes across 13+ secret families.
-- **INV-HMAC-07 (HMAC Authenticity Envelope):** Standard library `hmac` and `hashlib` ensure message authenticity.
-- **INV-MERGE-08 (Deterministic Row-Level Merge):** Deterministic conflict resolution with schema drift tolerance.
-- **INV-RET-09 (Conservative Retention & Authority Scoping):** Owner-scoped snapshot retention garbage collection.
-- **INV-SLA-10 (Non-Elevation & Multi-OS Parity):** Unprivileged user mode execution (`RunAsInvoker`) across Windows, Linux, and macOS with 48h security SLA.
 
 ---
 

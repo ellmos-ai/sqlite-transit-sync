@@ -132,3 +132,24 @@ Status: ACTIVE / AUDIT STATUS: VERIFIED / PFAD B DISCOVERABILITY VERIFIED
   * Expanded tests/test_metadata.py to validate 15-point navigation parity, 10 governance invariants, marketing log completeness, and extended URLs.
 - Verification State:
   * All unit and contract tests verified passing (100% green).
+
+================================================================================
+8. PFAD B DISCOVERABILITY & METADATA CONTRACT AUDIT TRAIL (2026-09-20)
+================================================================================
+- 18-Point Quick Navigation Parity & Dual Reciprocal Anchors:
+  * README.md and README_de.md synchronized to identical 18-point numbered navigation.
+  * Added reciprocal HTML anchors (<a id="..."></a>) preserving all legacy and bilingual anchor slugs.
+  * Dedicated Section 4 for Target Personas ([PERSONA-01] to [PERSONA-04]) and bilingual high-intent SEO queries table.
+  * Dedicated Section 5 for 10-Dimension Comparative Matrix vs. 4 Alternatives (Distributed SQL, Litestream/LiteFS, Cloud-Sync, Ad-Hoc Scripts) mapped to INV-LOCAL-01..INV-SLA-10.
+  * Dedicated Section 18 for Statutory Notice, Liability Limitation & License (§ 521 BGB Gefälligkeitsrecht) with English summary, NOTICE attribution, and MIT terms.
+- Legal Attribution & Level 1 SBOM:
+  * Root NOTICE file established attributing copyright to Lukas Geiger (2026), ellmos-ai, and open-bricks umbrella under MIT.
+  * THIRD_PARTY_LICENSES.md upgraded to Level 1 SBOM Stand 2026-09-20 with formal Invariant Cross-Reference Matrix, Zero-Copyleft Isolation Guarantee, and RunAsInvoker Certification.
+  * Declared PEP 639 license-files = ["LICENSE", "NOTICE", "THIRD_PARTY_LICENSES.md"] in pyproject.toml.
+- Badges & LLM Machine-Readable Index:
+  * Shields.io badges synchronized across README.md and README_de.md (Level 1 SBOM, RunAsInvoker, NOTICE attribution, 144 passed | 43 subtests | 100% green).
+  * Synchronized llms.txt Last-checked to 2026-09-20 and updated test suite verification notes.
+- Contract Test Suite Expansion:
+  * tests/test_metadata.py updated and expanded with contract tests for 18-point navigation anchors, § 521 BGB statutory disclaimer, NOTICE attribution, Level 1 SBOM invariants, target personas, and comparative matrix.
+- Verification State:
+  * Suite verified passing (100% green).
