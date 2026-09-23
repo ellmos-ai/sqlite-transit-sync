@@ -37,6 +37,7 @@ Changelog = "https://github.com/ellmos-ai/sqlite-transit-sync/blob/main/CHANGELO
 Security = "https://github.com/ellmos-ai/sqlite-transit-sync/blob/main/SECURITY.md"
 "Parent Organization" = "https://github.com/ellmos-ai"
 "Umbrella Ecosystem" = "https://github.com/open-bricks"
+"Notice" = "https://github.com/ellmos-ai/sqlite-transit-sync/blob/main/NOTICE"
 "Third-Party Licenses" = "https://github.com/ellmos-ai/sqlite-transit-sync/blob/main/THIRD_PARTY_LICENSES.md"
 "Marketing Log" = "https://github.com/ellmos-ai/sqlite-transit-sync/blob/main/MARKETING-LOG.txt"
 "LLM Ready" = "https://github.com/ellmos-ai/sqlite-transit-sync/blob/main/llms.txt"
@@ -66,6 +67,7 @@ minversion = "7.0"
 addopts = "-ra -v"
 testpaths = ["tests"]
 pythonpath = "."
+norecursedirs = [".git", ".pytest_cache", "__pycache__", "build", "dist", ".venv", ".pytest_temp"]
 
 [tool.ruff]
 line-length = 120

@@ -373,7 +373,7 @@ class TestMetadata(unittest.TestCase):
         self.assertTrue(lic_file.is_file(), "THIRD_PARTY_LICENSES.md must exist in repository root")
         text = lic_file.read_text(encoding="utf-8")
         self.assertIn("Zero-Runtime-Dependency Guarantee", text)
-        self.assertIn("Audit Date:** 2026-09-20", text)
+        self.assertIn("Audit Date:** 2026-09-23", text)
         self.assertIn("Level 1 SBOM", text)
         self.assertIn("RunAsInvoker", text)
         self.assertIn("Zero-Copyleft Isolation Guarantee", text)
@@ -488,6 +488,49 @@ class TestMetadata(unittest.TestCase):
                     stripped = line.strip()
                     if stripped.endswith(";") and not stripped.startswith("%%"):
                         self.fail(f"Trailing semicolon in {md_file.name}:{line_no}: {line}")
+
+    def test_welcome_workflow_integrity(self):
+        """Welcome workflow must exist and configure first-interaction@v3 with timeout, concurrency, and least-privilege permissions."""
+        welcome_file = ROOT / ".github" / "workflows" / "welcome.yml"
+        self.assertTrue(welcome_file.is_file(), ".github/workflows/welcome.yml must exist")
+        content = welcome_file.read_text(encoding="utf-8")
+        self.assertIn("actions/first-interaction@v3", content)
+        self.assertIn("timeout-minutes: 5", content)
+        self.assertIn("cancel-in-progress: true", content)
+        self.assertIn("issues: write", content)
+        self.assertIn("pull-requests: write", content)
+
+    def test_stale_workflow_concurrency(self):
+        """Stale workflow must configure cancel-in-progress concurrency."""
+        stale_file = ROOT / ".github" / "workflows" / "stale.yml"
+        self.assertTrue(stale_file.is_file(), ".github/workflows/stale.yml must exist")
+        content = stale_file.read_text(encoding="utf-8")
+        self.assertIn("cancel-in-progress: true", content)
+
+    def test_pyproject_notice_url(self):
+        """pyproject.toml [project.urls] must include Notice pointing to root NOTICE."""
+        pyproject = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
+        urls = pyproject.get("project", {}).get("urls", {})
+        self.assertIn("Notice", urls)
+        self.assertTrue(urls["Notice"].endswith("/NOTICE"))
+
+    def test_gitignore_canonical_locks(self):
+        """gitignore must exclude canonical lock patterns and fleet automation markers."""
+        gi_file = ROOT / ".gitignore"
+        self.assertTrue(gi_file.is_file(), ".gitignore must exist")
+        content = gi_file.read_text(encoding="utf-8")
+        for pattern in [
+            "LOCK.user.*",
+            "LOCK.until.*",
+            "LOCK.condition.*",
+            "LOCK.permissions.json",
+            ".automation-lock",
+            "*-ASUS*",
+            "*-LAPTOP*",
+            "!package-lock.json",
+            ".pytest_temp/",
+        ]:
+            self.assertIn(pattern, content, f"Pattern '{pattern}' missing from .gitignore")
 
 
 if __name__ == "__main__":

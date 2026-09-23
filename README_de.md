@@ -4,7 +4,7 @@
 
 [![CI](https://github.com/ellmos-ai/sqlite-transit-sync/actions/workflows/ci.yml/badge.svg)](https://github.com/ellmos-ai/sqlite-transit-sync/actions/workflows/ci.yml)
 [![Version](https://img.shields.io/badge/version-0.4.0-blue.svg)](CHANGELOG.md)
-[![Tests](https://img.shields.io/badge/tests-144%20passed%20%7C%2043%20subtests%20%7C%20100%25%20green-brightgreen.svg)](#tests-und-qualitaetssicherung)
+[![Tests](https://img.shields.io/badge/tests-148%20passed%20%7C%2043%20subtests%20%7C%20100%25%20green-brightgreen.svg)](#tests-und-qualitaetssicherung)
 [![Python Version](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12%20%7C%203.13-blue.svg)](https://www.python.org/)
 [![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20Linux%20%7C%20macOS-informational.svg)](#)
 [![Privacy](https://img.shields.io/badge/privacy-100%25%20Offline%20%7C%20Zero--Egress-brightgreen.svg)](#)

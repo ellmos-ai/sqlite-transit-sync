@@ -36,13 +36,29 @@ data/
 *.conflict
 *-WORKSTATION*
 *-WORKSTATION-LG.*
+*-ASUS*
 *-ASUS-GEI.*
+*-LAPTOP*
 *-LAPTOP.*
+*-Mac Studio*
+*-MacBook*
 LOCK
 LOCK.*
+LOCK.user.*
+LOCK.until.*
+LOCK.condition.*
+LOCK.permissions.json
+.automation-lock
 *.lock
 LOCK*.txt
 uv.lock
+!package-lock.json
+
+# Test- & Tooling-Caches
+.pytest_temp/
+.pytest_tmp*/
+.hypothesis/
+.tox/
 
 # Secrets, Tokens & Private Keys (Supply-Chain & Privacy Protection)
 *.pem

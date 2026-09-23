@@ -153,3 +153,24 @@ Status: ACTIVE / AUDIT STATUS: VERIFIED / PFAD B DISCOVERABILITY VERIFIED
   * tests/test_metadata.py updated and expanded with contract tests for 18-point navigation anchors, § 521 BGB statutory disclaimer, NOTICE attribution, Level 1 SBOM invariants, target personas, and comparative matrix.
 - Verification State:
   * Suite verified passing (100% green).
+
+================================================================================
+9. PFAD A REPOSITORY HYGIENE, CI LIFECYCLE WORKFLOWS, LOCK DEFENSE & SBOM RE-AUDIT (2026-09-23)
+================================================================================
+- CI Lifecycle Workflows & Multi-OS Matrix Parity:
+  * Established .github/workflows/welcome.yml (actions/first-interaction@v3, timeout-minutes: 5, concurrency cancel-in-progress, least-privilege permissions issues: write, pull-requests: write).
+  * Hardened .github/workflows/stale.yml with automated concurrency cancellation (cancel-in-progress: true).
+  * Maintained 12-runner Multi-OS CI matrix across Ubuntu, Windows, macOS on Python 3.10-3.13 with 15-minute timeout.
+- Canonical Lock & Multi-Host Sync Defense in .gitignore:
+  * Codified canonical fleet lock protection: LOCK.user.*, LOCK.until.*, LOCK.condition.*, LOCK.permissions.json, .automation-lock.
+  * Added hardware/host conflict copy patterns: *-ASUS*, *-LAPTOP*, *-Mac Studio*, *-MacBook*.
+  * Added test-cache and tooling ignores: .pytest_temp/, .pytest_tmp*/, .hypothesis/, .tox/ and exception !package-lock.json.
+- Packaging & Tooling in pyproject.toml:
+  * Maintained strictly frozen release version 0.4.0 per T-20260920-167562623.
+  * Added canonical Notice URL to [project.urls] pointing to root NOTICE.
+  * Hardened [tool.pytest.ini_options] with norecursedirs.
+- Level 1 SBOM Re-Audit (THIRD_PARTY_LICENSES.md):
+  * Re-audited zero-runtime-dependency core (dependencies = []) and permissive licenses (MIT, Apache-2.0, BSD-3-Clause, PSFL-2.0).
+  * Verified unprivileged user-mode execution (RunAsInvoker) and 10 Governance & Runtime Invariants (INV-LOCAL-01 to INV-SLA-10).
+- Contract Test Suite Expansion:
+  * Expanded tests/test_metadata.py with contract validations for welcome workflow, stale concurrency, notice URL, and canonical locks.
