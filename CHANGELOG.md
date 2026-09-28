@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+- **Pfad B Discoverability, ASCII Vier-Ansichten-Architekturprojektion & Zweisprachige Dokumentationsparität:**
+  - **ASCII Vier-Ansichten-Architekturprojektion:** Zweisprachige visuelle Topologieprojektion in Abschnitt 2 von `README.md` und `README_de.md` implementiert (`[VIEW 1: PUBLISHER NODE]`, `[VIEW 2: SHARED TRANSIT YARD]`, `[VIEW 3: SUBSCRIBER NODE]`, `[VIEW 4: REPUBLICA SHOWCASE / COURIER ENVELOPE]`) zur schnellen textuellen Erfassung des Zero-Trust-Datenflusses und der Isolationsgrenzen ohne grafischen Render-Bedarf.
+  - **Zweisprachige Vollständigkeit & Tiefenparität in `README_de.md`:** Abschnitte 11 bis 14 vollständig auf englische Dokumentationstiefe synchronisiert; Secrets-Manager-Vergleichstabelle (Vaultwarden, SOPS + age, pass, KeePassXC, Infisical), redundante Modi-Vergleichstabelle (Direct Sync vs. Republica Showcase), versiegelter Kurier-Umschlag-Workflow (`envelope-send`/`envelope-receive`, Dateiberechtigungen `0600`), HMAC-Authenticator-API (`HMACKeyReference`, `load_hmac_authenticator`), `SnapshotRetentionPolicy` und synthetischer BACH-Referenzabgleich integriert.
+  - **Metadaten- & CI-Vertragstestsuite (`tests/test_metadata.py`):** Neue Vertragstests `test_ascii_architecture_parity` und `test_bilingual_sections_depth_and_tables` implementiert; Validierung von 150 Tests und 43 Subtests bei 100% grüner CI-Suite [G 2026-09-28].
+
 - **Pfad A Technische Hygiene, CI-Workflow-Härtung, Lock- & Cache-Schutz und Level 1 SBOM Re-Audit:**
   - **CI-Lifecycle-Workflows:** `.github/workflows/welcome.yml` mit `actions/first-interaction@v3`, `timeout-minutes: 5`, Concurrency-Gruppe mit `cancel-in-progress: true` und Least-Privilege-Permissions (`issues: write`, `pull-requests: write`) für Erstbeitragende etabliert; `.github/workflows/stale.yml` um Concurrency-Abbruch veralteter Läufe (`cancel-in-progress: true`) gehärtet.
   - **Multi-Host & Canonical Lock Defense in `.gitignore`:** Schutz vor versehentlichem Commit von Multi-Host-Synchronisationskonflikten und Flotten-Locks erweitert um kanonische Lock-Muster (`LOCK.user.*`, `LOCK.until.*`, `LOCK.condition.*`, `LOCK.permissions.json`, `.automation-lock`), gerätespezifische Konfliktkopien (`*-ASUS*`, `*-LAPTOP*`, `*-Mac Studio*`, `*-MacBook*`), Test-Caches (`.pytest_temp/`, `.pytest_tmp*/`, `.hypothesis/`, `.tox/`) und Safe-Guard für `!package-lock.json`.

@@ -4,7 +4,7 @@
 
 [![CI](https://github.com/ellmos-ai/sqlite-transit-sync/actions/workflows/ci.yml/badge.svg)](https://github.com/ellmos-ai/sqlite-transit-sync/actions/workflows/ci.yml)
 [![Version](https://img.shields.io/badge/version-0.4.0-blue.svg)](CHANGELOG.md)
-[![Tests](https://img.shields.io/badge/tests-148%20passed%20%7C%2043%20subtests%20%7C%20100%25%20green-brightgreen.svg)](#tests-und-qualitaetssicherung)
+[![Tests](https://img.shields.io/badge/tests-150%20passed%20%7C%2043%20subtests%20%7C%20100%25%20green-brightgreen.svg)](#tests-und-qualitaetssicherung)
 [![Python Version](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12%20%7C%203.13-blue.svg)](https://www.python.org/)
 [![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20Linux%20%7C%20macOS-informational.svg)](#)
 [![Privacy](https://img.shields.io/badge/privacy-100%25%20Offline%20%7C%20Zero--Egress-brightgreen.svg)](#)
@@ -136,6 +136,60 @@ flowchart TD
     DB_A -.-> REP_EXP
     REP_EXP --> REP_FER
     REP_FER --> REP_RO
+```
+
+### ASCII Vier-Ansichten-Architekturprojektion
+
+```text
++-------------------------------------------------------------------------------------------------------------------+
+|                               SQLITE-TRANSIT-SYNC: VIER-ANSICHTEN-ARCHITEKTURTOPOLOGIE                            |
++-------------------------------------------------------------------------------------------------------------------+
+| [VIEW 1: PUBLISHER NODE]               [VIEW 2: SHARED TRANSIT YARD]              [VIEW 3: SUBSCRIBER NODE]       |
+| [ANSICHT 1: PUBLISHER-KNOTEN]          [ANSICHT 2: GEMEINSAMER TRANSIT-ORDNER]    [ANSICHT 3: SUBSCRIBER-KNOTEN]   |
+|                                                                                                                   |
+| +-------------------------+              +-----------------------------+            +---------------------------+ |
+| | Lokale SQLite-Datenbank |              |  Geschlossene Transitzone   |            | Path-Traversal-Schutz     | |
+| | (app.db - Exklusiv RW)  |              |  (Ordner / Sync-Master / S3)|            | (Kanonische Grenzen)      | |
+| +------------+------------+              +--------------+--------------+            +-------------+-------------+ |
+|              |                                          ^                                         |               |
+|              v (sqlite3.backup)                         |                                         v               |
+| +------------+------------+                             |                           +-------------+-------------+ |
+| | Konsistentes Backup     |                             |                           | SHA-256 Digest & HMAC     | |
+| | (Rollback-Journal-Modus)|                             |                           | Signatur-Verifikation     | |
+| +------------+------------+                             |                           +-------------+-------------+ |
+|              |                                          |                                         |               |
+|              v                                          |                                         v               |
+| +------------+------------+                             |                           +-------------+-------------+ |
+| | Reduktion & VACUUM      |                             |                           | SQLite PRAGMA quick_check | |
+| | (Sensible Daten tilgen) |                             |                           | (Integritätsprüfung)      | |
+| +------------+------------+                             |                           +-------------+-------------+ |
+|              |                                          |                                         |               |
+|              v                                          |                                         v               |
+| +------------+------------+                             |                           +-------------+-------------+ |
+| | Credential Shield       |                             |                           | Transaktionaler Merge     | |
+| | (13+ Regex-Musterfamil.)|                             |                           | (Row-Level LWW / Drift)   | |
+| +------------+------------+                             |                           +-------------+-------------+ |
+|              |                                          |                                         |               |
+|              v                                          |                                         v               |
+| +------------+------------+              +--------------+--------------+            +-------------+-------------+ |
+| | HMAC-SHA256 Signierer   |              |  *.snapshot.sqlite (Atomar) |            | Lokale SQLite-Datenbank   | |
+| | (Schlüsselbund-Prüfer)  |------------->|  *.manifest.json   (Digest) |----------->| (app.db - Integrierter St)| |
+| +-------------------------+              |  Retention-Engine  (Lokal)  |            +-------------+-------------+ |
+|                                          +-----------------------------+                          |               |
+|                                                                                                   v               |
+|                                                                                     +-------------+-------------+ |
+|                                                                                     | Lokales Status-Ledger     | |
+|                                                                                     | (node-state.json)         | |
+|                                                                                     +---------------------------+ |
++-------------------------------------------------------------------------------------------------------------------+
+| [VIEW 4: REPUBLICA SHOWCASE / COURIER ENVELOPE (OPTIONAL ZERO-TRUST TRANSPORT)]                                   |
+| [ANSICHT 4: REPUBLICA-SCHAUFENSTER / KURIER-UMSCHLAG (OPTIONALER ZERO-TRUST TRANSPORT)]                          |
+|                                                                                                                   |
+| Lokale Datenbank ----> SQL-Dump-Extrakt ----> Gzip-Kompression ----> AES-128-CBC (Fernet) ----> Verschlüsselt    |
+| (Quell-Knoten)        (FTS lokal neu gebaut)  (53MB -> 11MB)         (Pre-Shared Key)        (republica_root/)    |
+|                                                                                                                   |
+| Einzelnes Secret ----> Fernet-Chiffre-Umschlag ----> Kurier-Transit ----> Zielverzeichnis (0600, Transit geleert) |
++-------------------------------------------------------------------------------------------------------------------+
 ```
 
 ---
@@ -483,8 +537,11 @@ config_sha256 = hashlib.sha256(payload).hexdigest()
 
 `snapshot_exclude_tables` kann nur Tabellen leeren, die vorher bekannt waren.
 Der Scan beantwortet die Frage, die diese Regel nicht abdeckt: *Wurden Zugangsdaten
-in eine Freitextspalte eingefügt?* Bei einem Treffer wird `SyncError` ausgelöst
-und `tabelle.spalte` benannt; der Wert selbst taucht nirgendwo auf.
+in eine Freitextspalte eingefügt?* — eine Notiz, ein Logfile, eine Sitzungszusammenfassung?
+Er wird auf der Snapshot-Kopie nach der Schwärzung und vor der Veröffentlichung ausgeführt.
+Bei einem Treffer wird `SyncError` ausgelöst und `tabelle.spalte` benannt; der Wert selbst
+taucht nirgendwo in Logs, Tracebacks oder CI-Ausgaben auf. Der unvollständige Snapshot wird
+verworfen, sodass nichts den Transit-Ordner erreicht.
 
 Das Abschalten ist eine legitime Option, wenn der Transit vollständig vertrauenswürdig ist:
 
@@ -492,12 +549,59 @@ Das Abschalten ist eine legitime Option, wenn der Transit vollständig vertrauen
 { "scan_snapshot_for_secrets": false }
 ```
 
+Bevorzugen Sie `secret_scan_skip_tables`, wenn nur eine einzelne Tabelle Fehlalarme erzeugt:
+Den Scan überall sonst aktiv zu halten, bietet mehr Schutz als ein globales Deaktivieren.
+
+### Trigger anpassen
+
+Muster liegen in Daten, nicht in Code — `sqlite_transit_sync/credential-triggers.json` —
+sodass die Erkennung im Laufe der Zeit geschärft werden kann, ohne auf ein neues Release zu warten:
+
+```json
+{
+  "version": 1,
+  "patterns": [
+    { "name": "github", "regex": "gh[pousr]_[A-Za-z0-9]{16,}", "prefilter": "gh" },
+    { "name": "acme-internal", "regex": "ACME-[0-9]{4}", "prefilter": "ACME-" }
+  ]
+}
+```
+
+- `prefilter` ist ein optionales Literal, das als günstiger SQL-`LIKE`-Vorfilter dient,
+  damit auch große Snapshots performant bleiben. Es **muss** in jedem Wert vorkommen,
+  auf den der Regex zutreffen kann, da sonst Fundstellen übersehen werden. Fehlt ein
+  solches Literal, entfällt der Vorfilter — der Scanner liest die Spalte dann zur Korrektheit
+  vollständig aus.
+- Setzen Sie `secret_patterns_file` auf Ihre eigene Datei, um die Standardmuster vollständig
+  zu ersetzen, oder nutzen Sie `secret_scan_extra_patterns`, um zusätzliche Muster zu ergänzen.
+
+Die Muster sind bewusst herstellerbezogen mit Präfixen versehen. Eine allgemeine Regel wie
+„lange hexadezimale Zeichenkette“ würde Prüfsummen, UUIDs und Git-SHAs fälschlich markieren,
+die legitime Datenbankinhalte darstellen — und ein Scanner mit hoher Falsch-Positiv-Rate
+wird in der Praxis deaktiviert, was jeglichen Schutz zunichtemacht. Behandeln Sie einen
+sauberen Scan als „kein bekanntes Muster hat angeschlagen“, niemals als „dieser Snapshot
+ist garantiert frei von Geheimnissen“.
+
 ### Dies ist kein Secrets-Manager
 
-Der Scan **entfernt** Zugangsdaten aus dem Synchronisationspfad. Er
-**verteilt** sie nicht. Für geteilte Kennwörter oder API-Schlüssel eignen sich
-Passwortmanager wie Vaultwarden, KeePassXC über Syncthing, `pass` mit Git,
-SOPS oder plattformnative Speicher wie Keychain und Windows DPAPI.
+Der Scan **entfernt** Zugangsdaten aus dem Synchronisationspfad. Er **verteilt** sie nicht.
+Wenn das eigentliche Problem darin besteht, dass mehrere Rechner dieselben Passwörter oder
+API-Schlüssel benötigen, ist dieses Modul das falsche Werkzeug — ebenso wie jeder Cloud-Dokumentenordner.
+Wählen Sie stattdessen einen dieser Ansätze; alle halten den Klartext von unkontrollierten
+Cloud-Providern fern:
+
+| Ansatz | Geeignet für | Hinweise |
+|---|---|---|
+| **Vaultwarden** (selbst gehostetes Bitwarden) | Menschen + CLI auf mehreren Rechnern | Läuft auf einem kleinen Always-On-Gerät; Zugriff über privates Netzwerk (WireGuard, Tailscale) statt öffentlicher Freigabe. Offizielle Bitwarden-Clients, Browser-Erweiterungen und CLI `bw` funktionieren direkt. |
+| **SOPS + age** | Geheimnisse direkt neben dem Code | Verschlüsselte Dateien können sicher committet und synchronisiert werden, da nur Chiffretext transportiert wird. Empfängerspezifische Schlüssel, ideal für Git-Reviews. |
+| **`pass`** (GPG) + Git | Einzelanwender und kleine Teams mit Unix-Fokus | Eine Datei pro Geheimnis, gewöhnlicher Git-Remote, keinerlei Server erforderlich. |
+| **KeePassXC über Syncthing** | Ohne Server, ohne Cloud-Konto | Peer-to-Peer Dateisynchronisation; der Tresor bleibt eine einzelne verschlüsselte Datei. |
+| **Infisical / OpenBao (Vault-Fork)** | Teams, Maschinen-Identitäten, Rotation | Ausgewachsene Secrets-Server mit Audit-Logs und dynamischen Credentials — oft mehr Infrastruktur als im Heimbereich nötig. |
+| **Plattform-native Speicher** | Ein Rechner, eine Anwendung | macOS Keychain, Windows DPAPI / Credential Manager, `systemd-creds` oder CI-Secret-Stores. Keine Synchronisation, aber auch keine Exposition. |
+
+Unabhängig von der Wahl gilt die zentrale Trennung: **Ein Kanal für Daten, ein separater Kanal für Zugangsdaten.**
+Die Aufgabe dieses Moduls besteht darin sicherzustellen, dass der Datenkanal niemals unbemerkt zum Zugangsdatenkanal
+wird — und genau das erzwingt der Scanner.
 
 ---
 
@@ -506,9 +610,49 @@ SOPS oder plattformnative Speicher wie Keychain und Windows DPAPI.
 
 Jeder Rechner legt ein **verschlüsseltes Schaufenster** seiner Datenbank in
 einem gemeinsamen Dateibereich ab. Alle anderen Rechner können hineinsehen;
-keiner kann Änderungen zurückschreiben.
+keiner kann Änderungen zurückschreiben. Daher der Name — eine Wiederveröffentlichung
+(Re-Publication) einer Datenbank, die ausschließlich von Inhabern des Schlüssels
+gelesen werden kann.
+
+Nutzen Sie diesen Modus, wenn `push`/`pull` nicht passt: Sie möchten *lesen*,
+was ein anderer Knoten weiß, ohne es in Ihre eigenen Zeilen zusammenzuführen,
+oder die Rechner teilen ausschließlich einen Ordner — kein Server, keine offenen Ports,
+kein komplexes Trust-Setup — und dieser Ordner darf Ihre Inhalte nicht im Klartext sehen.
+
+### Zwei bewusst redundante Betriebsmodi
+
+Republica ist **kein Provisorium, bis ein Netzwerk-Tunnel existiert.** Es ist der
+zweite von zwei Modi, die bewusst nebeneinander betrieben werden, damit der Ausfall
+eines Pfades den anderen nicht blockiert:
+
+| Ausfall / Störung | Direkter Sync (`push`/`pull`) | Republica |
+|---|---|---|
+| Ein Rechner schläft oder ist offline | pausiert (kein Peer erreichbar) | funktioniert weiter — jetzt ablegen, später abholen |
+| VPN/SSH ausgefallen, Netzwerk blockiert Tunnel | pausiert | funktioniert über den Dateibereich weiter |
+| Schlüssel-Rotation oder Trust-Setup ausstehend | pausiert | funktioniert mit dem gemeinsamen Schlüssel weiter |
+| Geteilter Ordner defekt, voll oder desynchronisiert | funktioniert weiter | pausiert |
+| Keine Merge-Policy für Datensatz vereinbart | nicht anwendbar | funktioniert weiter — nichts wird zusammengeführt |
+
+Der wesentliche Nutzen liegt darin, dass Republica an dem Tag funktioniert, an dem
+der direkte Pfad gestört ist. Halten Sie diesen Modus daher auch bei funktionierendem
+Direkt-Sync konfiguriert und erprobt.
+
+### Einrichtungsaufwand: Einmalige Schlüsselübertragung
+
+Der gemeinsame Schlüssel muss die anderen Rechner über **einen Kanal erreichen, der
+nicht der Dateitransport selbst ist** — ein bestehender verschlüsselter Tunnel, ein
+Passwortmanager, ein USB-Stick oder das Vorlesen am Telefon. Einmalig. Danach genügt
+dauerhaft ein einfacher gemeinsamer Ordner, selbst wenn dieser nicht vertrauenswürdig ist.
+
+```text
+republica_root/
+  laptop/my-app.sqlite      <- schreibgeschütztes Schaufenster der Laptop-Datenbank
+  workstation/my-app.sqlite <- schreibgeschütztes Schaufenster der Workstation-Datenbank
+```
 
 ```bash
+# Einmalig pro Schlüssel auf lokaler Festplatte - niemals im Transit, niemals im Cloud-Sync-Ordner.
+# Datei anschließend out-of-band auf andere Rechner kopieren; dort KEIN keygen ausführen.
 sqlite-transit-sync keygen --key-file ~/.keys/republica.key
 
 sqlite-transit-sync init --config node.json \
@@ -516,22 +660,59 @@ sqlite-transit-sync init --config node.json \
   --node-id laptop --namespace my-app \
   --key-file ~/.keys/republica.key
 
-sqlite-transit-sync republica-publish --config node.json
-sqlite-transit-sync republica-list    --config node.json
-sqlite-transit-sync republica-import  --config node.json
+sqlite-transit-sync republica-publish --config node.json   # verschlüsseln und veröffentlichen
+sqlite-transit-sync republica-list    --config node.json   # Angebote anderer Knoten einsehen
+sqlite-transit-sync republica-import  --config node.json   # lokal als schreibgeschützte Ansicht materialisieren
 ```
 
 Erfordert das optionale Krypto-Paket: `pip install 'sqlite-transit-sync[crypto]'`.
 
+**Was übertragen wird:** Nicht die Datenbankdatei selbst, sondern ein kuratierter
+SQL-Dump, gzip-komprimiert und mit Fernet verschlüsselt. Bei einer 53,6 MB großen
+Wissensdatenbank sind dies lediglich 11,0 MB im Transit, da interne FTS-Volltextindizes
+bei Ankunft lokal neu aufgebaut statt übertragen werden (35.370 von 49.636 Dump-Befehlen).
+Die Veröffentlichung durchläuft dieselben Gates wie ein Merge-Snapshot — Schwärzung,
+Secret-Scan, `quick_check` und Manifest-Prüfung.
+
+**Was geschützt ist:** Der Transportweg sieht ausschließlich Chiffretext, und Fernets
+HMAC erkennt gezielte Manipulationen selbst dann, wenn der Hash des Manifests angepasst wurde.
+
+**Was nicht geschützt ist:** Fernet authentifiziert den *Schlüssel*, nicht den *Absender* —
+jeder Besitzer des Schlüssels kann gültige Snapshots veröffentlichen. Genau deshalb
+wird das Schaufenster separat gehalten und niemals automatisch in die lokale Datenbank
+zusammengeführt. Halten Sie den Schlüssel aus dem Transit fern: Ein Schlüssel im
+Transit-Verzeichnis wird abgewiesen, ebenso wie in synchronisierten Ordnern (außer Kraft
+setzbar mit `allow_key_in_synced_folder`). Dasselbe gilt für `republica_root` — eine
+entschlüsselte Replik im Transit würde unverschlüsselt verteilt.
+
+**Einschränkung:** Ein Volltextindex ohne eigenen Inhalt (`content=''`) kann nicht neu
+aufgebaut werden, da die Quelldaten fehlen. Solche Tabellen werden im Manifest als
+`contentless_fts` ausgewiesen, statt stillschweigend leer zu bleiben.
+
 ### Versiegelter Umschlag: Eine Datei, derselbe Kanal, niemals eine Datenbank
+
+Das Bootstrap-Problem: Zwei Rechner teilen *noch* keinen sicheren Kanal, und genau
+deshalb muss ein Secret übertragen werden. Derselbe Schlüssel und derselbe Ordner
+können eine einzelne verschlüsselte Datei transportieren:
 
 ```bash
 sqlite-transit-sync envelope-send    --config node.json --file ./api-token.txt --label api-token
 sqlite-transit-sync envelope-receive --config node.json --into ~/credentials
 ```
 
-Die Datei kommt als Datei mit Rechten `0600` an (`<quell-knoten>__<dateiname>`)
-und wird nach Empfang aus dem Transit gelöscht.
+Die Datei kommt **als Datei** mit Dateirechten `0600` an, benannt als
+`<quell-knoten>__<dateiname>`, und gelangt niemals in eine Datenbank — ein Geheimnis
+in einer Datenbank wird von jedem Backup, Index und Sync weiterkopiert. Notizen
+sollten festhalten, wo ein Secret liegt, niemals das Secret selbst.
+
+Zwei Schaufenster-Regeln sind hier bewusst invertiert: Der **Credential-Scan greift nicht**
+(er würde den Transport des eigentlichen Secrets blockieren), und der Umschlag wird
+nach Empfang **aus dem Transit gelöscht**, damit kein Geheimnis im gemeinsamen Ordner
+verbleibt. Das Entsiegeln in den Transit oder in Cloud-Sync-Ordner wird verweigert,
+und der Dateiname wird bei Ankunft re-sanitisiert, um Path-Traversal zu verhindern.
+
+Dies ist ein Kurierdienst, kein Passwortmanager und keine Dateisynchronisation —
+halten Sie Umschläge selten und klein.
 
 ---
 
@@ -555,7 +736,11 @@ print(
 )
 ```
 
+`pull_selected()` akzeptiert ausschließlich explizit benannte Snapshots, die aktuell ausstehend sind, und nutzt dieselben Verifikations-, Merge- und Status-Gates wie `pull()`. Ein schlanker Lifecycle-Adapter kann so gezielt einen berechtigten Snapshot auswählen, ohne die Datenmechanik des Trägers zu duplizieren.
+
 ### Optionale authentifizierte Manifeste und Vorabprüfung
+
+Eine integrierende Anwendung kann Schlüssel mit nicht-geheimen `HMACKeyReference`-Werten beschreiben. `load_hmac_authenticator()` bezieht die Schlüsselbytes ausschließlich über einen injizierten `SecretResolver`; `OSKeyringSecretResolver` ist ein optionaler, träge ladender Adapter für das separat installierbare `keyring`-Paket. JSON-Konfiguration und CLI transportieren niemals Schlüsselmaterial:
 
 ```python
 from sqlite_transit_sync import (
@@ -583,13 +768,26 @@ snapshot = verify_authenticated_snapshot(
 )
 ```
 
-### Tombstone-Referenz-Policy
+Der Referenz-Adapter nutzt Shared-Key HMAC-SHA256, keine nicht-abstreitbaren asymmetrischen Signaturen. Seine kanonische Nutzlast umfasst Protokoll, Namespace, Knoten, Snapshot-Name, SHA-256, Dateigröße, Schwärzungsliste und den Algorithmus-/Schlüssel-/Absender-/Vertrauensquellen-Header. Behalten Sie alte Schlüssel während einer Rotation im Schlüsselbund des Verifizierers. Ein konfigurierter Verifizierer weist fehlende, ungültige, fremde oder nicht übereinstimmende Signaturen ab. Der explizite Preflight prüft vor dem Hashen auch auf fehlende Dateien und SQLite-Sidecars; er öffnet niemals SQLite, führt keine Zeilen zusammen und verändert keinen Synchronisationsstatus. Sein Erfolg authentifiziert die benannten Dateibytes, nicht deren SQLite-Schema oder Anwendungssemantik. `TransitSync(..., authenticator=auth)` steht bestehenden Aufrufern weiterhin zur Verfügung; ein bereits verarbeiteter Replay ist ein statusgestützter No-Op, keine Frischegarantie. Frische und Schlüsselspeicherung bleiben Aufgaben der Anwendung.
+
+### Tombstone-Referenz-Richtlinie
+
+Für Anwendungen, die Löschungen abbilden müssen, rufen Sie `ensure_tombstone_table()` während der eigenen Schema-Einrichtung auf und nutzen Sie `TombstoneMergePolicy`:
 
 ```python
 from sqlite_transit_sync import TombstoneMergePolicy, ensure_tombstone_table
+
+# Bei der Schema-Initialisierung der Anwendung:
+ensure_tombstone_table(db_connection)
 ```
 
-### Snapshot-Aufbewahrung (Retention)
+Die reservierte Tabelle speichert `table_name`, ein kanonisches JSON-Array der Primärschlüssel-Werte und `deleted_at` als Löschzeitstempel. Ein Tombstone gewinnt bei Gleichstand und gegen ältere Zeilen; ein späterer Zeilen-Zeitstempel kann den Schlüssel wieder auferstehen lassen (Resurrection). Der Adapter leitet Löschungen niemals aus fehlenden Zeilen ab und bereinigt Tombstones niemals eigenmächtig, sodass die Aufbewahrungsdauer das maximale Offline-Intervall abdecken muss. Unbekannte Tabellen und Schema-Abweichungen bleiben geschützt oder schlagen fehl; es wird keine automatische Migration versucht.
+
+Übergeben Sie ein Objekt, das `MergePolicy.merge(local, remote, snapshot)` implementiert, an `TransitSync`, wenn das standardmäßige Zeitstempel-LWW nicht ausreicht.
+
+### Opt-in Snapshot-Aufbewahrung (Retention)
+
+Die Bereinigung veralteter Snapshots ist explizit und standardmäßig ein Dry-Run. Sie leitet Löschungen niemals aus Dateinamen ab: Nur ein verifizierter Snapshot im konfigurierten Namespace, der dem aktuellen Knoten gehört, nicht mehr ausstehend ist und durch die `acknowledge`-Callback der Anwendung bestätigt wurde, kommt infrage. Fremde, unbekannte, unvollständige, unbestätigte oder nicht verifizierte Artefakte bleiben unangetastet erhalten. Altersgrenzen sind strikt (`age > max_age`); `keep_latest` und `max_age` können kombiniert werden:
 
 ```python
 from datetime import timedelta
@@ -601,22 +799,38 @@ policy = SnapshotRetentionPolicy(
     acknowledge=lambda snapshot: application_has_acked(snapshot),
 )
 report = sync.apply_retention(policy, dry_run=True, audit_path="retention-report.json")
+# Erst nach Prüfung der geplanten Pfade und Begründungen anwenden:
 report = sync.apply_retention(policy, dry_run=False, audit_path="retention-report.json")
 ```
+
+Die Anwendung liest und verifiziert jedes geplante Paar erneut, löscht ausschließlich den exakten Snapshot und sein Manifest, protokolliert Fehler ohne pauschale Bereinigung und kann sicher wiederholt werden. Sidecars und unvollständige Artefakte bleiben erhalten. Dies ist ein neutraler Kernvertrag, kein spezifischer BACH-Retention-Adapter.
+
+### Synthetischer BACH-Goldstandard-Vergleich
+
+Vor jedem BACH-Kompatibilitätsadapter kann der hinterlegte synthetische Vergleichslauf ausgeführt werden:
+
+```bash
+python scripts/compare_bach_golden.py --output golden/bach_compatibility_report.json
+```
+
+Die sieben Test-Szenarien decken geschlossene Backups, Manifest-/Integritätsfehler, Schwärzungs-/Secret-Abbruch, Zeitstempel-/Schema-Merge, Pull-Bestätigung, Rollback und Aufbewahrungs-Ownership ab. Der Bericht verbleibt bewusst im Zustand `blocked_no_authorized_bach_golden`, bis autorisierte BACH-Referenzergebnisse für jedes Szenario vorliegen.
 
 ---
 
 <a id="sicherheit-und-grenzen"></a><a id="bedrohungsmodell"></a>
 ## 14. Sicherheit, Bedrohungsmodell & Betriebsgrenzen
 
-- Eine aktive SQLite-Datenbank niemals aus einem Netzwerk- oder Cloud-Synchronisierungsordner öffnen.
-- Zustandsdateien bleiben außerhalb des gemeinsamen Transits; gleiche oder untergeordnete Pfade werden vor jedem Schreibzugriff abgewiesen.
-- Manifeste dürfen nur einen einzelnen relativen Snapshot-Dateinamen nennen; Containment- und Link-Prüfungen laufen vor SHA-256 und Merge.
-- SHA-256 erkennt Beschädigung, authentifiziert aber keinen feindlichen Transport.
-- HMAC ist eine optionale Shared-Key-Identitätsprüfung, kein Secrets-Manager oder Frischeprotokoll.
-- Standard-LWW setzt vergleichbare Zeitstempel voraus und leitet keine Löschungen ab.
-- Tabellen ohne Primärschlüssel oder Zeitstempelspalte werden übersprungen.
-- Pro Knoten darf ohne zusätzlichen Prozess-Lock der Host-Anwendung nur ein Synchronisierungsprozess laufen.
+- **Keine Netzwerk-Datenbanken**: Eine aktive SQLite-Datenbank niemals aus einem Netzwerk- oder Cloud-Synchronisierungsordner öffnen.
+- **Isolierter lokaler Status**: Zustandsdateien bleiben außerhalb des gemeinsamen Transits; gleiche oder untergeordnete Pfade werden vor jedem Schreibzugriff abgewiesen.
+- **Strikte Pfad-Begrenzung**: Manifeste dürfen nur einen einzelnen relativen Snapshot-Dateinamen nennen; Containment- und Link-/Reparse-Prüfungen laufen vor SHA-256, SQLite-Verifikation und Merge.
+- **Integrität vs. Authentizität**: SHA-256 erkennt Beschädigungen, authentifiziert aber keinen feindlichen Transport.
+- **HMAC-Geltungsbereich**: HMAC ist eine optionale Shared-Key-Identitätsprüfung, kein Secrets-Manager, kein Frischeprotokoll und keine asymmetrische Signatur.
+- **LWW-Voraussetzungen**: Standard-LWW setzt vergleichbare Zeitstempel voraus und leitet keine Löschungen ab.
+- **Verbindliche Primärschlüssel**: Tabellen ohne Primärschlüssel oder Zeitstempelspalte werden beim Merge übersprungen.
+- **Deterministische Tie-Breaker**: Gleiche Zeitstempel konvergieren über einen deterministischen Inhalts-Hash-Tie-Breaker; dies ist ein technischer Fallback, kein Ersatz für fachliche Domänenregeln.
+- **Schwärzung & Reduktion**: Die Snapshot-Schwärzung löscht gelistete Tabellen und führt ein `VACUUM` aus. Sie muss dennoch alle sensiblen Tabellen explizit nennen; das generische Modul kann Domänengeheimnisse nicht erraten.
+- **Verantwortungsbereich der Anwendung**: Anwendungsmigrationen, Uhrensynchronisation, Retention-Parameter und Konfliktsemantik verbleiben bei der integrierenden Anwendung. `cleanup` stellt ausschließlich die Mechanismen bereit.
+- **Prozess-Serialisierung**: Pro Knoten darf ohne zusätzlichen Prozess-Lock der Host-Anwendung nur ein Synchronisierungsprozess laufen.
 
 Siehe [ARCHITECTURE.md](ARCHITECTURE.md), [README.md](README.md) und [SECURITY.md](SECURITY.md).
 

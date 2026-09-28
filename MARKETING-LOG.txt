@@ -174,3 +174,20 @@ Status: ACTIVE / AUDIT STATUS: VERIFIED / PFAD B DISCOVERABILITY VERIFIED
   * Verified unprivileged user-mode execution (RunAsInvoker) and 10 Governance & Runtime Invariants (INV-LOCAL-01 to INV-SLA-10).
 - Contract Test Suite Expansion:
   * Expanded tests/test_metadata.py with contract validations for welcome workflow, stale concurrency, notice URL, and canonical locks.
+================================================================================
+10. PFAD B DISCOVERABILITY, ASCII FOUR-VIEW TOPOLOGY & BILINGUAL PARITY (2026-09-28)
+================================================================================
+- ASCII Four-View Architectural Projection:
+  * Section 2 of both README.md and README_de.md enriched with an exhaustive text-based ASCII Four-View Architectural Topology diagram.
+  * Captures Publisher Node (online backup, redaction, vacuum, credential shield, HMAC-SHA256 signer), Shared Transit Yard (atomic snapshot, manifest digest, conservative retention), Subscriber Node (path traversal containment, SHA-256 digest & HMAC verification, PRAGMA quick_check, transactional row-level LWW merge, local ledger), and View 4 (Republica Showcase / Courier Envelope optional zero-trust transport).
+  * Enables instant terminal-based and text-reader architectural comprehension without browser/Mermaid dependencies.
+- Full Bilingual Depth & Completeness Parity in README_de.md:
+  * Synchronized Sections 11 through 14 of German documentation to full English parity (expanded from 739 to 953 lines).
+  * Added complete Secrets Manager comparison table (Vaultwarden, SOPS + age, pass, KeePassXC, Infisical, Platform Keychains).
+  * Added Redundant Modes Comparison table (Direct Synchronisation vs. Republica Schaufenster), transport guarantees, setup cost, and compression metrics (53.6 MB -> 11.0 MB).
+  * Documented Sealed Courier Envelope workflow (envelope-send, envelope-receive, transit purge, 0600 file permissions).
+  * Documented Python API additions: pull_selected(), HMACKeyReference, load_hmac_authenticator(), SnapshotRetentionPolicy, and compare_bach_golden.py.
+  * Parity in Section 14: comprehensive threat model, operational boundaries, and zero-egress guarantees.
+- Contract Test Suite Expansion:
+  * tests/test_metadata.py updated with test_ascii_architecture_parity and test_bilingual_sections_depth_and_tables.
+  * Full test suite passing 100% green: 150 passed, 43 subtests.

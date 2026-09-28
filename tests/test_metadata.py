@@ -532,7 +532,36 @@ class TestMetadata(unittest.TestCase):
         ]:
             self.assertIn(pattern, content, f"Pattern '{pattern}' missing from .gitignore")
 
+    def test_ascii_architecture_parity(self):
+        """Both READMEs must provide the complete ASCII Four-View Architectural Projection."""
+        for fname in ["README.md", "README_de.md"]:
+            content = (ROOT / fname).read_text(encoding="utf-8")
+            self.assertTrue(
+                "FOUR-VIEW ARCHITECTURAL TOPOLOGY" in content or "VIER-ANSICHTEN-ARCHITEKTURTOPOLOGIE" in content,
+                f"Missing ASCII title in {fname}",
+            )
+            self.assertIn("[VIEW 1: PUBLISHER NODE]", content, f"Missing View 1 in {fname}")
+            self.assertIn("[VIEW 2: SHARED TRANSIT YARD]", content, f"Missing View 2 in {fname}")
+            self.assertIn("[VIEW 3: SUBSCRIBER NODE]", content, f"Missing View 3 in {fname}")
+            self.assertIn("[VIEW 4: REPUBLICA SHOWCASE / COURIER ENVELOPE", content, f"Missing View 4 in {fname}")
+
+    def test_bilingual_sections_depth_and_tables(self):
+        """Both READMEs must maintain depth parity with secrets table, redundant modes table, and envelope courier."""
+        for fname in ["README.md", "README_de.md"]:
+            content = (ROOT / fname).read_text(encoding="utf-8")
+            # Secrets manager comparison table
+            for tool in ["Vaultwarden", "SOPS + age", "pass", "KeePassXC", "Infisical"]:
+                self.assertIn(tool, content, f"Missing secret manager '{tool}' in {fname}")
+            # Sealed envelope courier
+            self.assertIn("envelope-send", content, f"Missing envelope-send in {fname}")
+            self.assertIn("envelope-receive", content, f"Missing envelope-receive in {fname}")
+            self.assertIn("0600", content, f"Missing 0600 file mode in {fname}")
+            # Python API depth
+            self.assertIn("HMACKeyReference", content, f"Missing HMACKeyReference in {fname}")
+            self.assertIn("load_hmac_authenticator", content, f"Missing load_hmac_authenticator in {fname}")
+            self.assertIn("SnapshotRetentionPolicy", content, f"Missing SnapshotRetentionPolicy in {fname}")
+            self.assertIn("compare_bach_golden.py", content, f"Missing compare_bach_golden in {fname}")
+
 
 if __name__ == "__main__":
     unittest.main()
-
