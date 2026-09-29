@@ -5,7 +5,7 @@
   "version": "0.4.0",
   "category": "sync",
   "kind": "library",
-  "status": "development",
+  "status": "active",
   "visibility": "public-candidate",
   "provides": [
     "sync.database",

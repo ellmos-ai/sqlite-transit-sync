@@ -563,5 +563,61 @@ class TestMetadata(unittest.TestCase):
             self.assertIn("compare_bach_golden.py", content, f"Missing compare_bach_golden in {fname}")
 
 
+    def test_todo_md_hygiene_and_status_table(self):
+        """TODO.md must exist with a standardized ## STATUS table and all 10 release gate categories."""
+        todo_file = ROOT / "TODO.md"
+        self.assertTrue(todo_file.is_file(), "TODO.md must exist in repository root")
+        content = todo_file.read_text(encoding="utf-8")
+        self.assertIn("## STATUS", content)
+        categories = [
+            ".gitignore",
+            "README.md",
+            "LICENSE",
+            "Database Files",
+            "Environment Files",
+            "Secrets",
+            "Personal Paths",
+            "Private Data (PII)",
+            "BACH Internals",
+            "TODO.md",
+        ]
+        for cat in categories:
+            self.assertRegex(
+                content,
+                rf"\|\s*{re.escape(cat)}\s*\|\s*:green_circle:\s*\|",
+                f"Category '{cat}' missing or not green in TODO.md STATUS table",
+            )
+        self.assertIn("**Gate Check Exit Code:** `0`", content)
+
+    def test_pep561_py_typed_contract(self):
+        """Package must provide py.typed marker and declare it in package-data."""
+        py_typed = ROOT / "sqlite_transit_sync" / "py.typed"
+        self.assertTrue(py_typed.is_file(), "sqlite_transit_sync/py.typed must exist for PEP 561 compliance")
+        pyproject = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
+        package_data = pyproject["tool"]["setuptools"]["package-data"]["sqlite_transit_sync"]
+        self.assertIn("py.typed", package_data, "py.typed must be declared in package-data in pyproject.toml")
+
+    def test_final_gate_check_compliance(self):
+        """Repository must achieve 10 PASS, 0 FAIL, 0 WARN in final_gate_check.py."""
+        gate_script_candidates = [
+            Path.home() / "OneDrive" / ".TOPICS" / ".AI" / ".MODULES" / "_scripts" / "final_gate_check.py",
+            Path("C:/_Local_DEV/repos/ai-scripts/.MODULES/_scripts/final_gate_check.py"),
+        ]
+        gate_script = next((p for p in gate_script_candidates if p.is_file()), None)
+        if gate_script is None:
+            self.skipTest("final_gate_check.py not found in known environment locations")
+        res = subprocess.run(
+            ["python", str(gate_script), "--repo-path", str(ROOT)],
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+        )
+        self.assertEqual(0, res.returncode, f"final_gate_check.py failed:\n{res.stdout}\n{res.stderr}")
+        cleaned_output = re.sub(r"\x1b\[[0-9;]*m", "", res.stdout)
+        self.assertIn("10 PASS, 0 FAIL, 0 WARN", cleaned_output)
+        self.assertIn("*** READY FOR PUBLIC RELEASE ***", cleaned_output)
+
+
 if __name__ == "__main__":
     unittest.main()

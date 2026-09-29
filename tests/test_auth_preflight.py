@@ -60,7 +60,7 @@ class AuthPreflightTests(unittest.TestCase):
         expected_message: str,
         backend_secret: str,
     ) -> None:
-        outer_secret = "synthetic-prior-backend-secret-sentinel"
+        outer_sentinel = "synthetic-prior-backend-secret-sentinel"
 
         def assert_failure(*, active_outer: bool) -> None:
             with self.subTest(active_outer=active_outer):
@@ -73,11 +73,11 @@ class AuthPreflightTests(unittest.TestCase):
                 self.assertIsNone(error.__cause__)
                 self.assertIsNone(error.__context__)
                 self.assertNotIn(backend_secret, rendered)
-                self.assertNotIn(outer_secret, rendered)
+                self.assertNotIn(outer_sentinel, rendered)
 
         assert_failure(active_outer=False)
         try:
-            raise RuntimeError(outer_secret)
+            raise RuntimeError(outer_sentinel)
         except RuntimeError:
             assert_failure(active_outer=True)
 

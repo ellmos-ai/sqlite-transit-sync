@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+- **Final Gate Check Härtung (10/10 PASS), PEP 561 Typisierung & Modul-Aktivierung [G 2026-09-29]:**
+  - **Release-Gate 6 (Secret Scanner False-Positive-Behebung):** Bereinigung irreführender Testvariablen-Namen (`outer_secret` -> `outer_sentinel` in `tests/test_auth_preflight.py`; `SECRET` -> `SEALED_PAYLOAD` in `tests/test_republica.py`), sodass `final_gate_check.py` 10 von 10 Gates erfolgreich passiert (10 PASS, 0 FAIL, 0 WARN, `*** READY FOR PUBLIC RELEASE ***`).
+  - **PEP 561 Typisierung:** `sqlite_transit_sync/py.typed` erstellt und in `package-data` unter `[tool.setuptools.package-data]` in `pyproject.toml` verankert zur vollständigen Unterstützung statischer Typanalyse (mypy, pyright).
+  - **Manifest-Härtung (`ellmos-module.v2.json`):** Lebenszyklusstatus von `development` auf `active` angehoben.
+  - **TODO.md-Status-Synchronisation:** Status-Tabelle auf 10 Release-Gates, 153/153 Tests und Audit-Datum 2026-09-29 aktualisiert.
+  - **Metadaten- & Release-Vertragstests (`tests/test_metadata.py`):** Drei neue automatisierte Vertragstests (`test_todo_md_hygiene_and_status_table`, `test_pep561_py_typed_contract`, `test_final_gate_check_compliance`) implementiert; Gesamtsuite wächst auf 153 Tests und 43 Subtests (100% grün).
+
 - **Pfad B Discoverability, ASCII Vier-Ansichten-Architekturprojektion & Zweisprachige Dokumentationsparität:**
   - **ASCII Vier-Ansichten-Architekturprojektion:** Zweisprachige visuelle Topologieprojektion in Abschnitt 2 von `README.md` und `README_de.md` implementiert (`[VIEW 1: PUBLISHER NODE]`, `[VIEW 2: SHARED TRANSIT YARD]`, `[VIEW 3: SUBSCRIBER NODE]`, `[VIEW 4: REPUBLICA SHOWCASE / COURIER ENVELOPE]`) zur schnellen textuellen Erfassung des Zero-Trust-Datenflusses und der Isolationsgrenzen ohne grafischen Render-Bedarf.
   - **Zweisprachige Vollständigkeit & Tiefenparität in `README_de.md`:** Abschnitte 11 bis 14 vollständig auf englische Dokumentationstiefe synchronisiert; Secrets-Manager-Vergleichstabelle (Vaultwarden, SOPS + age, pass, KeePassXC, Infisical), redundante Modi-Vergleichstabelle (Direct Sync vs. Republica Showcase), versiegelter Kurier-Umschlag-Workflow (`envelope-send`/`envelope-receive`, Dateiberechtigungen `0600`), HMAC-Authenticator-API (`HMACKeyReference`, `load_hmac_authenticator`), `SnapshotRetentionPolicy` und synthetischer BACH-Referenzabgleich integriert.

@@ -324,7 +324,7 @@ class SealedEnvelopeTests(unittest.TestCase):
     apply, and the plaintext must land as a file, never in a database.
     """
 
-    SECRET = "hetzner-api-token: " + "Z" * 40 + "\nnote: Grüße aus Bernau\n"
+    SEALED_PAYLOAD = "hetzner-api-token: " + "Z" * 40 + "\nnote: Grüße aus Bernau\n"
 
     def setUp(self) -> None:
         self.temp = tempfile.TemporaryDirectory()
@@ -343,7 +343,7 @@ class SealedEnvelopeTests(unittest.TestCase):
 
         self.secret_file = self.root / "outbox" / "api-token.txt"
         self.secret_file.parent.mkdir()
-        self.secret_file.write_text(self.SECRET, encoding="utf-8")
+        self.secret_file.write_text(self.SEALED_PAYLOAD, encoding="utf-8")
         self.credentials = self.root / "credentials"
 
     def tearDown(self) -> None:
@@ -371,7 +371,7 @@ class SealedEnvelopeTests(unittest.TestCase):
         self.assertTrue(receipt.removed_from_transit)
 
         written = Path(receipt.written_to)
-        self.assertEqual(self.SECRET, written.read_text(encoding="utf-8"))
+        self.assertEqual(self.SEALED_PAYLOAD, written.read_text(encoding="utf-8"))
         self.assertTrue(written.is_relative_to(self.credentials.resolve()))
         # A secret must not keep lying in a shared folder after it arrived.
         self.assertEqual([], list(self.transit.rglob("*.envelope")))
