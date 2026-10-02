@@ -8,7 +8,7 @@ version = "0.4.0"
 description = "Local-first SQLite synchronization through verified snapshots and configurable row-level merge policies."
 readme = "README.md"
 license = "MIT"
-license-files = ["LICENSE", "NOTICE", "THIRD_PARTY_LICENSES.md"]
+license-files = ["LICENSE", "NOTICE", "THIRD_PARTY_LICENSES.md", "THIRD_PARTY_LICENSES.txt"]
 requires-python = ">=3.10"
 authors = [{name = "Lukas Geiger / ellmos / BACH Contributors"}]
 keywords = ["sqlite", "synchronization", "local-first", "offline-first", "snapshot", "database", "last-write-wins", "sync-master", "data-integrity"]
@@ -33,12 +33,17 @@ Homepage = "https://github.com/ellmos-ai/sqlite-transit-sync#readme"
 Repository = "https://github.com/ellmos-ai/sqlite-transit-sync"
 Issues = "https://github.com/ellmos-ai/sqlite-transit-sync/issues"
 Documentation = "https://github.com/ellmos-ai/sqlite-transit-sync/blob/main/README.md"
+Contributing = "https://github.com/ellmos-ai/sqlite-transit-sync/blob/main/CONTRIBUTING.md"
 Changelog = "https://github.com/ellmos-ai/sqlite-transit-sync/blob/main/CHANGELOG.md"
 Security = "https://github.com/ellmos-ai/sqlite-transit-sync/blob/main/SECURITY.md"
 "Parent Organization" = "https://github.com/ellmos-ai"
 "Umbrella Ecosystem" = "https://github.com/open-bricks"
 "Notice" = "https://github.com/ellmos-ai/sqlite-transit-sync/blob/main/NOTICE"
+"Level 1 SBOM" = "https://github.com/ellmos-ai/sqlite-transit-sync/blob/main/THIRD_PARTY_LICENSES.md"
+"Level 1 SBOM (Text)" = "https://github.com/ellmos-ai/sqlite-transit-sync/blob/main/THIRD_PARTY_LICENSES.txt"
+"Plain-Text License" = "https://github.com/ellmos-ai/sqlite-transit-sync/blob/main/LICENSE"
 "Third-Party Licenses" = "https://github.com/ellmos-ai/sqlite-transit-sync/blob/main/THIRD_PARTY_LICENSES.md"
+"Third-Party Licenses (Text)" = "https://github.com/ellmos-ai/sqlite-transit-sync/blob/main/THIRD_PARTY_LICENSES.txt"
 "Marketing Log" = "https://github.com/ellmos-ai/sqlite-transit-sync/blob/main/MARKETING-LOG.txt"
 "LLM Ready" = "https://github.com/ellmos-ai/sqlite-transit-sync/blob/main/llms.txt"
 
@@ -64,7 +69,7 @@ sqlite_transit_sync = ["py.typed", "credential-triggers.json", "projection-contr
 
 [tool.pytest.ini_options]
 minversion = "7.0"
-addopts = "-ra -v"
+addopts = "-ra -v --basetemp=.pytest_temp"
 testpaths = ["tests"]
 pythonpath = "."
 norecursedirs = [".git", ".pytest_cache", "__pycache__", "build", "dist", ".venv", ".pytest_temp"]

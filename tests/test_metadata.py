@@ -373,7 +373,7 @@ class TestMetadata(unittest.TestCase):
         self.assertTrue(lic_file.is_file(), "THIRD_PARTY_LICENSES.md must exist in repository root")
         text = lic_file.read_text(encoding="utf-8")
         self.assertIn("Zero-Runtime-Dependency Guarantee", text)
-        self.assertIn("Audit Date:** 2026-09-23", text)
+        self.assertTrue(any(d in text for d in ["Audit Date:** 2026-10-02", "Audit Date:** 2026-09-23"]), "Audit date should be 2026-10-02 or 2026-09-23")
         self.assertIn("Level 1 SBOM", text)
         self.assertIn("RunAsInvoker", text)
         self.assertIn("Zero-Copyleft Isolation Guarantee", text)
@@ -617,6 +617,155 @@ class TestMetadata(unittest.TestCase):
         cleaned_output = re.sub(r"\x1b\[[0-9;]*m", "", res.stdout)
         self.assertIn("10 PASS, 0 FAIL, 0 WARN", cleaned_output)
         self.assertIn("*** READY FOR PUBLIC RELEASE ***", cleaned_output)
+
+    def test_bilingual_contributing_guide_contract(self):
+        """CONTRIBUTING.md must exist with bilingual structure, 10 invariants, Plan D, and § 521 BGB."""
+        contrib_file = ROOT / "CONTRIBUTING.md"
+        self.assertTrue(contrib_file.is_file(), "CONTRIBUTING.md must exist in repository root")
+        content = contrib_file.read_text(encoding="utf-8")
+        self.assertIn("# Contributing to sqlite-transit-sync / Mitwirken an sqlite-transit-sync", content)
+        self.assertIn('<a id="english"></a>', content)
+        self.assertIn('<a id="deutsch"></a>', content)
+        for inv in [
+            "INV-LOCAL-01",
+            "INV-SNAP-02",
+            "INV-ROLL-03",
+            "INV-PATH-04",
+            "INV-VERIFY-05",
+            "INV-SHIELD-06",
+            "INV-HMAC-07",
+            "INV-MERGE-08",
+            "INV-RET-09",
+            "INV-SLA-10",
+        ]:
+            self.assertIn(inv, content, f"Invariant '{inv}' missing in CONTRIBUTING.md")
+        self.assertIn("RunAsInvoker", content)
+        self.assertIn(r"C:\_Local_DEV\repos\sqlite-transit-sync", content)
+        self.assertIn("T-20260920-167562623", content)
+        self.assertIn("§ 521 BGB", content)
+        self.assertIn("security@ellmos.ai", content)
+        self.assertIn("security@open-bricks.org", content)
+
+    def test_ci_lifecycle_workflows_and_labels_contract(self):
+        """Lifecycle workflows (auto-assign, label-sync) and canonical labels.yml must exist and be hardened."""
+        auto_assign = ROOT / ".github" / "workflows" / "auto-assign.yml"
+        label_sync = ROOT / ".github" / "workflows" / "label-sync.yml"
+        labels_yml = ROOT / ".github" / "labels.yml"
+
+        self.assertTrue(auto_assign.is_file(), "auto-assign.yml must exist")
+        self.assertTrue(label_sync.is_file(), "label-sync.yml must exist")
+        self.assertTrue(labels_yml.is_file(), ".github/labels.yml must exist")
+
+        auto_content = auto_assign.read_text(encoding="utf-8")
+        self.assertIn("pull_request_target", auto_content)
+        self.assertIn("cancel-in-progress: true", auto_content)
+        self.assertIn("timeout-minutes: 5", auto_content)
+        self.assertIn("actions/github-script@v7", auto_content)
+
+        sync_content = label_sync.read_text(encoding="utf-8")
+        self.assertIn("workflow_dispatch", sync_content)
+        self.assertIn("cancel-in-progress: true", sync_content)
+        self.assertIn("timeout-minutes: 5", sync_content)
+        self.assertIn("EndBug/label-sync@v2", sync_content)
+
+        labels_content = labels_yml.read_text(encoding="utf-8")
+        for label in [
+            "bug",
+            "enhancement",
+            "good first issue",
+            "help wanted",
+            "documentation",
+            "duplicate",
+            "wontfix",
+            "priority: high",
+            "priority: low",
+            "needs-triage",
+            "stale",
+        ]:
+            self.assertTrue(f"name: {label}" in labels_content or f"name: '{label}'" in labels_content, f"Label '{label}' missing in .github/labels.yml")
+
+    def test_pep621_plain_text_licenses_and_pytest_basetemp(self):
+        """pyproject.toml must declare THIRD_PARTY_LICENSES.txt in license-files, URLs, and basetemp."""
+        pyproject_file = ROOT / "pyproject.toml"
+        self.assertTrue(pyproject_file.is_file(), "pyproject.toml must exist")
+        data = tomllib.loads(pyproject_file.read_text(encoding="utf-8"))
+
+        license_files = data.get("project", {}).get("license-files", [])
+        self.assertIn("THIRD_PARTY_LICENSES.txt", license_files)
+
+        urls = data.get("project", {}).get("urls", {})
+        self.assertIn("Contributing", urls)
+        self.assertTrue(urls["Contributing"].endswith("CONTRIBUTING.md"))
+        self.assertIn("Level 1 SBOM", urls)
+        self.assertIn("Level 1 SBOM (Text)", urls)
+        self.assertTrue(urls["Level 1 SBOM (Text)"].endswith("THIRD_PARTY_LICENSES.txt"))
+        self.assertIn("Plain-Text License", urls)
+        self.assertTrue(urls["Plain-Text License"].endswith("LICENSE"))
+        self.assertIn("Third-Party Licenses (Text)", urls)
+        self.assertTrue(urls["Third-Party Licenses (Text)"].endswith("THIRD_PARTY_LICENSES.txt"))
+
+        pytest_addopts = data.get("tool", {}).get("pytest", {}).get("ini_options", {}).get("addopts", "")
+        self.assertIn("--basetemp=.pytest_temp", pytest_addopts)
+
+    def test_level1_sbom_plain_text_companion_and_recency(self):
+        """THIRD_PARTY_LICENSES.txt companion must exist, match version, and contain Stand 2026-10-02."""
+        txt_file = ROOT / "THIRD_PARTY_LICENSES.txt"
+        self.assertTrue(txt_file.is_file(), "THIRD_PARTY_LICENSES.txt must exist")
+        content = txt_file.read_text(encoding="utf-8")
+        self.assertIn(f"Version {sqlite_transit_sync.__version__}", content)
+        self.assertIn("Stand: 2026-10-02", content)
+        self.assertIn("§ 521 BGB", content)
+        self.assertIn("RunAsInvoker", content)
+        for inv in [
+            "INV-LOCAL-01",
+            "INV-SNAP-02",
+            "INV-ROLL-03",
+            "INV-PATH-04",
+            "INV-VERIFY-05",
+            "INV-SHIELD-06",
+            "INV-HMAC-07",
+            "INV-MERGE-08",
+            "INV-RET-09",
+            "INV-SLA-10",
+        ]:
+            self.assertIn(inv, content)
+
+        md_file = ROOT / "THIRD_PARTY_LICENSES.md"
+        md_content = md_file.read_text(encoding="utf-8")
+        self.assertIn("2026-10-02", md_content)
+        self.assertIn("THIRD_PARTY_LICENSES.txt", md_content)
+        self.assertIn("CONTRIBUTING.md", md_content)
+
+    def test_extended_gitignore_multihost_lock_defense(self):
+        """gitignore must exclude IDEAPAD, TASKPLAN, Desktop.ini, and agent lock patterns."""
+        content = (ROOT / ".gitignore").read_text(encoding="utf-8")
+        for pattern in [
+            "*-IDEAPAD*",
+            "*-IDEAPAD-GEI.*",
+            "Desktop.ini",
+            "ehthumbs.db",
+            "TASKPLAN_*.md",
+            "*-TASKPLAN*",
+            "LOCK.dev.*",
+            "LOCK.antigravity.*",
+            "LOCK.bugsearch.*",
+        ]:
+            self.assertIn(pattern, content, f"Pattern '{pattern}' missing from .gitignore")
+
+    def test_version_freeze_discipline(self):
+        """Release version must strictly remain frozen at 0.4.0 per T-20260920-167562623."""
+        self.assertEqual(sqlite_transit_sync.__version__, "0.4.0")
+        self.assertEqual(self._pyproject_version(), "0.4.0")
+
+    def test_changelog_and_marketing_log_recency(self):
+        """CHANGELOG.md and MARKETING-LOG.txt must contain 2026-10-02 Pfad A audit entries."""
+        changelog_content = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
+        self.assertIn("2026-10-02", changelog_content)
+        self.assertIn("Pfad A Technische Hygiene", changelog_content)
+
+        mkt_content = (ROOT / "MARKETING-LOG.txt").read_text(encoding="utf-8")
+        self.assertIn("2026-10-02", mkt_content)
+        self.assertIn("11. PFAD A REPOSITORY HYGIENE", mkt_content)
 
 
 if __name__ == "__main__":

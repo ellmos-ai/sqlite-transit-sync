@@ -191,3 +191,28 @@ Status: ACTIVE / AUDIT STATUS: VERIFIED / PFAD B DISCOVERABILITY VERIFIED
 - Contract Test Suite Expansion:
   * tests/test_metadata.py updated with test_ascii_architecture_parity and test_bilingual_sections_depth_and_tables.
   * Full test suite passing 100% green: 150 passed, 43 subtests.
+
+================================================================================
+11. PFAD A REPOSITORY HYGIENE, CI LIFECYCLE WORKFLOWS, LOCK DEFENSE & SBOM RE-AUDIT (2026-10-02)
+================================================================================
+- Bilingual CONTRIBUTING.md Guidelines:
+  * Established comprehensive contributing guidelines in English and German (CONTRIBUTING.md).
+  * Codified 10 Governance and Architectural Invariants (INV-LOCAL-01 to INV-SLA-10), Unprivileged Execution (RunAsInvoker), Plan D Local Development Workflow (C:\_Local_DEV\repos\sqlite-transit-sync as Source of Truth), statutory disclaimer (§ 521 BGB Gefälligkeitsrecht), and binding 48h Security Response SLA (security@ellmos.ai, security@open-bricks.org, support@lukasgeiger.com).
+- CI/CD Lifecycle Workflows & Canonical Labels:
+  * Provisioned .github/workflows/auto-assign.yml (actions/github-script@v7, timeout-minutes: 5, cancel-in-progress: true, pull-requests: write, issues: write) for automatic owner assignment.
+  * Provisioned .github/workflows/label-sync.yml (EndBug/label-sync@v2, timeout-minutes: 5, cancel-in-progress: true, issues: write) and canonical .github/labels.yml with 11 standard labels per GOVERNANCE.md §4.2.
+- Multi-Host Cloud-Sync & Lock Defense in .gitignore:
+  * Hardened against host conflict copies and fleet automation markers: *-IDEAPAD*, *-IDEAPAD-GEI*, Desktop.ini, ehthumbs.db, Thumbs.db, TASKPLAN_*.md, *-TASKPLAN*, LOCK.dev.*, LOCK.antigravity.*, LOCK.bugsearch.*.
+- PEP 621 Packaging & Tooling in pyproject.toml:
+  * Extended license-files with companion THIRD_PARTY_LICENSES.txt.
+  * Enriched [project.urls] with endpoints for Contributing, Level 1 SBOM, Level 1 SBOM (Text), Plain-Text License, and Third-Party Licenses (Text).
+  * Hardened [tool.pytest.ini_options] with isolated --basetemp=.pytest_temp.
+  * Strictly preserved frozen release version 0.4.0 per T-20260920-167562623.
+- Level 1 SBOM Text-Companion (THIRD_PARTY_LICENSES.txt) & Re-Audit:
+  * Authored canonical plain-text companion THIRD_PARTY_LICENSES.txt Stand 2026-10-02.
+  * Re-audited THIRD_PARTY_LICENSES.md Stand 2026-10-02 confirming zero runtime dependencies (dependencies = []), 100% permissive stack, RunAsInvoker, and § 521 BGB disclaimer.
+- Synchronous Documentation & Badge Updates:
+  * Synchronized badges in README.md and README_de.md for Contributing, Level 1 SBOM Plain-Text Audited, and verification date 2026-10-02 while preserving all 18 dual quick navigation anchors.
+  * Synchronized machine-readable context in llms.txt Stand 2026-10-02.
+- Contract Test Suite Expansion:
+  * tests/test_metadata.py expanded with 7 new contract tests; 100% green test execution.

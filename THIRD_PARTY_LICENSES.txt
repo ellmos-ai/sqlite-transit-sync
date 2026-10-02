@@ -1,0 +1,166 @@
+===============================================================================
+THIRD PARTY LICENSES & LEVEL 1 SBOM — sqlite-transit-sync
+===============================================================================
+Stand: 2026-10-02 (Re-Audit; Stand: 2026-09-23; Erstfassung: 2026-09-11)
+Produkt: sqlite-transit-sync (Version 0.4.0)
+Lizenztyp: Open Source (MIT License)
+Repository: https://github.com/ellmos-ai/sqlite-transit-sync
+Attribution Notice: NOTICE (Lukas Geiger / ellmos-ai / open-bricks)
+Architektur & Privatsphaere: 100% Local-First, Zero-Egress by default, RunAsInvoker
+
+===============================================================================
+1. EXECUTIVE SUMMARY & COMPLIANCE ASSURANCE
+===============================================================================
+
+sqlite-transit-sync ist von Grund auf gemaess strikter Architektur- und
+Sicherheits-Invarianten entwickelt: 100% Local-First, Zero-Egress standardmaessig,
+und unprivilegierter Benutzermodus (RunAsInvoker). Saemtliche Snapshot-Erfassungen,
+Tabellen-Redigierungen, Credential-Scans, Hash-Pruefungen und zeilenbasierten
+Merge-Operationen laufen ausnahmslos innerhalb lokaler Prozess- und Dateisystem-
+Grenzen ab.
+
+Alle direkten, optionalen sowie Entwicklungs-Abhaengigkeiten von sqlite-transit-sync
+sind unter ausnahmslos permissiven Open-Source-Lizenzen (MIT, Apache-2.0,
+BSD-3-Clause, PSFL-2.0) lizenziert. Es bestehen 0 Copyleft-, GPL- oder AGPL-
+Einschraenkungen auf Nutzerdaten oder die Anwendungslogik.
+
+===============================================================================
+2. INVARIANT CROSS-REFERENCE MATRIX (LEVEL 1 SBOM)
+===============================================================================
+
+Invariant ID  | Sicherheits- & Betriebsmandat          | Technische Durchsetzung               | Lizenz- & Isolationsbereich
+--------------+----------------------------------------+---------------------------------------+-----------------------------
+INV-LOCAL-01  | 100% Offline / Zero-Egress             | sqlite_transit_sync.core (offline)    | PSFL-2.0
+INV-SNAP-02   | Offline Snapshot Atomizitaet           | sqlite3.backup / os.replace           | PSFL-2.0
+INV-ROLL-03   | Rollback Journal Clean Isolation       | Sidecar purge (-wal, -shm, -journal)  | PSFL-2.0
+INV-PATH-04   | Strikte Transit-Pfadeindaemmung        | Ablehnung von ../, Symlinks & Reparse | PSFL-2.0
+INV-VERIFY-05 | Zweistufige Integritaetspruefung       | SHA-256 Manifest + PRAGMA quick_check | PSFL-2.0
+INV-SHIELD-06 | Credential Shield vor Publikation      | Regex-Scan (credential-triggers.json) | PSFL-2.0
+INV-HMAC-07   | HMAC Authentizitaetsumschlag           | HMAC-SHA256 Umschlag & Sender-ID      | PSFL-2.0
+INV-MERGE-08  | Deterministischer Row-Level Merge      | LWW je PK / Shared Columns / Tombstone| MIT
+INV-RET-09    | Konservatives Retention Scoping        | Dry-run Default / Local-Node Only     | MIT
+INV-SLA-10    | Non-Elevation & Multi-OS Paritaet      | RunAsInvoker / 48h Security Response  | SECURITY.md
+
+===============================================================================
+3. ZERO-COPYLEFT ISOLATION GUARANTEE & RUNASINVOKER CERTIFICATION
+===============================================================================
+
+1. Zero-Copyleft Garantie:
+   Kein Bestandteil von sqlite-transit-sync linkt gegen Code unter GPL, AGPL,
+   LGPL oder sonstigen reziproken Copyleft-Lizenzen. Der gesamte Stack ist 100%
+   permissiv (MIT, Apache-2.0, BSD-3-Clause, PSFL-2.0).
+
+2. Zero-Runtime-Dependency Kern:
+   Die Kern-Engine benoetigt null externe Laufzeitabhaengigkeiten (dependencies = []
+   in pyproject.toml). Push-, Pull-, Merge-, Pruef- und Bereinigungsfunktionen
+   nutzen ausschliesslich die Python 3.10+ Standardbibliothek.
+
+3. Unprivilegierte Ausfuehrung (RunAsInvoker):
+   sqlite-transit-sync benoetigt keinerlei administrative Rechte, Systemdienste
+   oder UAC-Elevation. Es operiert vollstaendig im Benutzerkontext.
+
+4. Gesetzlicher Haftungsausschluss (§ 521 BGB):
+   Gemaess § 521 BGB (Haftung des Schenkers) ist die Haftung fuer Sach- und
+   Rechtsmaengel bei unentgeltlicher Bereitstellung auf Vorsatz und grobe
+   Fahrlaessigkeit beschraenkt.
+
+5. Verbindliche 48h Sicherheits-SLA:
+   Verbindliche Erstreaktionszeit von 48 Stunden bei Sicherheitsmeldungen ueber
+   security@ellmos.ai, security@open-bricks.org und support@lukasgeiger.com.
+
+===============================================================================
+4. LAUFZEIT-KOMPONENTEN
+===============================================================================
+
+Package: Python Standard Library
+Version: >= 3.10
+License: Python Software Foundation License (PSFL-2.0)
+SPDX: Python-2.0
+URL: https://docs.python.org/3/license.html
+Notice: Built-in Python Standardbibliothek (sqlite3, hashlib, hmac, json, os, pathlib, re, shutil, uuid, dataclasses).
+
+Package: cryptography (Optional Extra [crypto])
+Version: >= 42.0.0
+License: Apache License 2.0 OR BSD 3-Clause License
+SPDX: Apache-2.0 OR BSD-3-Clause
+URL: https://github.com/pyca/cryptography
+Notice: Optionale Fernet-Verschluesselung fuer Republica Schaufenster-Snapshots und versiegelte Kurier-Umschlaege.
+
+Package: keyring (Optional Extra [keyring])
+Version: >= 25.0.0
+License: MIT License
+SPDX: MIT
+URL: https://github.com/jaraco/keyring
+Notice: Optionale Aufloesung von HMAC-Schluesselreferenzen ueber den Betriebssystem-Schluesselbund.
+
+===============================================================================
+5. TEST- UND ENTWICKLUNGSABHAENGIGKEITEN
+===============================================================================
+
+Package: pytest
+Version: >= 7.0
+License: MIT License
+SPDX: MIT
+URL: https://pytest.org/
+Notice: Automatisierte Regressionstest- und Metadaten-Vertragstest-Suite.
+
+Package: ruff
+Version: >= 0.8
+License: MIT OR Apache-2.0
+SPDX: MIT
+URL: https://github.com/astral-sh/ruff
+Notice: Statische Code-Analyse und Linting-Garantie.
+
+Package: tomli (fuer Python < 3.11)
+Version: >= 2.0
+License: MIT License
+SPDX: MIT
+URL: https://github.com/hukkin/tomli
+Notice: TOML-Parser Fallback fuer Python 3.10.
+
+Package: setuptools
+Version: >= 68.0
+License: MIT License
+SPDX: MIT
+URL: https://github.com/pypa/setuptools
+Notice: Standard Build-Backend und Paketierung.
+
+Package: wheel
+Version: *
+License: MIT License
+SPDX: MIT
+URL: https://github.com/pypa/wheel
+Notice: PEP 517 / PEP 621 Standard-Distributionspaketierung.
+
+===============================================================================
+6. LIZENZTEXTE (AUSZUEGE)
+===============================================================================
+
+--- MIT LICENSE ---
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+--- APACHE LICENSE 2.0 ---
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+http://www.apache.org/licenses/LICENSE-2.0
+
+--- PYTHON SOFTWARE FOUNDATION LICENSE VERSION 2 (PSFL-2.0) ---
+Copyright (c) 2001-2026 Python Software Foundation. All rights reserved.
+Licensed under the PSF License Agreement.

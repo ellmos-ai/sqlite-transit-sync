@@ -40,13 +40,23 @@ data/
 *-ASUS-GEI.*
 *-LAPTOP*
 *-LAPTOP.*
+*-IDEAPAD*
+*-IDEAPAD-GEI.*
 *-Mac Studio*
 *-MacBook*
+Desktop.ini
+ehthumbs.db
+Thumbs.db
+TASKPLAN_*.md
+*-TASKPLAN*
 LOCK
 LOCK.*
 LOCK.user.*
 LOCK.until.*
 LOCK.condition.*
+LOCK.dev.*
+LOCK.antigravity.*
+LOCK.bugsearch.*
 LOCK.permissions.json
 .automation-lock
 *.lock

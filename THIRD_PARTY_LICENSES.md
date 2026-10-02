@@ -1,8 +1,10 @@
 # Third-Party Licenses & Transparency Notice (Level 1 SBOM)
 
 > **Project:** `ellmos-ai/sqlite-transit-sync`<br>
-> **Audit Date:** 2026-09-23<br>
+> **Audit Date:** 2026-10-02 (Prior audits: 2026-09-23, 2026-09-11)<br>
 > **Repository License:** [MIT License](LICENSE)<br>
+> **Plain-Text SBOM Companion:** [THIRD_PARTY_LICENSES.txt](THIRD_PARTY_LICENSES.txt)<br>
+> **Contributing Guidelines:** [CONTRIBUTING.md](CONTRIBUTING.md)<br>
 > **Repository Attribution Notice:** [NOTICE](NOTICE)<br>
 > **Architecture & Privacy:** 100% Local-First, Zero-Egress by default, Unprivileged User-Mode (`RunAsInvoker`)
 
