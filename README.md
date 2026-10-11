@@ -913,6 +913,7 @@ See [ARCHITECTURE.md](ARCHITECTURE.md), [README_de.md](README_de.md) and
 | [dev-bricks/CodeBox](https://github.com/dev-bricks/CodeBox) | Code Management | Local-first code library and AST pattern index. |
 | [doc-bricks/PDFtoPDFocr](https://github.com/doc-bricks/PDFtoPDFocr) | Document OCR | Zero-egress searchable PDF conversion with OCR layer integration. |
 | [open-bricks/open-bricks](https://github.com/open-bricks) | Umbrella Hub | Meta-repository and umbrella documentation for all open-source bricks. |
+| [ellmos-ai/coma](https://github.com/ellmos-ai/coma) | Agent job and process lifecycle | Manages local job files and starts or checks agent process status; a separate concern from SQLite snapshot verification and row-level merge. |
 
 <!-- BEGIN GENERATED ELLMOS BUNDLE DISCOVERY -->
 
