@@ -875,6 +875,7 @@ Siehe [ARCHITECTURE.md](ARCHITECTURE.md), [README.md](README.md) und [SECURITY.m
 | [dev-bricks/CodeBox](https://github.com/dev-bricks/CodeBox) | Snippet-Verwaltung | Lokale Code-Bibliothek und AST-basierter Quellcode-Index. |
 | [doc-bricks/PDFtoPDFocr](https://github.com/doc-bricks/PDFtoPDFocr) | Dokumenten-OCR | Lokale Konvertierung in durchsuchbare PDFs mit integrierter OCR-Schicht (Zero-Egress). |
 | [open-bricks/open-bricks](https://github.com/open-bricks) | Dachorganisation | Dach-Repository und zentrale Dokumentation aller quelloffenen Bricks. |
+| [ellmos-ai/coma](https://github.com/ellmos-ai/coma) | Agenten-Job- und Prozesslebenszyklus | Verwaltet lokale Jobdateien und startet Agentenprozesse bzw. fragt ihren Status ab; ein eigener Aufgabenbereich neben SQLite-Snapshot-Prüfung und zeilenbasiertem Merge. |
 
 <!-- BEGIN ELLMOS BUNDLE DISCOVERY DE -->
 

@@ -169,3 +169,4 @@ cleanup_plan = sync.cleanup(keep_days=7, keep_per_node=10)
 - **File Transport Companion**: [dev-bricks/sync-master](https://github.com/dev-bricks/sync-master)
 - **Ecosystem Catalog**: [ellmos-ai/stacks](https://github.com/ellmos-ai/stacks)
 - **Main Organization**: [dev-bricks](https://github.com/dev-bricks)
+- **Related project — COMA**: [ellmos-ai/coma](https://github.com/ellmos-ai/coma) — local job-file handling and agent process start/status tools, separate from this repository’s SQLite snapshot and row-merge flow.
