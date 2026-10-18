@@ -4,8 +4,8 @@
 
 [![CI](https://github.com/ellmos-ai/sqlite-transit-sync/actions/workflows/ci.yml/badge.svg)](https://github.com/ellmos-ai/sqlite-transit-sync/actions/workflows/ci.yml)
 [![Version](https://img.shields.io/badge/version-0.4.0-blue.svg)](CHANGELOG.md)
-[![Tests](https://img.shields.io/badge/tests-160%20passed%20%7C%2043%20subtests%20%7C%20100%25%20green-brightgreen.svg)](#tests-und-qualitaetssicherung)
-[![Verified: 2026-10-02](https://img.shields.io/badge/gepr%C3%BCft-2026--10--02-blue.svg)](#tests-und-qualitaetssicherung)
+[![Tests](https://img.shields.io/badge/tests-163%20passed%20%7C%2043%20subtests%20%7C%20100%25%20green-brightgreen.svg)](#tests-und-qualitaetssicherung)
+[![Verified: 2026-10-18](https://img.shields.io/badge/gepr%C3%BCft-2026--10--18-blue.svg)](#tests-und-qualitaetssicherung)
 [![Python Version](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12%20%7C%203.13-blue.svg)](https://www.python.org/)
 [![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20Linux%20%7C%20macOS-informational.svg)](#)
 [![Privacy](https://img.shields.io/badge/privacy-100%25%20Offline%20%7C%20Zero--Egress-brightgreen.svg)](#)
@@ -477,6 +477,47 @@ sqlite-transit-sync cleanup --config node.json --apply
 
 Das Anwendungsschema muss auf jedem Knoten bereits existieren. Automatisches
 Anlegen der Erstkopie ist bewusst deaktiviert.
+
+### Eigenständiger ausführbarer Python-Kurzstart (Null externe Abhängigkeiten)
+
+Entwickler, die `sqlite-transit-sync` direkt in Agenten-Frameworks, Hintergrunddienste oder Desktop-Tools einbinden, können diesen in sich geschlossenen Beispielcode direkt ausführen, um die Multi-Knoten-Synchronisation ohne jede externe Abhängigkeit zu verifizieren:
+
+```python
+import sqlite3
+import tempfile
+from pathlib import Path
+from sqlite_transit_sync import SyncConfig, TransitSync
+
+with tempfile.TemporaryDirectory() as tmp:
+    root = Path(tmp)
+    transit = root / "transit"
+    transit.mkdir()
+
+    # 1. Knoten A initialisieren und Datensatz eintragen
+    db_a = root / "node_a.db"
+    with sqlite3.connect(db_a) as conn:
+        conn.execute("CREATE TABLE notes (id INTEGER PRIMARY KEY, title TEXT, updated_at TEXT)")
+        conn.execute("INSERT INTO notes VALUES (1, 'Hello from Node A', '2026-10-18T08:00:00Z')")
+
+    # 2. Atomaren Snapshot von Knoten A in den Transit-Bereich publizieren
+    cfg_a = SyncConfig(database=db_a, transit=transit, state=root / "state_a.json", node_id="node_a", namespace="demo")
+    snapshot = TransitSync(cfg_a).push()
+    print(f"Knoten A Snapshot publiziert: {snapshot.path.name} (SHA-256: {snapshot.sha256[:8]}...)")
+
+    # 3. Knoten B mit Schema bereitstellen und Snapshot abrufen
+    db_b = root / "node_b.db"
+    with sqlite3.connect(db_b) as conn:
+        conn.execute("CREATE TABLE notes (id INTEGER PRIMARY KEY, title TEXT, updated_at TEXT)")
+
+    cfg_b = SyncConfig(database=db_b, transit=transit, state=root / "state_b.json", node_id="node_b", namespace="demo")
+    reports = TransitSync(cfg_b).pull()
+
+    # 4. Konvergierten Zustand auf Knoten B prüfen
+    with sqlite3.connect(db_b) as conn:
+        rows = conn.execute("SELECT id, title, updated_at FROM notes").fetchall()
+        print(f"Knoten B konvergierte Datensätze: {rows}")
+        assert rows == [(1, "Hello from Node A", "2026-10-18T08:00:00Z")]
+```
 
 ---
 

@@ -4,8 +4,8 @@
 
 [![CI](https://github.com/ellmos-ai/sqlite-transit-sync/actions/workflows/ci.yml/badge.svg)](https://github.com/ellmos-ai/sqlite-transit-sync/actions/workflows/ci.yml)
 [![Version](https://img.shields.io/badge/version-0.4.0-blue.svg)](CHANGELOG.md)
-[![Tests](https://img.shields.io/badge/tests-160%20passed%20%7C%2043%20subtests%20%7C%20100%25%20green-brightgreen.svg)](#tests)
-[![Verified: 2026-10-02](https://img.shields.io/badge/verified-2026--10--02-blue.svg)](#tests)
+[![Tests](https://img.shields.io/badge/tests-163%20passed%20%7C%2043%20subtests%20%7C%20100%25%20green-brightgreen.svg)](#tests)
+[![Verified: 2026-10-18](https://img.shields.io/badge/verified-2026--10--18-blue.svg)](#tests)
 [![Python Version](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12%20%7C%203.13-blue.svg)](https://www.python.org/)
 [![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20Linux%20%7C%20macOS-informational.svg)](#)
 [![Privacy](https://img.shields.io/badge/privacy-100%25%20Offline%20%7C%20Zero--Egress-brightgreen.svg)](#)
@@ -474,6 +474,47 @@ sqlite-transit-sync cleanup --config node.json --apply
 The application schema must already exist on each node. Automatic first-copy
 is intentionally disabled because a generic module cannot decide which schema,
 secrets, local tables or migrations belong to an application.
+
+### Standalone Runnable Python Quickstart (Zero External Dependencies)
+
+Developers integrating `sqlite-transit-sync` directly into agent frameworks, daemons, or background workers can run this self-contained, copy-pasteable script to verify end-to-end multi-node synchronization with zero external dependencies:
+
+```python
+import sqlite3
+import tempfile
+from pathlib import Path
+from sqlite_transit_sync import SyncConfig, TransitSync
+
+with tempfile.TemporaryDirectory() as tmp:
+    root = Path(tmp)
+    transit = root / "transit"
+    transit.mkdir()
+
+    # 1. Initialize Node A and record local data
+    db_a = root / "node_a.db"
+    with sqlite3.connect(db_a) as conn:
+        conn.execute("CREATE TABLE notes (id INTEGER PRIMARY KEY, title TEXT, updated_at TEXT)")
+        conn.execute("INSERT INTO notes VALUES (1, 'Hello from Node A', '2026-10-18T08:00:00Z')")
+
+    # 2. Publish atomic snapshot from Node A to shared transit
+    cfg_a = SyncConfig(database=db_a, transit=transit, state=root / "state_a.json", node_id="node_a", namespace="demo")
+    snapshot = TransitSync(cfg_a).push()
+    print(f"Node A published snapshot: {snapshot.path.name} (SHA-256: {snapshot.sha256[:8]}...)")
+
+    # 3. Initialize Node B with schema and pull snapshot
+    db_b = root / "node_b.db"
+    with sqlite3.connect(db_b) as conn:
+        conn.execute("CREATE TABLE notes (id INTEGER PRIMARY KEY, title TEXT, updated_at TEXT)")
+
+    cfg_b = SyncConfig(database=db_b, transit=transit, state=root / "state_b.json", node_id="node_b", namespace="demo")
+    reports = TransitSync(cfg_b).pull()
+
+    # 4. Verify converged state in Node B
+    with sqlite3.connect(db_b) as conn:
+        rows = conn.execute("SELECT id, title, updated_at FROM notes").fetchall()
+        print(f"Node B converged records: {rows}")
+        assert rows == [(1, "Hello from Node A", "2026-10-18T08:00:00Z")]
+```
 
 ---
 

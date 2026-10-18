@@ -11,7 +11,28 @@ license = "MIT"
 license-files = ["LICENSE", "NOTICE", "THIRD_PARTY_LICENSES.md", "THIRD_PARTY_LICENSES.txt"]
 requires-python = ">=3.10"
 authors = [{name = "Lukas Geiger / ellmos / BACH Contributors"}]
-keywords = ["sqlite", "synchronization", "local-first", "offline-first", "snapshot", "database", "last-write-wins", "sync-master", "data-integrity"]
+keywords = [
+    "agent-framework",
+    "crdt",
+    "data-integrity",
+    "data-synchronization",
+    "database-sync",
+    "distributed-systems",
+    "edge-computing",
+    "last-write-wins",
+    "llm-agents",
+    "local-first",
+    "offline-first",
+    "offline-sync",
+    "privacy-first",
+    "python",
+    "snapshot-sync",
+    "sqlite",
+    "sqlite-sync",
+    "sync",
+    "sync-master",
+    "zero-dependency",
+]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",

@@ -767,6 +767,59 @@ class TestMetadata(unittest.TestCase):
         self.assertIn("2026-10-02", mkt_content)
         self.assertIn("11. PFAD A REPOSITORY HYGIENE", mkt_content)
 
+    def test_pyproject_keywords_saturation_and_alignment(self):
+        """pyproject.toml keywords must contain 20 saturated discoverability topics."""
+        pyproject = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
+        keywords = pyproject.get("project", {}).get("keywords", [])
+        self.assertEqual(20, len(keywords), f"Expected 20 keywords in pyproject.toml, got {len(keywords)}")
+        expected_topics = [
+            "agent-framework",
+            "crdt",
+            "data-integrity",
+            "data-synchronization",
+            "database-sync",
+            "distributed-systems",
+            "edge-computing",
+            "last-write-wins",
+            "llm-agents",
+            "local-first",
+            "offline-first",
+            "offline-sync",
+            "privacy-first",
+            "python",
+            "snapshot-sync",
+            "sqlite",
+            "sqlite-sync",
+            "sync",
+            "sync-master",
+            "zero-dependency",
+        ]
+        self.assertEqual(sorted(expected_topics), sorted(keywords))
+
+    def test_runnable_python_quickstart_in_readmes(self):
+        """Both READMEs must provide the self-contained runnable Python quickstart."""
+        readme_en = (ROOT / "README.md").read_text(encoding="utf-8")
+        readme_de = (ROOT / "README_de.md").read_text(encoding="utf-8")
+
+        self.assertIn("Standalone Runnable Python Quickstart", readme_en)
+        self.assertIn("Eigenständiger ausführbarer Python-Kurzstart", readme_de)
+
+        for content in (readme_en, readme_de):
+            self.assertIn("from sqlite_transit_sync import SyncConfig, TransitSync", content)
+            self.assertIn("TransitSync(cfg_a).push()", content)
+            self.assertIn("TransitSync(cfg_b).pull()", content)
+            self.assertIn("assert rows == [(1, \"Hello from Node A\", \"2026-10-18T08:00:00Z\")]", content)
+
+    def test_marketing_log_and_changelog_pfad_b_recency(self):
+        """CHANGELOG.md and MARKETING-LOG.txt must record the 2026-10-18 Pfad B audit."""
+        changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
+        self.assertIn("2026-10-18", changelog)
+        self.assertIn("Pfad B Marketing, Discoverability", changelog)
+
+        mkt = (ROOT / "MARKETING-LOG.txt").read_text(encoding="utf-8")
+        self.assertIn("2026-10-18", mkt)
+        self.assertIn("12. PFAD B DISCOVERABILITY", mkt)
+
 
 if __name__ == "__main__":
     unittest.main()
