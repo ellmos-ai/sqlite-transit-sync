@@ -484,6 +484,7 @@ Entwickler, die `sqlite-transit-sync` direkt in Agenten-Frameworks, Hintergrundd
 
 ```python
 import sqlite3
+from contextlib import closing
 import tempfile
 from pathlib import Path
 from sqlite_transit_sync import SyncConfig, TransitSync
@@ -495,7 +496,7 @@ with tempfile.TemporaryDirectory() as tmp:
 
     # 1. Knoten A initialisieren und Datensatz eintragen
     db_a = root / "node_a.db"
-    with sqlite3.connect(db_a) as conn:
+    with closing(sqlite3.connect(db_a)) as conn, conn:
         conn.execute("CREATE TABLE notes (id INTEGER PRIMARY KEY, title TEXT, updated_at TEXT)")
         conn.execute("INSERT INTO notes VALUES (1, 'Hello from Node A', '2026-10-18T08:00:00Z')")
 
@@ -506,14 +507,14 @@ with tempfile.TemporaryDirectory() as tmp:
 
     # 3. Knoten B mit Schema bereitstellen und Snapshot abrufen
     db_b = root / "node_b.db"
-    with sqlite3.connect(db_b) as conn:
+    with closing(sqlite3.connect(db_b)) as conn, conn:
         conn.execute("CREATE TABLE notes (id INTEGER PRIMARY KEY, title TEXT, updated_at TEXT)")
 
     cfg_b = SyncConfig(database=db_b, transit=transit, state=root / "state_b.json", node_id="node_b", namespace="demo")
     reports = TransitSync(cfg_b).pull()
 
     # 4. Konvergierten Zustand auf Knoten B prüfen
-    with sqlite3.connect(db_b) as conn:
+    with closing(sqlite3.connect(db_b)) as conn, conn:
         rows = conn.execute("SELECT id, title, updated_at FROM notes").fetchall()
         print(f"Knoten B konvergierte Datensätze: {rows}")
         assert rows == [(1, "Hello from Node A", "2026-10-18T08:00:00Z")]

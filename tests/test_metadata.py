@@ -1,6 +1,7 @@
 import json
 import re
 import subprocess
+import sys
 import unittest
 from pathlib import Path
 
@@ -809,6 +810,19 @@ class TestMetadata(unittest.TestCase):
             self.assertIn("TransitSync(cfg_a).push()", content)
             self.assertIn("TransitSync(cfg_b).pull()", content)
             self.assertIn("assert rows == [(1, \"Hello from Node A\", \"2026-10-18T08:00:00Z\")]", content)
+
+
+            examples = [
+                block for block in re.findall(r"```python\n(.*?)```", content, re.DOTALL)
+                if "with tempfile.TemporaryDirectory() as tmp:" in block
+                and "TransitSync(cfg_a).push()" in block
+            ]
+            self.assertEqual(1, len(examples))
+            result = subprocess.run(
+                [sys.executable, "-c", examples[0]], cwd=ROOT,
+                capture_output=True, text=True, encoding="utf-8", timeout=30,
+            )
+            self.assertEqual(0, result.returncode, result.stdout + result.stderr)
 
     def test_marketing_log_and_changelog_pfad_b_recency(self):
         """CHANGELOG.md and MARKETING-LOG.txt must record the 2026-10-18 Pfad B audit."""
