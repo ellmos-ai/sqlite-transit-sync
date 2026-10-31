@@ -1,4 +1,5 @@
 import json
+import os
 import re
 import subprocess
 import sys
@@ -819,10 +820,11 @@ class TestMetadata(unittest.TestCase):
             ]
             self.assertEqual(1, len(examples))
             result = subprocess.run(
-                [sys.executable, "-c", examples[0]], cwd=ROOT,
+                [sys.executable, "-X", "utf8", "-c", examples[0]], cwd=ROOT,
                 capture_output=True, text=True, encoding="utf-8", timeout=30,
+                env=dict(os.environ, PYTHONIOENCODING="utf-8"),
             )
-            self.assertEqual(0, result.returncode, result.stdout + result.stderr)
+            self.assertEqual(0, result.returncode, f"stdout: {result.stdout}\nstderr: {result.stderr}")
 
     def test_marketing_log_and_changelog_pfad_b_recency(self):
         """CHANGELOG.md and MARKETING-LOG.txt must record the 2026-10-18 Pfad B audit."""
@@ -833,6 +835,12 @@ class TestMetadata(unittest.TestCase):
         mkt = (ROOT / "MARKETING-LOG.txt").read_text(encoding="utf-8")
         self.assertIn("2026-10-18", mkt)
         self.assertIn("12. PFAD B DISCOVERABILITY", mkt)
+
+    def test_pfad_a_hygiene_20261031_recency(self):
+        """CHANGELOG.md must record the 2026-10-31 Pfad A audit."""
+        changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
+        self.assertIn("2026-10-31", changelog)
+        self.assertIn("Pfad A Technische Hygiene", changelog)
 
 
 if __name__ == "__main__":

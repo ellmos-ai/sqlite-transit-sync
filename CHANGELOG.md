@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+- **Pfad A Technische Hygiene, Windows Quickstart Runner-Härtung, CI Workflow-Prüfung & Vertragstest-Wartung [G 2026-10-31]:**
+  - **Windows & Cross-Platform Quickstart Runner-Härtung (`tests/test_metadata.py`):** Absicherung des Subprozess-Aufrufs in `test_runnable_python_quickstart_in_readmes` via `-X utf8` und `PYTHONIOENCODING=utf-8` zur Verhinderung plattformabhängiger `UnicodeDecodeError` / `TypeError`-Abbrüche bei deutschen Umlauten auf Windows cp1252-Systemen.
+  - **`.gitignore`-Härtung:** Ergänzung um temporäre Editor- und OS-Dateien (`*.swp`, `*.swo`, `.DS_Store`).
+  - **Vertragstest-Erweiterung (`tests/test_metadata.py`):** Neuer Vertragstest `test_pfad_a_hygiene_20261031_recency` zur Validierung der kontinuierlichen Hygiene-Dokumentation; Gesamtsuite auf 164 Tests und 43 Subtests erweitert (100% grün).
+  - **Version-Freeze Disziplin:** Version 0.4.0 strikt eingefroren per T-20260920-167562623.
+
 - **Pfad B Marketing, Discoverability, 20/20 GitHub Topics Saturation & Runnable Python Quickstart [G 2026-10-18]:**
   - **GitHub Topics & Discoverability Sättigung (20/20):** Repository-Topics auf GitHub via CLI (`gh repo edit`) auf das Maximum von 20 Topics gesättigt (`agent-framework`, `crdt`, `data-integrity`, `data-synchronization`, `database-sync`, `distributed-systems`, `edge-computing`, `last-write-wins`, `llm-agents`, `local-first`, `offline-first`, `offline-sync`, `privacy-first`, `python`, `snapshot-sync`, `sqlite`, `sqlite-sync`, `sync`, `sync-master`, `zero-dependency`).
   - **PEP 621 Keywords Harmonisierung in `pyproject.toml`:** Erweiterung der `keywords`-Liste von 9 auf 20 strukturierte Discoverability-Keywords in vollständiger Parität mit den GitHub-Topics.

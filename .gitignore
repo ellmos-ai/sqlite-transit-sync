@@ -90,3 +90,7 @@ id_ed25519*
 *.orig
 *.rej
 
+# OS- & Editor-Reste
+.DS_Store
+*.swp
+*.swo
