@@ -4,6 +4,8 @@
 
 - Last-checked: 2026-10-31
 - Version: 0.4.0
+- Documentation: `README.md` (English), `README_de.md` (German), and `README_es.md` (Spanish).
+- Documentation languages checked: 2026-11-02
 - Module status: `development`; visibility projection: `public-candidate`; release gate: `LOCKED`.
 - Metadata contract: `METADATA_CONTRACT.md` (version, status and verification authority).
 - Security policy: `SECURITY.md` (Supported Versions 0.4.x, 48h SLA + 5 business days triage, Direct Contacts).
