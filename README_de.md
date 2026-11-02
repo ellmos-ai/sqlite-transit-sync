@@ -25,7 +25,7 @@
 > [!NOTE]
 > **Kontext für LLMs und KI-Agenten**: Ein strukturierter maschinenlesbarer Verzeichnisbaum, ein Architekturüberblick und ein API-Leitfaden stehen unter [`llms.txt`](llms.txt) bereit.
 
-**🇬🇧 [English Version](README.md)** | **🤝 [Mitwirken](CONTRIBUTING.md)** | **🛡️ [Sicherheitsrichtlinie](SECURITY.md)** | **📝 [Changelog](CHANGELOG.md)** | **📋 [llms.txt](llms.txt)**
+**🇬🇧 [English Version](README.md)** | **🇩🇪 Deutsch** | **🇪🇸 [Spanische Version](README_es.md)** | **🤝 [Mitwirken](CONTRIBUTING.md)** | **🛡️ [Sicherheitsrichtlinie](SECURITY.md)** | **📝 [Changelog](CHANGELOG.md)** | **📋 [llms.txt](llms.txt)**
 
 ## 🧭 Schnellnavigation
 
