@@ -7,11 +7,13 @@ import hmac
 import json
 import os
 import re
+import shutil
 import socket
 import sqlite3
 import stat
 import tempfile
-from collections.abc import Iterable, Mapping, Sequence
+from collections.abc import Iterable, Iterator, Mapping, Sequence
+from contextlib import contextmanager
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -923,6 +925,83 @@ class TombstoneMergePolicy:
         return report
 
 
+
+@dataclass(frozen=True)
+class _PublicationPaths:
+    """Capture one publication's local paths; configuration is otherwise mutable."""
+
+    database: Path
+    transit: Path
+    state: Path
+    node_id: str
+    namespace: str
+
+    @classmethod
+    def capture(cls, config: SyncConfig) -> _PublicationPaths:
+        paths = cls(
+            *(Path(getattr(config, key)).expanduser().resolve() for key in ("database", "transit", "state")),
+            config.node_id, config.namespace,
+        )
+        if paths.state == paths.transit or paths.transit in paths.state.parents:
+            raise SyncError("The sync state must remain outside the transit directory")
+        if paths.database == paths.transit or paths.transit in paths.database.parents:
+            raise SyncError("The live database must remain outside the transit directory")
+        if (paths.node_id != _safe_identifier(paths.node_id, "node")
+                or paths.namespace != _safe_identifier(paths.namespace, "default")):
+            raise SyncError("Publication identity changed to an unsafe value")
+        return paths
+
+    def check(self, config: SyncConfig) -> None:
+        if self.capture(config) != self:
+            raise SyncError("Publication paths or identity changed during preparation")
+
+    @contextmanager
+    def workspace(self) -> Iterator[Path]:
+        # TEMP/TMP may name the transport itself. Use the resolved local-state
+        # parent instead, and never promise isolation from other sync roots or
+        # processes running as the same OS user.
+        self.state.parent.mkdir(parents=True, exist_ok=True)
+        with tempfile.TemporaryDirectory(prefix=".sqlite-transit-stage-", dir=self.state.parent) as name:
+            stage = Path(name).resolve()
+            if stage == self.transit or self.transit in stage.parents:
+                raise SyncError("Private staging must be outside the transit directory")
+            yield stage
+        # TemporaryDirectory cleanup errors deliberately propagate. A leftover
+        # private plaintext artifact must not be reported as successful cleanup.
+
+
+def _assert_publication_target(path: Path) -> None:
+    manifest = path.with_suffix(path.suffix + ".json")
+    if any(candidate.exists() or _is_reparse_or_symlink(candidate) for candidate in (path, manifest)):
+        raise SyncError("Publication target already exists")
+    _assert_no_sqlite_sidecars(path)
+
+
+def _publish_prepared_file(source: Path, target: Path, digest: str, size: int) -> None:
+    """Copy only validated/ciphertext bytes into an owned target-filesystem temp."""
+    if target.parent.resolve() != target.parent:
+        raise SyncError("Publication directory was redirected")
+    _assert_publication_target(target)
+    fd, name = tempfile.mkstemp(prefix=f".{target.name}.", suffix=".partial", dir=target.parent)
+    temporary = Path(name)
+    renamed = False
+    try:
+        with os.fdopen(fd, "wb") as out, source.open("rb") as incoming:
+            shutil.copyfileobj(incoming, out)
+            out.flush()
+            os.fsync(out.fileno())
+        if temporary.stat().st_size != size or _sha256(temporary) != digest:
+            raise SyncError("Prepared publication copy failed integrity verification")
+        if target.parent.resolve() != target.parent:
+            raise SyncError("Publication directory was redirected")
+        _assert_publication_target(target)
+        os.replace(temporary, target)
+        renamed = True
+    finally:
+        if not renamed:
+            temporary.unlink(missing_ok=True)
+
+
 class TransitSync:
     """Coordinates verified snapshots between independent local SQLite writers."""
 
@@ -1086,92 +1165,85 @@ class TransitSync:
         if not result or result[0] != "ok":
             raise SyncError(f"SQLite quick_check failed for {path}: {result}")
 
-    def push(self) -> Snapshot:
-        if not self.config.database.is_file():
-            raise SyncError(f"Live database not found: {self.config.database}")
-        created_at = _utc_token()
-        final_path = self.config.transit / self._snapshot_name(created_at)
-        partial_path = final_path.with_name(f".{final_path.name}.partial")
-        manifest_path = final_path.with_suffix(final_path.suffix + ".json")
-        _remove_sqlite_artifacts(partial_path)
+    def _backup_to(self, target: Path, *, database: Path | None = None) -> None:
         source: sqlite3.Connection | None = None
         destination: sqlite3.Connection | None = None
         try:
-            try:
-                source = sqlite3.connect(str(self.config.database))
-                destination = sqlite3.connect(str(partial_path))
-                with destination:
-                    source.backup(destination)
-            finally:
-                if destination is not None:
-                    destination.close()
-                if source is not None:
-                    source.close()
-        except Exception as error:
-            try:
-                _remove_sqlite_artifacts(partial_path)
-            except SyncError as cleanup_error:
-                raise cleanup_error from error
-            raise
+            source = sqlite3.connect(str(database if database is not None else self.config.database))
+            destination = sqlite3.connect(str(target))
+            with destination:
+                source.backup(destination)
+        finally:
+            if destination is not None:
+                destination.close()
+            if source is not None:
+                source.close()
 
+    def push(self) -> Snapshot:
+        paths = _PublicationPaths.capture(self.config)
+        if not paths.database.is_file():
+            raise SyncError(f"Live database not found: {paths.database}")
+        created_at = _utc_token()
+        final_path = paths.transit / _snapshot_filename(paths.namespace, paths.node_id, created_at)
+        manifest_path = final_path.with_suffix(final_path.suffix + ".json")
+        _assert_publication_target(final_path)
         published_snapshot = False
+        manifest_attempted = False
         try:
-            self._close_snapshot(partial_path)
-            redacted_tables = self._redact_snapshot(partial_path)
-            leaks = self._scan_snapshot_for_secrets(partial_path)
-            if leaks:
-                raise SyncError(
-                    "Snapshot publication aborted: credential-looking values remain in "
-                    + ", ".join(leaks)
-                    + ". Remove them from the source database, add the table to "
-                    "snapshot_exclude_tables, or disable scan_snapshot_for_secrets if "
-                    "this is a false positive. The value itself is not shown on purpose."
-                )
-            self._quick_check(partial_path)
-            _assert_no_sqlite_sidecars(partial_path)
-            digest = _sha256(partial_path)
-            size = partial_path.stat().st_size
-            os.replace(partial_path, final_path)
-            published_snapshot = True
-            _assert_no_sqlite_sidecars(final_path)
+            with paths.workspace() as staging:
+                snapshot_db = staging / "snapshot.db"
+                self._backup_to(snapshot_db, database=paths.database)
+                self._close_snapshot(snapshot_db)
+                redacted_tables = self._redact_snapshot(snapshot_db)
+                leaks = self._scan_snapshot_for_secrets(snapshot_db)
+                if leaks:
+                    raise SyncError(
+                        "Snapshot publication aborted: credential-looking values remain in "
+                        + ", ".join(leaks)
+                        + ". Remove them from the source database, add the table to "
+                        "snapshot_exclude_tables, or disable scan_snapshot_for_secrets if "
+                        "this is a false positive. The value itself is not shown on purpose."
+                    )
+                self._quick_check(snapshot_db)
+                _assert_no_sqlite_sidecars(snapshot_db)
+                digest = _sha256(snapshot_db)
+                size = snapshot_db.stat().st_size
+                manifest = {
+                    "protocol": PROTOCOL_VERSION,
+                    "namespace": paths.namespace,
+                    "node_id": paths.node_id,
+                    "created_at": created_at,
+                    "snapshot": final_path.name,
+                    "sha256": digest,
+                    "size": size,
+                    "redacted_tables": redacted_tables,
+                }
+                if self.authenticator is not None:
+                    authentication = self.authenticator.sign(manifest)
+                    if not isinstance(authentication, Mapping):
+                        raise SyncError("Snapshot authenticator returned an invalid envelope")
+                    manifest["auth"] = dict(authentication)
+                paths.check(self.config)
+                _publish_prepared_file(snapshot_db, final_path, digest, size)
+                published_snapshot = True
+                paths.check(self.config)
+                manifest_attempted = True
+                _atomic_json_write(manifest_path, manifest)
+                paths.check(self.config)
         except Exception as error:
             try:
-                _remove_sqlite_artifacts(partial_path)
+                if manifest_attempted:
+                    manifest_path.unlink(missing_ok=True)
                 if published_snapshot:
-                    _remove_sqlite_artifacts(final_path)
-            except SyncError as cleanup_error:
-                raise cleanup_error from error
-            raise
-        manifest = {
-            "protocol": PROTOCOL_VERSION,
-            "namespace": self.config.namespace,
-            "node_id": self.config.node_id,
-            "created_at": created_at,
-            "snapshot": final_path.name,
-            "sha256": digest,
-            "size": size,
-            "redacted_tables": redacted_tables,
-        }
-        try:
-            if self.authenticator is not None:
-                authentication = self.authenticator.sign(manifest)
-                if not isinstance(authentication, Mapping):
-                    raise SyncError("Snapshot authenticator returned an invalid envelope")
-                manifest["auth"] = dict(authentication)
-            _atomic_json_write(manifest_path, manifest)
-        except Exception as error:
-            try:
-                _remove_manifest_artifacts(manifest_path)
-                _remove_sqlite_artifacts(final_path)
-                _remove_sqlite_artifacts(partial_path)
-            except SyncError as cleanup_error:
+                    final_path.unlink(missing_ok=True)
+            except (OSError, SyncError) as cleanup_error:
                 raise cleanup_error from error
             raise
         return Snapshot(
             path=final_path,
             manifest_path=manifest_path,
-            node_id=self.config.node_id,
-            namespace=self.config.namespace,
+            node_id=paths.node_id,
+            namespace=paths.namespace,
             created_at=created_at,
             sha256=digest,
             size=size,

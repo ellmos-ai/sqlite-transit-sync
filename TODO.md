@@ -1,5 +1,7 @@
 # TODO
 
+- [ ] Private Veröffentlichungsvorbereitung auf aktuellem main unabhängig abnehmen: ungeprüfte Rohbackups sowie Republica-Klartext außerhalb des Transitordners; Fehler-, Fremdartefakt-, Pfad- und Dateisystemgrenzen prüfen. Quellkorrektur vorhanden, aktuelle Head-CI und unabhängige Integration noch offen; keine bestehenden Installationen migriert.
+
 - [x] Optionalen Authentifizierungsadapter für nicht vollständig vertrauenswürdige Transporte als API-Referenz mit HMAC-Key-Rotation ergänzen.
 - [x] Referenzadapter für Tombstone-basierte Löschsynchronisation ergänzen.
 - [x] Trennung von Node-State und Transitverzeichnis fail-closed erzwingen.

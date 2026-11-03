@@ -547,6 +547,23 @@ El valor predeterminado de `state` de esta tabla se aplica al cargar una configu
 
 `snapshot_exclude_tables` solo puede descartar una tabla que ya hayas previsto. El análisis responde a una pregunta que esa regla no resuelve: *¿se ha pegado una credencial en una columna de texto libre*, como una nota, una línea de registro o un resumen de sesión? Se ejecuta sobre la copia de la instantánea después de redactarla y antes de publicarla. Si encuentra una coincidencia, genera `SyncError` e indica `table.column`; nunca incluye el valor coincidente, de modo que la credencial no llega a los registros, los seguimientos de errores ni la salida de CI. La instantánea parcial se descarta y nada llega al directorio de tránsito.
 
+**Límite entre preparación y publicación:** Las copias sin depurar, la redacción y
+el análisis se realizan en un directorio temporal por llamada junto al estado local
+configurado, fuera del tránsito canónico. Republica también prepara allí SQL/gzip en
+claro y cifra antes de copiar al tránsito. El directorio del estado debe ser local,
+privado y estar fuera de carpetas compartidas o sincronizadas. Otras raíces de
+sincronización y procesos de la misma cuenta del sistema quedan fuera de esta garantía;
+el análisis opcional de patrones no detecta todos los secretos.
+
+Solo los bytes verificados de la instantánea (push normal) o el texto cifrado
+(Republica) se copian a un archivo temporal de tránsito creado de forma exclusiva.
+Tras comprobar tamaño y hash, se renombra dentro del sistema de archivos de destino.
+El manifiesto se escribe después; ambos archivos no forman una transacción atómica
+conjunta. Los errores al limpiar el área privada se propagan. Una caída puede dejar
+directorios privados; no se garantiza el borrado físico seguro ni la limpieza
+automática de artefactos históricos o ajenos.
+
+
 **Desactivarlo es una decisión legítima**, no una solución provisional. Si el almacenamiento de tránsito está bajo tu control y es de confianza (tu propio servidor, un volumen alojado en la UE bajo tu contrato o una unidad extraíble cifrada) y *quieres* que las credenciales viajen con los datos, configura lo siguiente:
 
 ```json
