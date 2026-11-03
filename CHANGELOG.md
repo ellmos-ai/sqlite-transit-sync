@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- **Private preparation before transit publication (2026-11-03):** Keep raw push backups and Republica plaintext SQLite/SQL/gzip in a per-call directory under the local state parent, outside canonical transit. Copy only checked snapshot bytes or ciphertext to an exclusive target-filesystem temporary file, verify size/hash, then rename and write the manifest last. Propagate private cleanup failures, revalidate mutable paths/identity and canonical encryption-key containment, preserve pre-existing publication files and unrelated temporary siblings. No version/dependency/workflow change, deployment or general secret-free/OS-isolation guarantee; independent exact-head review and CI remain separate gates.
+
 - **Spanische Dokumentation [P 2026-11-02]:** Vollständige spanische Fassung in `README_es.md` ergänzt; reziproke Sprachlinks für EN/DE/ES und Sprachindex in `llms.txt` hinzugefügt.
 
 - **Pfad A Technische Hygiene, Windows Quickstart Runner-Härtung, CI Workflow-Prüfung & Vertragstest-Wartung [G 2026-10-31]:**

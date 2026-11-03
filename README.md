@@ -596,6 +596,20 @@ naming `table.column`; the matched value is never included, so the credential do
 not travel into logs, tracebacks or CI output. The partial snapshot is discarded,
 so nothing reaches the transit directory.
 
+**Preparation and publication boundary:** Raw backups, redaction and scanning run in
+a per-call temporary directory under the configured local-state parent, outside the
+canonical transit. Republica also prepares its plaintext SQL/gzip there and encrypts
+before copying anything to transit. Keep that state parent local, private and outside
+shared/synchronized folders; other sync roots and processes using the same OS account
+are outside this guarantee. The optional pattern scan is not complete secret detection.
+
+Only checked snapshot bytes (ordinary push) or ciphertext (Republica) are copied into
+an exclusively created transit temporary file, verified by size/hash, then renamed
+within that target filesystem. The manifest follows; the file pair is not one atomic
+transaction. Private cleanup errors propagate. Crashes may leave private workspaces;
+there is no secure-erasure or automatic cleanup of historical/foreign artifacts.
+
+
 **Turning it off is a legitimate choice**, not a workaround. If your transit is a
 storage location you control and trust — your own server, an EU-hosted volume under
 your contract, an encrypted removable drive — and you *want* credentials to travel

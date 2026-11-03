@@ -11,6 +11,22 @@ before `TransitSync` creates either directory. The same rule applies to absolute
 config-file-relative paths and to CLI `init`; there is no silent migration of an
 existing state file.
 
+### Private preparation before publication
+
+Publication prepares raw SQLite, redaction/scan and Republica plaintext SQL/gzip in
+a per-call temporary directory under the configured state parent, outside the
+canonical transit. That parent must be trusted, local and private. Only checked
+snapshot bytes or already encrypted Republica bytes are copied to an exclusively
+created transit temporary file, size/hash verified and renamed in that filesystem.
+The manifest is written last; this is not an atomic transaction across both files.
+
+Paths and node identity are captured for the call; changed configurations or
+redirected publication directories fail closed. Cleanup failures propagate.
+POSIX temporary directories restrict group/other access; no new Windows ACL
+guarantee or isolation from the same OS account, other configured sync roots,
+crashes, or physical media recovery is claimed. Inspect crash leftovers locally;
+do not delete historical or foreign artifacts automatically.
+
 ### Transit path and manifest boundary
 
 Readers accept only a direct regular manifest in the canonical transit
@@ -122,6 +138,21 @@ Do not include live databases, actual credentials, or personal records in a repo
 Verwenden Sie das Modul ausschließlich mit lokalen Live-Datenbanken und einem vertrauenswürdigen Transportweg. Der Knotenzustand (`state`) muss strikt außerhalb des geteilten Transitverzeichnisses liegen. Dateisystem-Zugriffsrechte sollten auf Datenbank-, Zustands- und Transitpfade beschränkt sein.
 
 `SyncConfig` weist Zustandspfade, die gleich oder unterhalb des kanonischen Transitverzeichnisses liegen, vor der Verzeichniserstellung fail-closed ab. Dies gilt für absolute wie relative Pfade sowie CLI-`init`.
+
+### Private Vorbereitung vor der Veröffentlichung
+
+Rohbackups, Redaktion/Scan und Republica-Klartext-SQL/gzip entstehen pro Aufruf in
+einem temporären Verzeichnis beim lokalen Zustandsordner, außerhalb des kanonischen
+Transitordners. Dieser Elternordner muss vertrauenswürdig, lokal und privat sein.
+Erst geprüfte Snapshotbytes oder bereits verschlüsselte Republica-Daten werden in
+eine exklusiv erzeugte Transitdatei kopiert, nach Größe/Hash geprüft und innerhalb
+des Zieldateisystems umbenannt. Das Manifest folgt; das Paar ist nicht gemeinsam atomar.
+
+Geänderte Pfade/Knotenidentitäten und umgeleitete Veröffentlichungsordner schlagen
+fail-closed fehl. Private Aufräumfehler propagieren. POSIX-Arbeitsordner schließen
+Gruppen-/Fremdzugriff aus; keine zusätzliche Windows-ACL-Garantie, Isolation vom
+selben OS-Konto, anderen Syncwurzeln, Abstürzen oder physischer Datenwiederherstellung.
+Absturzreste lokal prüfen; historische oder fremde Artefakte nicht automatisch löschen.
 
 ### Transitpfad- und Manifest-Isolationsgrenzen
 

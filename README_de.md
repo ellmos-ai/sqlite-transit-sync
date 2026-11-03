@@ -588,6 +588,22 @@ Bei einem Treffer wird `SyncError` ausgelöst und `tabelle.spalte` benannt; der 
 taucht nirgendwo in Logs, Tracebacks oder CI-Ausgaben auf. Der unvollständige Snapshot wird
 verworfen, sodass nichts den Transit-Ordner erreicht.
 
+**Grenze zwischen Vorbereitung und Veröffentlichung:** Rohbackups, Redaktion und
+Scan laufen pro Aufruf in einem temporären Verzeichnis beim konfigurierten lokalen
+Zustandsordner, außerhalb des kanonischen Transitordners. Republica bereitet dort auch
+Klartext-SQL und gzip vor und verschlüsselt vor dem Kopieren in den Transit. Der
+Zustandsordner muss lokal, privat und außerhalb geteilter/synchronisierter Ordner
+liegen. Weitere Syncwurzeln und Prozesse desselben OS-Kontos sind nicht abgedeckt;
+der optionale Musterscan erkennt nicht jedes Geheimnis.
+
+Nur geprüfte Snapshotbytes (normales Pushen) oder Chiffretext (Republica) gelangen
+in eine exklusiv erzeugte temporäre Transitdatei. Nach Größen-/Hashprüfung wird
+innerhalb dieses Zieldateisystems umbenannt; das Manifest folgt. Das Dateipaar ist
+keine gemeinsame atomare Transaktion. Fehler beim privaten Aufräumen propagieren.
+Abstürze können private Arbeitsverzeichnisse hinterlassen; sichere physische
+Datenlöschung und automatische Bereinigung alter/fremder Artefakte werden nicht zugesagt.
+
+
 Das Abschalten ist eine legitime Option, wenn der Transit vollständig vertrauenswürdig ist:
 
 ```json
