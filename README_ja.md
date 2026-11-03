@@ -25,7 +25,7 @@
 > [!NOTE]
 > **LLM・AIエージェント向け情報**: 機械可読なサイトマップ、アーキテクチャ概要、APIガイドを [`llms.txt`](llms.txt) にまとめています。
 
-**🇬🇧 [English](README.md)** | **🇩🇪 [ドイツ語版](README_de.md)** | **🇪🇸 [スペイン語版](README_es.md)** | **🇫🇷 [フランス語版](README_fr.md)** | **🇯🇵 日本語** | **🇨🇳 [簡体字中国語版](README_zh.md)** | **🤝 [貢献ガイド](CONTRIBUTING.md)** | **🛡️ [セキュリティポリシー](SECURITY.md)** | **📝 [変更履歴](CHANGELOG.md)** | **📋 [llms.txt](llms.txt)**
+**🇬🇧 [English](README.md)** | **🇩🇪 [ドイツ語版](README_de.md)** | **🇪🇸 [スペイン語版](README_es.md)** | **🇫🇷 [フランス語版](README_fr.md)** | **🇯🇵 日本語** | **🇨🇳 [簡体字中国語版](README_zh.md)** | **🇵🇹 [ポルトガル語版](README_pt.md)** | **🤝 [貢献ガイド](CONTRIBUTING.md)** | **🛡️ [セキュリティポリシー](SECURITY.md)** | **📝 [変更履歴](CHANGELOG.md)** | **📋 [llms.txt](llms.txt)**
 
 ## 🧭 クイックナビゲーション
 
@@ -251,10 +251,10 @@ sequenceDiagram
 
 | 検索意図の分類 | 英語（EN）の検索語 | ドイツ語（DE）の検索語 |
 |:---|:---|:---|
-| **ローカル優先の同期** | `sqlite synchronization python zero-dependency`, `local-first database snapshot sync`, `offline sqlite multi-device sync` | `lokale datenbank synchronisation offline snapshots`, `sqlite abgleich python ohne abhaengigkeiten`, `lokale datenbank replikation dateibasiert` |
+| **ローカル優先の同期** | `sqlite synchronization python zero-dependency`, `local-first database snapshot sync`, `offline sqlite multi-device sync` | `lokale datenbank synchronisation offline snapshots`, `sqlite abgleich python ohne abhängigkeiten`, `lokale datenbank replikation dateibasiert` |
 | **整合性と設定可能な認証情報パターン検査** | `configured credential-pattern scan sqlite sync`, `configured filesystem transit sqlite sync`, `optional hmac sqlite snapshot manifest` | `konfigurierter credential musterscan sqlite sync`, `dateipfad transit sqlite sync`, `optional hmac snapshot manifest` |
 | **行単位のマージと競合** | `row level merge lww sqlite offline`, `sqlite last write wins schema drift tolerance`, `tombstone merge policy sqlite` | `row level merge lww sqlite offline`, `last-write-wins datenbank abgleich zeitstempel`, `schema drift toleranz sqlite merge` |
-| **分離されたアーキテクチャ** | `sqlite multi-node sync without distributed sql`, `sqlite over syncthing without corruption`, `sqlite transit yard architecture` | `sqlite synchronisation ohne verteilten server`, `sqlite ueber cloud sync ohne datenbankkorruption`, `transit yard sqlite synchronisation` |
+| **分離されたアーキテクチャ** | `sqlite multi-node sync without distributed sql`, `sqlite over syncthing without corruption`, `sqlite transit yard architecture` | `sqlite synchronisation ohne verteilten server`, `sqlite über cloud sync ohne datenbankkorruption`, `transit yard sqlite synchronisation` |
 
 利用者像の詳細、検索意図の強い検索語、競合製品との位置付けについては [MARKETING-LOG.txt](MARKETING-LOG.txt) を参照してください。
 

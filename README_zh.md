@@ -25,7 +25,7 @@
 > [!NOTE]
 > **LLM 与 AI Agent 上下文**：[`llms.txt`](llms.txt) 提供结构化、机器可读的站点地图、架构概览和 API 指南。
 
-**🇬🇧 [English Version](README.md)** | **🇩🇪 [Deutsche Version](README_de.md)** | **🇪🇸 [Versión en español](README_es.md)** | **🇫🇷 [Version française](README_fr.md)** | **🇯🇵 [日本語版](README_ja.md)** | **🇨🇳 简体中文版** | **🤝 [贡献指南](CONTRIBUTING.md)** | **🛡️ [安全政策](SECURITY.md)** | **📝 [变更日志](CHANGELOG.md)** | **📋 [llms.txt](llms.txt)**
+**🇬🇧 [English Version](README.md)** | **🇩🇪 [Deutsche Version](README_de.md)** | **🇪🇸 [Versión en español](README_es.md)** | **🇫🇷 [Version française](README_fr.md)** | **🇯🇵 [日本語版](README_ja.md)** | **🇨🇳 简体中文版** | **🇵🇹 [葡萄牙语版](README_pt.md)** | **🤝 [贡献指南](CONTRIBUTING.md)** | **🛡️ [安全政策](SECURITY.md)** | **📝 [变更日志](CHANGELOG.md)** | **📋 [llms.txt](llms.txt)**
 
 ## 🧭 快速导航
 
@@ -258,10 +258,10 @@ sequenceDiagram
 
 | 意图类别 | 英语（EN）搜索词 | 德语（DE）搜索词 |
 |:---|:---|:---|
-| **本地优先同步** | `sqlite synchronization python zero-dependency`, `local-first database snapshot sync`, `offline sqlite multi-device sync` | `lokale datenbank synchronisation offline snapshots`, `sqlite abgleich python ohne abhaengigkeiten`, `lokale datenbank replikation dateibasiert` |
+| **本地优先同步** | `sqlite synchronization python zero-dependency`, `local-first database snapshot sync`, `offline sqlite multi-device sync` | `lokale datenbank synchronisation offline snapshots`, `sqlite abgleich python ohne abhängigkeiten`, `lokale datenbank replikation dateibasiert` |
 | **完整性与配置式凭据模式扫描** | `configured credential-pattern scan sqlite sync`, `configured filesystem transit sqlite sync`, `optional hmac sqlite snapshot manifest` | `konfigurierter credential musterscan sqlite sync`, `dateipfad transit sqlite sync`, `optional hmac snapshot manifest` |
 | **行级合并与冲突** | `row level merge lww sqlite offline`, `sqlite last write wins schema drift tolerance`, `tombstone merge policy sqlite` | `row level merge lww sqlite offline`, `last-write-wins datenbank abgleich zeitstempel`, `schema drift toleranz sqlite merge` |
-| **解耦架构** | `sqlite multi-node sync without distributed sql`, `sqlite over syncthing without corruption`, `sqlite transit yard architecture` | `sqlite synchronisation ohne verteilten server`, `sqlite ueber cloud sync ohne datenbankkorruption`, `transit yard sqlite synchronisation` |
+| **解耦架构** | `sqlite multi-node sync without distributed sql`, `sqlite over syncthing without corruption`, `sqlite transit yard architecture` | `sqlite synchronisation ohne verteilten server`, `sqlite über cloud sync ohne datenbankkorruption`, `transit yard sqlite synchronisation` |
 
 关于用户画像、高意向搜索词和竞争定位的详细内容，请参阅 [MARKETING-LOG.txt](MARKETING-LOG.txt)。
 

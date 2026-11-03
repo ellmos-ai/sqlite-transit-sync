@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- **Portugiesische Dokumentation [2026-11-03]:** `README_pt.md` ergänzt, die Sprachwahl auf sieben README-Fassungen erweitert und deutsche Suchbegriffe in allen Sprachfassungen mit echten Umlauten synchronisiert.
+
 - **Vereinfachte chinesische Dokumentation [2026-11-03]:** `README_zh.md` ergänzt und in die reziproke Sprachwahl aller sechs README-Dateien sowie in den Sprachindex von `llms.txt` aufgenommen.
 
 - **Spanische Dokumentation [P 2026-11-02]:** Vollständige spanische Fassung in `README_es.md` ergänzt; reziproke Sprachlinks für EN/DE/ES und Sprachindex in `llms.txt` hinzugefügt.

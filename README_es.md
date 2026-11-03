@@ -25,7 +25,7 @@
 > [!NOTE]
 > **Contexto para LLM y agentes de IA**: El índice estructurado y legible por máquinas, la descripción general de la arquitectura y la guía de la API están disponibles en [`llms.txt`](llms.txt).
 
-**🇬🇧 [Versión en inglés](README.md)** | **🇩🇪 [Versión en alemán](README_de.md)** | **🇪🇸 Español** | **🇫🇷 [Versión en francés](README_fr.md)** | **🇯🇵 [Versión en japonés](README_ja.md)** | **🇨🇳 [Versión en chino simplificado](README_zh.md)** | **🤝 [Contribuir](CONTRIBUTING.md)** | **🛡️ [Política de seguridad](SECURITY.md)** | **📝 [Registro de cambios](CHANGELOG.md)** | **📋 [llms.txt](llms.txt)**
+**🇬🇧 [Versión en inglés](README.md)** | **🇩🇪 [Versión en alemán](README_de.md)** | **🇪🇸 Español** | **🇫🇷 [Versión en francés](README_fr.md)** | **🇯🇵 [Versión en japonés](README_ja.md)** | **🇨🇳 [Versión en chino simplificado](README_zh.md)** | **🇵🇹 [Versión en portugués](README_pt.md)** | **🤝 [Contribuir](CONTRIBUTING.md)** | **🛡️ [Política de seguridad](SECURITY.md)** | **📝 [Registro de cambios](CHANGELOG.md)** | **📋 [llms.txt](llms.txt)**
 
 <a id="-quick-navigation"></a>
 ## 🧭 Navegación rápida
@@ -257,10 +257,10 @@ Diseñado para ecosistemas modulares y descentralizados, `sqlite-transit-sync` s
 
 | Categoría de intención | Consultas de búsqueda en inglés (EN) | Términos de búsqueda en alemán (DE) |
 |:---|:---|:---|
-| **Sincronización local primero** | `sqlite synchronization python zero-dependency`, `local-first database snapshot sync`, `offline sqlite multi-device sync` | `lokale datenbank synchronisation offline snapshots`, `sqlite abgleich python ohne abhaengigkeiten`, `lokale datenbank replikation dateibasiert` |
+| **Sincronización local primero** | `sqlite synchronization python zero-dependency`, `local-first database snapshot sync`, `offline sqlite multi-device sync` | `lokale datenbank synchronisation offline snapshots`, `sqlite abgleich python ohne abhängigkeiten`, `lokale datenbank replikation dateibasiert` |
 | **Integridad y análisis configurado de patrones de credenciales** | `configured credential-pattern scan sqlite sync`, `configured filesystem transit sqlite sync`, `optional hmac sqlite snapshot manifest` | `konfigurierter credential musterscan sqlite sync`, `dateipfad transit sqlite sync`, `optional hmac snapshot manifest` |
 | **Combinación a nivel de fila y conflictos** | `row level merge lww sqlite offline`, `sqlite last write wins schema drift tolerance`, `tombstone merge policy sqlite` | `row level merge lww sqlite offline`, `last-write-wins datenbank abgleich zeitstempel`, `schema drift toleranz sqlite merge` |
-| **Arquitectura desacoplada** | `sqlite multi-node sync without distributed sql`, `sqlite over syncthing without corruption`, `sqlite transit yard architecture` | `sqlite synchronisation ohne verteilten server`, `sqlite ueber cloud sync ohne datenbankkorruption`, `transit yard sqlite synchronisation` |
+| **Arquitectura desacoplada** | `sqlite multi-node sync without distributed sql`, `sqlite over syncthing without corruption`, `sqlite transit yard architecture` | `sqlite synchronisation ohne verteilten server`, `sqlite über cloud sync ohne datenbankkorruption`, `transit yard sqlite synchronisation` |
 
 Para consultar el desglose detallado de los perfiles, las consultas de búsqueda de alta intención y el posicionamiento frente a alternativas, véase [MARKETING-LOG.txt](MARKETING-LOG.txt).
 
