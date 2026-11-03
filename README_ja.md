@@ -25,7 +25,7 @@
 > [!NOTE]
 > **LLM・AIエージェント向け情報**: 機械可読なサイトマップ、アーキテクチャ概要、APIガイドを [`llms.txt`](llms.txt) にまとめています。
 
-**🇬🇧 [English](README.md)** | **🇩🇪 [ドイツ語版](README_de.md)** | **🇪🇸 [スペイン語版](README_es.md)** | **🇫🇷 [フランス語版](README_fr.md)** | **🇯🇵 日本語** | **🤝 [貢献ガイド](CONTRIBUTING.md)** | **🛡️ [セキュリティポリシー](SECURITY.md)** | **📝 [変更履歴](CHANGELOG.md)** | **📋 [llms.txt](llms.txt)**
+**🇬🇧 [English](README.md)** | **🇩🇪 [ドイツ語版](README_de.md)** | **🇪🇸 [スペイン語版](README_es.md)** | **🇫🇷 [フランス語版](README_fr.md)** | **🇯🇵 日本語** | **🇨🇳 [簡体字中国語版](README_zh.md)** | **🤝 [貢献ガイド](CONTRIBUTING.md)** | **🛡️ [セキュリティポリシー](SECURITY.md)** | **📝 [変更履歴](CHANGELOG.md)** | **📋 [llms.txt](llms.txt)**
 
 ## 🧭 クイックナビゲーション
 

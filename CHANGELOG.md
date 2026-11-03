@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- **Vereinfachte chinesische Dokumentation [2026-11-03]:** `README_zh.md` ergänzt und in die reziproke Sprachwahl aller sechs README-Dateien sowie in den Sprachindex von `llms.txt` aufgenommen.
+
 - **Spanische Dokumentation [P 2026-11-02]:** Vollständige spanische Fassung in `README_es.md` ergänzt; reziproke Sprachlinks für EN/DE/ES und Sprachindex in `llms.txt` hinzugefügt.
 
 - **Pfad A Technische Hygiene, Windows Quickstart Runner-Härtung, CI Workflow-Prüfung & Vertragstest-Wartung [G 2026-10-31]:**
