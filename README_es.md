@@ -25,7 +25,7 @@
 > [!NOTE]
 > **Contexto para LLM y agentes de IA**: El índice estructurado y legible por máquinas, la descripción general de la arquitectura y la guía de la API están disponibles en [`llms.txt`](llms.txt).
 
-**🇬🇧 [Versión en inglés](README.md)** | **🇩🇪 [Versión en alemán](README_de.md)** | **🇪🇸 Español** | **🤝 [Contribuir](CONTRIBUTING.md)** | **🛡️ [Política de seguridad](SECURITY.md)** | **📝 [Registro de cambios](CHANGELOG.md)** | **📋 [llms.txt](llms.txt)**
+**🇬🇧 [Versión en inglés](README.md)** | **🇩🇪 [Versión en alemán](README_de.md)** | **🇪🇸 Español** | **🇫🇷 [Versión en francés](README_fr.md)** | **🤝 [Contribuir](CONTRIBUTING.md)** | **🛡️ [Política de seguridad](SECURITY.md)** | **📝 [Registro de cambios](CHANGELOG.md)** | **📋 [llms.txt](llms.txt)**
 
 <a id="-quick-navigation"></a>
 ## 🧭 Navegación rápida
@@ -591,22 +591,22 @@ Sea cual sea la opción, la separación importante es la misma: **un canal para 
 
 Cada máquina coloca una **exhibición cifrada** de su base de datos en un área de archivos compartida. Las demás máquinas pueden verla, pero ninguna puede modificarla. De ahí el nombre: una nueva publicación de una base de datos, legible solo por quien tenga la clave.
 
-Úsalo cuando `push`/`pull` no encaje: si quieres *leer* lo que sabe otro nodo sin combinarlo con tus filas, o si lo único que comparten las máquinas es una carpeta, sin servidor, puertos abiertos ni configuración de confianza, y esa carpeta no debe ver el contenido sin cifrar.
+Usa Republica cuando `push`/`pull` no encaje: quieres consultar los datos de otro nodo sin combinarlos con tus filas, o las máquinas solo comparten una carpeta —sin servidor, puertos abiertos ni túnel dedicado entre pares para Republica, aunque sigue siendo necesaria una clave Fernet compartida— y esa carpeta no debe ver el contenido sin cifrar.
 
 <a id="two-modes-deliberately-redundant"></a>
-### Dos modos, redundantes a propósito
+### Dos modos, un mismo tránsito configurado
 
-Republica **no es una solución provisional a la espera de un túnel adecuado**. Es el segundo de dos modos pensados para funcionar en paralelo, de modo que un fallo en uno no detenga el otro:
+Con la misma `SyncConfig`, `push`/`pull` y Republica utilizan la misma ruta `transit` configurada. `push`/`pull` publican instantáneas y las combinan en la base de datos local; Republica publica réplicas cifradas en un subdirectorio por nodo dentro de ese tránsito y las importa como bases de datos independientes de solo lectura bajo `republica_root`. Cambia el cifrado y el comportamiento de combinación, no el transporte.
 
-| Fallo | Sincronización directa (`push`/`pull`) | Republica |
+| Condición | Tránsito de archivos (`push`/`pull`) | Republica |
 |---|---|---|
-| Una máquina está apagada o sin conexión | Se detiene (no hay nodo par) | Sigue funcionando: se publica ahora y se recoge más tarde |
-| VPN/SSH no funciona o la red bloquea el túnel | Se detiene | Sigue funcionando mediante el área de archivos |
-| La rotación de claves o la configuración de confianza está pendiente | Se detiene | Sigue funcionando con la clave compartida |
-| La carpeta compartida no funciona, está llena o desincronizada | Sigue funcionando | Se detiene |
-| No hay una política de combinación acordada para un conjunto de datos | No aplicable | Sigue funcionando: no se combina nada |
+| Un nodo par está sin conexión | Un nodo puede publicar mientras los demás están desconectados; `pull` puede combinar instantáneas que ya estén en tránsito. Los datos nuevos esperan a que su nodo de origen los publique. | Un nodo puede dejar una réplica cifrada para importarla más tarde. Los datos de un origen desconectado también esperan a que se publiquen. |
+| Túnel VPN/SSH no disponible | La ruta de archivos configurada debe seguir siendo accesible; `push`/`pull` no abren túneles directos entre nodos. | La misma dependencia del tránsito; un fallo de VPN/SSH solo importa si deja inaccesible la ruta configurada. |
+| Tránsito configurado no disponible | No se pueden publicar ni recuperar archivos por una ruta que no está disponible. | Lo mismo; Republica no tiene un transporte alternativo. |
+| Rotación de claves o configuración de confianza pendiente | HMAC es opcional. Si se configura un autenticador, deben coincidir la clave y la configuración de confianza; sin él, SHA-256 comprueba la integridad, pero no autentica al remitente. | Para publicar e importar hace falta la misma clave Fernet compatible; las rotaciones deben coordinarse. |
+| No se ha configurado una política de combinación específica de la aplicación | Se usa la `MergePolicy` configurada o, de forma predeterminada, LWW por marcas temporales; configura una política de dominio si ese valor predeterminado no encaja. | Importa una base de datos separada de solo lectura y no combina filas. |
 
-Su valor consiste precisamente en funcionar el día que falla la otra vía, así que mantenlo configurado y pruébalo aunque la vía directa esté funcionando bien.
+Republica resulta útil cuando se necesitan copias cifradas, separadas y de solo lectura. No proporciona redundancia del transporte; para ello, la aplicación debe configurar rutas de tránsito independientes y disponibles.
 
 <a id="setup-cost-one-key-transfer"></a>
 ### Coste de configuración: transferir una clave

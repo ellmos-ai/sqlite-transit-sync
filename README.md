@@ -25,7 +25,7 @@
 > [!NOTE]
 > **LLM & AI Agent Context**: A structured machine-readable sitemap, architectural overview, and API guide is available at [`llms.txt`](llms.txt).
 
-**🇬🇧 English** | **🇩🇪 [Deutsche Version](README_de.md)** | **🇪🇸 [Spanish Version](README_es.md)** | **🤝 [Contributing](CONTRIBUTING.md)** | **🛡️ [Security Policy](SECURITY.md)** | **📝 [Changelog](CHANGELOG.md)** | **📋 [llms.txt](llms.txt)**
+**🇬🇧 English** | **🇩🇪 [Deutsche Version](README_de.md)** | **🇪🇸 [Spanish Version](README_es.md)** | **🇫🇷 [French Version](README_fr.md)** | **🤝 [Contributing](CONTRIBUTING.md)** | **🛡️ [Security Policy](SECURITY.md)** | **📝 [Changelog](CHANGELOG.md)** | **📋 [llms.txt](llms.txt)**
 
 ## 🧭 Quick Navigation
 
@@ -650,25 +650,22 @@ Each machine puts an **encrypted showcase** of its database into a shared file a
 other machine can look at it; none can change it. Hence the name — a re-publication of a
 database, readable only by whoever holds the key.
 
-Use it when `push`/`pull` does not fit: you want to *read* what another node knows without
-merging it into your rows, or the only thing the machines share is a folder — no server, no
-open ports, no trust setup — and that folder must not see your content in the clear.
+Use Republica when `push`/`pull` does not fit: you want to read another node’s data without merging it into your rows, or the machines share only a folder—no server, open ports or dedicated peer tunnel for Republica itself, although a shared Fernet key is still required—and the folder must not see your content in the clear.
 
-### Two modes, deliberately redundant
+<a id="two-modes-deliberately-redundant"></a>
+### Two modes, one configured file transit
 
-Republica is **not a stopgap until a proper tunnel exists.** It is the second of two modes
-meant to run side by side, so that a failure in one does not stop the other:
+With the same `SyncConfig`, `push`/`pull` and Republica use the same configured `transit` path. `push`/`pull` publish snapshots and merge them into the local database; Republica publishes encrypted replicas beneath a per-node subdirectory in that transit and imports them as separate read-only databases under `republica_root`. It changes encryption and merge behavior, not the transport.
 
-| Failure | Direct sync (`push`/`pull`) | Republica |
+| Condition | File-transit sync (`push`/`pull`) | Republica |
 |---|---|---|
-| A machine is asleep or offline | stalls (no peer) | keeps working — drop off now, pick up later |
-| VPN/SSH down, network blocks the tunnel | stalls | keeps working over the file area |
-| Key rotation or trust setup pending | stalls | keeps working with the shared key |
-| Shared folder broken, full or desynced | keeps working | stalls |
-| No merge policy agreed for a dataset | not applicable | keeps working — nothing is merged |
+| A peer machine is offline | A node can publish while peers are offline; `pull` can merge snapshots already in transit. New data waits until its source node publishes. | A publisher can stage an encrypted replica for later import. Data from an offline source likewise waits for publication. |
+| VPN/SSH tunnel unavailable | Requires the configured file path to remain reachable; `push`/`pull` do not open peer tunnels. | Same transit dependency; VPN/SSH matters only if it makes the configured path unavailable. |
+| Configured transit unavailable | Cannot publish or retrieve through an unavailable configured path. | Same; Republica has no alternate transport. |
+| Key rotation or trust setup pending | HMAC is optional. If an authenticator is configured, its key/trust setup must match; without it, SHA-256 checks integrity but does not authenticate the sender. | Publishing and importing require the compatible shared Fernet key; rotations must be coordinated. |
+| No application-specific merge policy is configured | Uses the configured `MergePolicy`, or timestamp LWW by default; choose a domain-specific policy if that default does not fit. | Imports a separate read-only database and does not merge rows. |
 
-The whole value is that it works on the day the other path does not, so keep it configured
-and exercised even while the direct path is healthy.
+Republica is useful when encrypted, separate read-only copies are needed. It does not provide transport failover; that would require separately configured, independently available transit paths.
 
 ### Setup cost: one key transfer
 

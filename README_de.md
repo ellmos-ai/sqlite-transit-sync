@@ -25,7 +25,7 @@
 > [!NOTE]
 > **Kontext für LLMs und KI-Agenten**: Ein strukturierter maschinenlesbarer Verzeichnisbaum, ein Architekturüberblick und ein API-Leitfaden stehen unter [`llms.txt`](llms.txt) bereit.
 
-**🇬🇧 [English Version](README.md)** | **🇩🇪 Deutsch** | **🇪🇸 [Spanische Version](README_es.md)** | **🤝 [Mitwirken](CONTRIBUTING.md)** | **🛡️ [Sicherheitsrichtlinie](SECURITY.md)** | **📝 [Changelog](CHANGELOG.md)** | **📋 [llms.txt](llms.txt)**
+**🇬🇧 [English Version](README.md)** | **🇩🇪 Deutsch** | **🇪🇸 [Spanische Version](README_es.md)** | **🇫🇷 [Französische Version](README_fr.md)** | **🤝 [Mitwirken](CONTRIBUTING.md)** | **🛡️ [Sicherheitsrichtlinie](SECURITY.md)** | **📝 [Changelog](CHANGELOG.md)** | **📋 [llms.txt](llms.txt)**
 
 ## 🧭 Schnellnavigation
 
@@ -642,28 +642,22 @@ keiner kann Änderungen zurückschreiben. Daher der Name — eine Wiederveröffe
 (Re-Publication) einer Datenbank, die ausschließlich von Inhabern des Schlüssels
 gelesen werden kann.
 
-Nutzen Sie diesen Modus, wenn `push`/`pull` nicht passt: Sie möchten *lesen*,
-was ein anderer Knoten weiß, ohne es in Ihre eigenen Zeilen zusammenzuführen,
-oder die Rechner teilen ausschließlich einen Ordner — kein Server, keine offenen Ports,
-kein komplexes Trust-Setup — und dieser Ordner darf Ihre Inhalte nicht im Klartext sehen.
+Nutzen Sie Republica, wenn `push`/`pull` nicht passt: Sie möchten Daten eines anderen Knotens *lesen*, ohne sie in Ihre eigenen Zeilen zusammenzuführen, oder die Rechner teilen nur einen Ordner — ohne Server, offene Ports oder dedizierten Peer-Tunnel für Republica selbst, aber weiterhin mit einem gemeinsamen Fernet-Schlüssel — und dieser Ordner darf Ihre Inhalte nicht im Klartext sehen.
 
-### Zwei bewusst redundante Betriebsmodi
+<a id="zwei-bewusst-redundante-betriebsmodi"></a>
+### Zwei Modi, ein gemeinsamer Dateitransit
 
-Republica ist **kein Provisorium, bis ein Netzwerk-Tunnel existiert.** Es ist der
-zweite von zwei Modi, die bewusst nebeneinander betrieben werden, damit der Ausfall
-eines Pfades den anderen nicht blockiert:
+Bei derselben `SyncConfig` verwenden `push`/`pull` und Republica denselben konfigurierten `transit`-Pfad. `push`/`pull` veröffentlichen Snapshots und führen sie in die lokale Datenbank zusammen; Republica veröffentlicht verschlüsselte Replikate in einem Knoten-Unterverzeichnis dieses Transits und importiert sie als separate schreibgeschützte Datenbanken unter `republica_root`. Der Unterschied liegt in Verschlüsselung und Merge-Verhalten, nicht im Transport.
 
-| Ausfall / Störung | Direkter Sync (`push`/`pull`) | Republica |
+| Bedingung | Dateitransit (`push`/`pull`) | Republica |
 |---|---|---|
-| Ein Rechner schläft oder ist offline | pausiert (kein Peer erreichbar) | funktioniert weiter — jetzt ablegen, später abholen |
-| VPN/SSH ausgefallen, Netzwerk blockiert Tunnel | pausiert | funktioniert über den Dateibereich weiter |
-| Schlüssel-Rotation oder Trust-Setup ausstehend | pausiert | funktioniert mit dem gemeinsamen Schlüssel weiter |
-| Geteilter Ordner defekt, voll oder desynchronisiert | funktioniert weiter | pausiert |
-| Keine Merge-Policy für Datensatz vereinbart | nicht anwendbar | funktioniert weiter — nichts wird zusammengeführt |
+| Ein Peer-Knoten ist offline | Ein Knoten kann Snapshots veröffentlichen, während andere Knoten offline sind; `pull` kann bereits im Transit liegende Snapshots zusammenführen. Neue Daten warten, bis der Quellknoten sie veröffentlicht. | Ein Knoten kann ein verschlüsseltes Replikat zur späteren Abholung veröffentlichen. Daten eines Offline-Knotens gibt es ebenfalls erst nach dessen Veröffentlichung. |
+| VPN/SSH-Tunnel nicht verfügbar | Der konfigurierte Dateipfad muss erreichbar bleiben; `push`/`pull` bauen keine Peer-Tunnel auf. | Dieselbe Transitabhängigkeit; ein VPN/SSH-Ausfall ist nur relevant, wenn dadurch der konfigurierte Pfad nicht erreichbar ist. |
+| Konfigurierter Transit nicht verfügbar | Über einen nicht verfügbaren Pfad können keine Snapshots veröffentlicht oder abgerufen werden. | Ebenso; Republica hat keinen alternativen Transport. |
+| Schlüsselrotation oder Vertrauenskonfiguration ausstehend | HMAC ist optional. Ist ein Authenticator konfiguriert, müssen Schlüssel und Vertrauenskonfiguration passen; ohne ihn prüft SHA-256 die Integrität, nicht den Absender. | Veröffentlichung und Import benötigen denselben kompatiblen Fernet-Schlüssel; Rotationen müssen abgestimmt werden. |
+| Keine anwendungsspezifische Merge-Policy konfiguriert | Es gilt die konfigurierte `MergePolicy` oder standardmäßig zeitstempelbasiertes LWW; passt der Standard nicht zu den Daten, sollte die Anwendung eine Domänen-Policy konfigurieren. | Importiert eine separate schreibgeschützte Datenbank und führt keine Zeilen zusammen. |
 
-Der wesentliche Nutzen liegt darin, dass Republica an dem Tag funktioniert, an dem
-der direkte Pfad gestört ist. Halten Sie diesen Modus daher auch bei funktionierendem
-Direkt-Sync konfiguriert und erprobt.
+Republica ist sinnvoll, wenn verschlüsselte, separate schreibgeschützte Kopien benötigt werden. Es bietet keine Transport-Ausfallsicherung; dafür müsste die Anwendung getrennte, unabhängig verfügbare Transitpfade konfigurieren.
 
 ### Einrichtungsaufwand: Einmalige Schlüsselübertragung
 
