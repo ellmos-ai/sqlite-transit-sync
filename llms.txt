@@ -1,6 +1,6 @@
 # sqlite-transit-sync
 
-> Local-first SQLite synchronization through verified transit snapshots and configurable row-level merge policies. Extracted from the BACH ProSync architecture for standalone, zero-dependency Python projects.
+> Local-first SQLite synchronization through transit snapshots, SHA-256 manifest integrity checks, and configurable row-level merge policies. Sender authentication is opt-in through an API-injected HMAC authenticator. Extracted from the BACH ProSync architecture for standalone, zero-dependency Python projects.
 
 - Last-checked: 2026-10-31
 - Version: 0.4.0
@@ -9,16 +9,16 @@
 - Module status: `development`; visibility projection: `public-candidate`; release gate: `LOCKED`.
 - Metadata contract: `METADATA_CONTRACT.md` (version, status and verification authority).
 - Security policy: `SECURITY.md` (Supported Versions 0.4.x, 48h SLA + 5 business days triage, Direct Contacts).
-- License, Attribution & SBOM: `LICENSE`, `NOTICE`, `THIRD_PARTY_LICENSES.md`, `THIRD_PARTY_LICENSES.txt` (MIT, zero external runtime dependencies, Level 1 SBOM, 100% permissive).
+- License, Attribution & Dependency/License Inventory: `LICENSE`, `NOTICE`, `THIRD_PARTY_LICENSES.md`, `THIRD_PARTY_LICENSES.txt` (project-maintained package-license records; not an independent audit or certification).
 - Contributing Guide: `CONTRIBUTING.md` (Bilingual guidelines, Invariants INV-LOCAL-01..INV-SLA-10, Quality Gates, § 521 BGB statutory notice).
-- Discoverability & Marketing: `MARKETING-LOG.txt` (Target personas, bilingual search queries, competitive matrix).
+- Discoverability & Marketing: `MARKETING-LOG.txt` (target personas, bilingual search queries, project capabilities and limits).
 - Architecture: Local-First / Zero-Dependency / Snapshot-based Transit (Dual Mermaid diagrams & 10-point Invariants Matrix in README).
-- Invariants: INV-LOCAL-01 to INV-SLA-10 (Zero-Egress, Snapshot Atomicity, Clean Isolation, Path Containment, Two-Stage Verification, Credential Shield, HMAC Envelope, Row-Level Merge, Conservative Retention, RunAsInvoker Multi-OS Parity).
+- Invariants: INV-LOCAL-01 to INV-SLA-10 (local SQLite processing with a configured transit path, per-file snapshot publication, clean isolation, path containment, SHA-256 integrity and SQLite quick_check, configured credential-pattern scan, optional HMAC authentication, row-level merge, conservative retention, caller process permissions and security response policy).
 - Module Family: `dev-bricks/sync-master` companion (`sync.database`)
 
 ## System Overview
 
-`sqlite-transit-sync` is a Python 3.10+ library (zero dependencies for merge mode; the optional Republica mode adds `cryptography`) and CLI for synchronizing local SQLite databases across untrusted or asynchronous file transports (shared folders, object-store mounts, removable drives, or sync-master yards). Includes ownership-aware snapshot retention policies, HMAC-SHA256 authentication, strict read-only application projection verification, and synthetic BACH golden comparison. Verified passing test suite on 2026-10-31 (100% green: 164 passed, 43 subtests).
+`sqlite-transit-sync` is a Python 3.10+ library (zero dependencies for merge mode; the optional Republica mode adds `cryptography`) and CLI for synchronizing local SQLite databases through shared or asynchronous file transports (shared folders, object-store mounts, removable drives, or sync-master yards). Use a trusted transport, or configure authenticated transport or API-injected HMAC. SHA-256 checks snapshot bytes against the manifest; by itself it does not authenticate the sender. HMAC sender authentication is optional and shared-key based. Includes ownership-aware snapshot retention policies, strict read-only application projection verification, and synthetic BACH golden comparison. Verified passing test suite on 2026-10-31 (100% green: 164 passed, 43 subtests).
 
 It avoids live SQLite database locking over file sync by using:
 1. Online consistent snapshots via SQLite Backup API (`sqlite3.Connection.backup`).
@@ -167,7 +167,7 @@ cleanup_plan = sync.cleanup(keep_days=7, keep_per_node=10)
 - **Synthetic recipes**: `tests/fixtures/projections/*.json`
 - **Repository**: [ellmos-ai/sqlite-transit-sync](https://github.com/ellmos-ai/sqlite-transit-sync)
 - **License & Inventory**: `THIRD_PARTY_LICENSES.md` (MIT, Zero-Runtime-Dependencies)
-- **Marketing & Discoverability**: `MARKETING-LOG.txt` (Personas, search queries, competitive matrix)
+- **Marketing & Discoverability**: `MARKETING-LOG.txt` (personas, search queries, implemented behavior and limits)
 - **File Transport Companion**: [dev-bricks/sync-master](https://github.com/dev-bricks/sync-master)
 - **Ecosystem Catalog**: [ellmos-ai/stacks](https://github.com/ellmos-ai/stacks)
 - **Main Organization**: [dev-bricks](https://github.com/dev-bricks)

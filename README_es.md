@@ -8,13 +8,13 @@
 [![Verified: 2026-10-31](https://img.shields.io/badge/verified-2026--10--31-blue.svg)](#tests)
 [![Python Version](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12%20%7C%203.13-blue.svg)](https://www.python.org/)
 [![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20Linux%20%7C%20macOS-informational.svg)](#)
-[![Privacy](https://img.shields.io/badge/privacy-100%25%20Offline%20%7C%20Zero--Egress-brightgreen.svg)](#)
-[![Privilege: RunAsInvoker](https://img.shields.io/badge/Privilege-RunAsInvoker-success.svg)](THIRD_PARTY_LICENSES.md)
-[![Security](https://img.shields.io/badge/security-Local--First%20%7C%20HMAC--Verified-blue.svg)](SECURITY.md)
+[![Ruta de datos](https://img.shields.io/badge/ruta%20de%20datos-SQLite%20local%20%7C%20tr%C3%A1nsito%20configurado-informational.svg)](#)
+[![Execution context: Caller permissions](https://img.shields.io/badge/execution-caller%20permissions-informational.svg)](#governance-runtime-invariants-matrix)
+[![Security](https://img.shields.io/badge/security-Local--First%20%7C%20Optional--HMAC-blue.svg)](SECURITY.md)
 [![Security SLA](https://img.shields.io/badge/security%20SLA-48h%20SLA-blue.svg)](SECURITY.md)
 [![Contributing: Guide](https://img.shields.io/badge/Contributing-Guide-blue.svg)](CONTRIBUTING.md)
-[![Third-Party: Level 1 SBOM](https://img.shields.io/badge/third--party-Level%201%20SBOM%20%7C%20100%25%20permissive-brightgreen.svg)](THIRD_PARTY_LICENSES.md)
-[![Level 1 SBOM: Plain-Text](https://img.shields.io/badge/Level%201%20SBOM-Plain--Text%20Audited-brightgreen.svg)](THIRD_PARTY_LICENSES.txt)
+[![Third-Party License Inventory](https://img.shields.io/badge/third--party-license%20inventory-project%20record-informational.svg)](THIRD_PARTY_LICENSES.md)
+[![License Inventory: Plain-Text Copy](https://img.shields.io/badge/license%20inventory-plain--text%20copy-informational.svg)](THIRD_PARTY_LICENSES.txt)
 [![Attribution: NOTICE](https://img.shields.io/badge/attribution-NOTICE-blue.svg)](NOTICE)
 [![Marketing Log: Active](https://img.shields.io/badge/marketing%20log-active-blue.svg)](MARKETING-LOG.txt)
 [![License](https://img.shields.io/github/license/ellmos-ai/sqlite-transit-sync)](LICENSE)
@@ -34,7 +34,7 @@
 2. [Topología visual de la arquitectura y capas desacopladas](#system-architecture-topology)
 3. [Ciclo de vida integral de instantáneas y sincronización](#end-to-end-snapshot-synchronization-lifecycle)
 4. [Perfiles de usuario objetivo y consultas SEO de alta intención](#marketing--target-personas)
-5. [Matriz comparativa de alternativas](#comparison-with-distributed-sql)
+5. [Comportamiento implementado y límites](#comparison-with-distributed-sql)
 6. [Matriz de gobernanza e invariantes de ejecución](#governance-runtime-invariants-matrix)
 7. [Capacidades básicas y funciones desacopladas](#what-it-provides)
 8. [Proyecciones de aplicaciones de solo lectura](#read-only-application-projections)
@@ -44,7 +44,7 @@
 12. [Exhibición de Republica y método de cifrado](#republica-the-showcase-method)
 13. [API de Python y puntos de extensión](#python-api)
 14. [Seguridad, modelo de amenazas y límites operativos](#safety-and-limits)
-15. [Licencias de terceros y SBOM de nivel 1](#third-party-licenses--transparency)
+15. [Inventario de licencias de terceros](#third-party-licenses--transparency)
 16. [Ecosistema, herramientas relacionadas y paquetes](#ecosystem--sibling-tools)
 17. [Pruebas, verificación y matriz de CI](#tests)
 18. [Aviso legal, limitación de responsabilidad y licencia (§ 521 BGB)](#license)
@@ -57,9 +57,9 @@
 
 La versión, el estado del módulo, la visibilidad y la autoridad de la fecha de verificación se definen en [`METADATA_CONTRACT.md`](METADATA_CONTRACT.md); no constituyen una aprobación para publicar una versión ni para cargarla públicamente.
 
-Sincronización local primero de bases de datos SQLite independientes mediante instantáneas verificadas y políticas de combinación seleccionables por la aplicación. Se extrajo de la arquitectura ProSync de BACH sin dependencias de BACH, OneDrive, nombres de host ni rutas de usuario.
+Sincronización local primero de bases de datos SQLite independientes mediante instantáneas cuya integridad se comprueba y políticas de combinación seleccionables por la aplicación. La autenticación del remitente mediante HMAC es opcional y requiere un autenticador inyectado por la API. Se extrajo de la arquitectura ProSync de BACH sin dependencias de BACH, OneDrive, nombres de host ni rutas de usuario.
 
-Esto **no es un servidor SQL distribuido**. Cada nodo es propietario de su propia base de datos local y solo la abre allí. Una carpeta compartida, un montaje de almacenamiento de objetos, una unidad extraíble u otro medio de transporte de archivos lleva instantáneas cerradas junto con sus manifiestos. Al importar una instantánea, se verifica y se combina con la base de datos local dentro de una sola transacción.
+Esto **no es un servidor SQL distribuido**. Cada nodo es propietario de su propia base de datos local y solo la abre allí. Una carpeta compartida, un montaje de almacenamiento de objetos, una unidad extraíble u otro medio de transporte de archivos lleva instantáneas cerradas junto con sus manifiestos. Al importar una instantánea, se comprueban SHA-256 y SQLite `PRAGMA quick_check` antes de combinarla con la base de datos local dentro de una transacción. La autenticación del remitente mediante HMAC solo se comprueba si se ha configurado un autenticador.
 
 Se complementa bien con [sync-master](https://github.com/dev-bricks/sync-master) (de la misma familia de módulos): un área de sync-master es un medio de transporte natural; configura `--transit` para que apunte a una zona `db-transit/<namespace>/` administrada por la herramienta dentro del área (su regla de protocolo R9). sync-master transporta los documentos; este módulo se ocupa de la integridad y la combinación de bases de datos. Ambos siguen siendo independientes.
 
@@ -69,7 +69,7 @@ Se complementa bien con [sync-master](https://github.com/dev-bricks/sync-master)
 <a id="2-visual-architecture-topology--decoupled-layers"></a>
 ## 2. Topología visual de la arquitectura y capas desacopladas
 
-El siguiente diagrama muestra la topología desacoplada de varios nodos, en la que las bases de datos SQLite locales se conectan exclusivamente mediante paquetes de instantáneas cerradas y verificadas en el almacenamiento de tránsito:
+El siguiente diagrama muestra la topología desacoplada de varios nodos, en la que las bases de datos SQLite locales se conectan exclusivamente mediante paquetes de instantáneas cerradas cuya integridad se comprueba con sus manifiestos en el almacenamiento de tránsito:
 
 ```mermaid
 flowchart TD
@@ -77,21 +77,21 @@ flowchart TD
         DB_A[("Local SQLite DB<br/>(app.db)")]
         BACKUP_A["Online Backup API<br/>(sqlite3.backup)"]
         REDACT_A["Table Redaction &<br/>VACUUM Engine"]
-        SHIELD_A["Credential Shield Scanner<br/>(13+ Patterns)"]
-        HMAC_A["HMAC-SHA256 Signer<br/>(Key Ring)"]
+        SHIELD_A["Configured Credential-Pattern Scan<br/>(default rules; not exhaustive)"]
+        HMAC_A["Optional HMAC Authenticator<br/>(API-injected)"]
         STATE_A["Local State Ledger<br/>(node-state.json)"]
     end
 
     subgraph TRANSIT ["Shared Transit Zone (Yard / Transport)"]
         SNAP["Closed Atomic Snapshot<br/>(*.snapshot.sqlite)"]
-        SIG["HMAC Signature Envelope<br/>(Canonical Manifest)"]
+        SIG["Optional HMAC Envelope<br/>(if configured)"]
         HASH["SHA-256 Digest<br/>(*.manifest.json)"]
         RETENTION["Retention Policy Engine<br/>(Conservative GC)"]
     end
 
     subgraph NODE_B ["Subscriber Node (Host B)"]
         GUARD_B["Path Traversal Guard<br/>(Fail-Closed Root)"]
-        VERIFY_B["Integrity & HMAC Verifier<br/>(SHA-256 + HMAC)"]
+        VERIFY_B["SHA-256 Integrity Check<br/>(HMAC if configured)"]
         SANITY_B["SQLite PRAGMA quick_check<br/>(Corruption Check)"]
         MERGE_B["Row-Level Merge Engine<br/>(LWW / Tombstones / Drift)"]
         DB_B[("Local SQLite DB<br/>(app.db)")]
@@ -107,10 +107,10 @@ flowchart TD
     DB_A --> BACKUP_A
     BACKUP_A --> REDACT_A
     REDACT_A --> SHIELD_A
-    SHIELD_A --> HMAC_A
-    HMAC_A --> SNAP
-    HMAC_A --> SIG
-    HMAC_A --> HASH
+    SHIELD_A --> HASH
+    HASH --> SNAP
+    SNAP --> SIG
+    HMAC_A -.-> SIG
     SNAP --- TRANSIT
     SIG --- TRANSIT
     HASH --- TRANSIT
@@ -124,7 +124,6 @@ flowchart TD
     SANITY_B --> MERGE_B
     MERGE_B --> DB_B
     MERGE_B --> STATE_B
-    HMAC_A -.-> STATE_A
 
     DB_A -.-> REP_EXP
     REP_EXP --> REP_FER
@@ -147,8 +146,8 @@ flowchart TD
 |              |                                          ^                                         |               |
 |              v (sqlite3.backup)                         |                                         v               |
 | +------------+------------+                             |                           +-------------+-------------+ |
-| | Online Consistent Backup|                             |                           | SHA-256 Digest & HMAC     | |
-| | (Closed Rollback-Journal|                             |                           | Signature Verification    | |
+| | Online Consistent Backup|                             |                           | SHA-256 Integrity Check   | |
+| | (Closed Rollback-Journal|                             |                           | Optional HMAC if set      | |
 | +------------+------------+                             |                           +-------------+-------------+ |
 |              |                                          |                                         |               |
 |              v                                          |                                         v               |
@@ -159,14 +158,14 @@ flowchart TD
 |              |                                          |                                         |               |
 |              v                                          |                                         v               |
 | +------------+------------+                             |                           +-------------+-------------+ |
-| | Credential Shield       |                             |                           | Transactional Merge Engine| |
-| | (13+ Vendor Regex Scan) |                             |                           | (Row-Level LWW / Drift)   | |
+| | Pattern Scan            |                             |                           | Transactional Row Merge   | |
+| | (default rules; limited) |                             |                           | (Row-Level LWW / Drift)  | |
 | +------------+------------+                             |                           +-------------+-------------+ |
 |              |                                          |                                         |               |
 |              v                                          |                                         v               |
 | +------------+------------+              +--------------+--------------+            +-------------+-------------+ |
-| | HMAC-SHA256 Signer      |              |  *.snapshot.sqlite (Atomic) |            | Local SQLite Database     | |
-| | (Keyring Authenticator) |------------->|  *.manifest.json   (Digest) |----------->| (app.db - Merged State)   | |
+| | Optional HMAC Adapter   |              |  *.snapshot.sqlite (Atomic) |            | Local SQLite Database     | |
+| | (API-injected if set)   |- - - - - - ->|  *.manifest.json   (Digest) |----------->| (app.db - Merged State)   | |
 | +-------------------------+              |  Retention Engine  (Scoped) |            +-------------+-------------+ |
 |                                          +-----------------------------+                          |               |
 |                                                                                                   v               |
@@ -180,7 +179,7 @@ flowchart TD
 | Local Database ----> Curated SQL Dump ----> Gzip Compression ----> AES-128-CBC (Fernet) ----> Encrypted Outpost   |
 | (Source Node)       (FTS Rebuilt on Dest)   (53MB -> 11MB)         (Pre-Shared Key)          (republica_root/)    |
 |                                                                                                                   |
-| Single Secret File -> Fernet Cipher Envelope -> Courier Transit -> Destination Directory (Mode 0600, Transit Clr)|
+| Single Secret File -> Fernet Cipher Envelope -> Courier Transit -> Destination Directory (Mode 0600, Transit Clr) |
 +-------------------------------------------------------------------------------------------------------------------+
 ```
 
@@ -190,14 +189,14 @@ flowchart TD
 <a id="3-end-to-end-snapshot--synchronization-lifecycle"></a>
 ## 3. Ciclo de vida integral de instantáneas y sincronización
 
-El flujo de sincronización integral garantiza que las bases de datos activas nunca queden expuestas a bloqueos de sincronización a nivel de archivo, y que todos los datos que cruzan los límites entre nodos se autentiquen criptográficamente, se analicen en busca de credenciales y se combinen transaccionalmente:
+El flujo mantiene los archivos de bases de datos activos fuera de la sincronización a nivel de archivo. Compara los bytes de la instantánea con el manifiesto SHA-256, ejecuta el análisis de patrones de credenciales configurado cuando está activado (opción predeterminada: sí) y combina transaccionalmente las filas aceptadas. La autenticación del remitente solo está disponible si se configura un autenticador HMAC inyectado mediante la API. Los nodos ven los cambios tras un intercambio correcto de push/pull:
 
 ```mermaid
 sequenceDiagram
     autonumber
     participant App as Application / Node A
     participant CoreA as sqlite-transit-sync (Push)
-    participant Shield as Credential Shield
+    participant Shield as Credential-Pattern Scan (default on; configurable)
     participant Transit as Shared Transit (db-transit)
     participant CoreB as sqlite-transit-sync (Pull)
     participant Target as Local DB / Node B
@@ -207,25 +206,29 @@ sequenceDiagram
     CoreA->>CoreA: Online Snapshot via SQLite Backup API
     CoreA->>CoreA: Drop Excluded Tables & VACUUM
     CoreA->>Shield: Scan Content for Secret Patterns (credential-triggers.json)
-    Shield-->>CoreA: Scan OK (0 Credentials Detected)
+    Shield-->>CoreA: No configured pattern matched (if enabled)
 
-    Note over CoreA,Transit: Phase 2: Cryptographic Sealing & Atomic Publication
-    CoreA->>CoreA: Calculate SHA-256 Digest & HMAC Envelope
+    Note over CoreA,Transit: Phase 2: Snapshot Digest & File Publication
+    CoreA->>CoreA: Calculate SHA-256 digest and size
     CoreA->>Transit: Write Temporary Snapshot & Atomic os.replace
-    CoreA->>Transit: Write Verified Manifest (*.manifest.json)
 
-    Note over Transit,CoreB: Phase 3: Transit Ingestion & Boundary Guard
+    Note over CoreA,Transit: Phase 3: Optional Manifest Authentication & Publication
+    CoreA->>CoreA: Optionally HMAC-sign manifest (if configured)
+    CoreA->>Transit: Atomically write manifest with SHA-256; HMAC only if configured (*.manifest.json)
+
+    Note over Transit,CoreB: Phase 4: Transit Ingestion & Boundary Guard
     CoreB->>Transit: Discover Manifests & Validate Path Bounds (Anti-Traversal)
-    CoreB->>CoreB: Verify HMAC Signature & SHA-256 Digest
+    CoreB->>CoreB: Verify HMAC first if configured
+    CoreB->>CoreB: Verify snapshot size and SHA-256 (integrity only)
     CoreB->>CoreB: Run PRAGMA quick_check on Isolated Snapshot
 
-    Note over CoreB,Target: Phase 4: Transactional Row Merge & State Advance
+    Note over CoreB,Target: Phase 5: Transactional Row Merge & State Advance
     CoreB->>Target: BEGIN IMMEDIATE Transaction
     CoreB->>Target: Apply Row-Level Merge Policy (LWW per PK / Tombstones)
     CoreB->>Target: Reconcile Shared Column Schema Drift
     CoreB->>Target: COMMIT Transaction
     CoreB->>CoreB: Advance Local State Ledger (node-state.json)
-    Note over Target: Local Eventual Consistency Guaranteed
+    Note over Target: Peer state reflects successful exchange; no background convergence guarantee
 ```
 
 ---
@@ -238,16 +241,16 @@ Diseñado para ecosistemas modulares y descentralizados, `sqlite-transit-sync` s
 
 - **`[PERSONA-01]` Ingenieros de agentes autónomos de IA y arquitectos de enjambres multinodo:**
   - *Problema:* Los enjambres multiagente que funcionan en estaciones de trabajo, portátiles y servidores necesitan persistencia del estado local sin colisiones entre bloqueos de archivos.
-  - *Solución:* Las instantáneas de tránsito desacopladas con protección de credenciales evitan que los tokens se filtren al almacenamiento compartido y, a la vez, mantienen la convergencia asíncrona.
+  - *Solución:* El análisis activado de forma predeterminada puede detener la publicación si coincide un patrón de credenciales configurado. Es una protección adicional, no una prueba de que la instantánea no contenga secretos. Los demás nodos reciben los cambios tras un intercambio correcto de push/pull.
 - **`[PERSONA-02]` Desarrolladores de aplicaciones de escritorio multidispositivo y de edge:**
   - *Problema:* Los usuarios avanzados que intercambian notas personales y bases de datos de tareas mediante sincronización de archivos (por ejemplo, sync-master, Syncthing o Nextcloud) sufren daños en las bases de datos y bloqueos de `-wal`.
-  - *Solución:* La publicación atómica mediante la API de copia de seguridad de SQLite y la combinación transaccional a nivel de fila garantizan que los archivos SQLite locales nunca queden expuestos directamente a demonios de sincronización en la nube.
-- **`[PERSONA-03]` Creadores de herramientas local-first, zero-egress y aisladas de redes:**
-  - *Problema:* Las aplicaciones que requieren verdadera soberanía de los datos no pueden aceptar la dependencia de un proveedor de nube, tarifas recurrentes de alojamiento de bases de datos ni tráfico de red en segundo plano.
-  - *Solución:* Sincronización con capacidad totalmente fuera de línea mediante directorios del sistema de archivos local, puntos de montaje o unidades extraíbles, sin dependencias externas.
+  - *Solución:* La API de copia de seguridad de SQLite y la publicación de cada archivo mantienen las bases activas fuera de la ruta de sincronización de archivos; el transporte intercambia las instantáneas de tránsito.
+- **`[PERSONA-03]` Desarrolladores de herramientas local-first con tránsito configurable:**
+  - *Problema:* Las aplicaciones que requieren soberanía de datos buscan evitar la dependencia de proveedores de nube, tarifas recurrentes de alojamiento y tráfico de red en segundo plano sin control.
+  - *Solución:* El módulo intercambia archivos de instantáneas mediante una ruta del sistema de archivos configurada. Puede ser local o extraíble; el transporte compartido o montado en red queda fuera del control del módulo.
 - **`[PERSONA-04]` Responsables de seguridad empresarial, privacidad y cumplimiento:**
   - *Problema:* Los requisitos estrictos de zero-trust prohíben la sincronización accidental de credenciales, los blobs binarios sin verificar y los servicios en segundo plano con privilegios elevados.
-  - *Solución:* Análisis de regex antes de la publicación para más de 13 familias de secretos (`credential-triggers.json`), sellado de manifiestos con HMAC, verificación de integridad SHA-256 y ejecución sin privilegios en modo de usuario mediante `RunAsInvoker`.
+  - *Solución:* El análisis activado de forma predeterminada comprueba patrones de credenciales configurados antes de publicar; SHA-256 compara la integridad de la instantánea con el manifiesto. La aplicación puede configurar un autenticador HMAC inyectado mediante la API para autenticar al remitente. El proceso hereda los permisos de quien lo inicia.
 
 <a id="high-intent-search-queries-bilingual-en--de"></a>
 ### Consultas de búsqueda de alta intención (bilingües EN y DE)
@@ -255,7 +258,7 @@ Diseñado para ecosistemas modulares y descentralizados, `sqlite-transit-sync` s
 | Categoría de intención | Consultas de búsqueda en inglés (EN) | Términos de búsqueda en alemán (DE) |
 |:---|:---|:---|
 | **Sincronización local primero** | `sqlite synchronization python zero-dependency`, `local-first database snapshot sync`, `offline sqlite multi-device sync` | `lokale datenbank synchronisation offline snapshots`, `sqlite abgleich python ohne abhaengigkeiten`, `lokale datenbank replikation dateibasiert` |
-| **Integridad y protección de credenciales** | `credential shielded sqlite transfer zero-egress`, `hmac verified sqlite snapshot manifest`, `anti-traversal sqlite transit sync` | `zero egress datenbank replikation snapshot`, `geheimsichere sqlite synchronisation regex`, `integritaetsgepruefte datenbank snapshote` |
+| **Integridad y análisis configurado de patrones de credenciales** | `configured credential-pattern scan sqlite sync`, `configured filesystem transit sqlite sync`, `optional hmac sqlite snapshot manifest` | `konfigurierter credential musterscan sqlite sync`, `dateipfad transit sqlite sync`, `optional hmac snapshot manifest` |
 | **Combinación a nivel de fila y conflictos** | `row level merge lww sqlite offline`, `sqlite last write wins schema drift tolerance`, `tombstone merge policy sqlite` | `row level merge lww sqlite offline`, `last-write-wins datenbank abgleich zeitstempel`, `schema drift toleranz sqlite merge` |
 | **Arquitectura desacoplada** | `sqlite multi-node sync without distributed sql`, `sqlite over syncthing without corruption`, `sqlite transit yard architecture` | `sqlite synchronisation ohne verteilten server`, `sqlite ueber cloud sync ohne datenbankkorruption`, `transit yard sqlite synchronisation` |
 
@@ -265,67 +268,56 @@ Para consultar el desglose detallado de los perfiles, las consultas de búsqueda
 
 <a id="comparison-with-distributed-sql"></a><a id="comparative-matrix--alternatives"></a><a id="comparative-matrix"></a>
 <a id="5-comparative-matrix-vs-alternatives"></a>
-## 5. Matriz comparativa de alternativas
+## 5. Comportamiento implementado y límites
 
-La tabla siguiente compara `sqlite-transit-sync` con cuatro enfoques arquitectónicos habituales para sincronizar bases de datos entre nodos, según diez dimensiones técnicas básicas e invariantes de ejecución:
+Esta sección describe las funciones implementadas y los límites del proyecto. No es una auditoría comparativa actual de otros productos.
 
-| Dimensión técnica | Invariante | `sqlite-transit-sync` | SQL distribuido (Cockroach/TiDB) | Litestream / LiteFS | SQLite directo sobre sincronización en la nube | Scripts ad hoc de volcados/JSON |
-|:---|:---|:---|:---|:---|:---|:---|
-| **1. Privacidad de ejecución y egreso** | `INV-LOCAL-01` | **100% local-first / zero-egress** | Requiere una red de clúster multinodo | Replicación en flujo a S3/nube | Depende de un servicio de sincronización en la nube de terceros | Sin verificar / manual |
-| **2. Atomicidad de las instantáneas** | `INV-SNAP-02` | **API de copia de seguridad en línea + `os.replace` atómico** | Consenso distribuido Raft/Paxos | Transmisión continua de marcos WAL | Sincronización parcial de archivos mientras la base está activa | Copia descoordinada de la base mientras está bloqueada |
-| **3. Contención de bloqueos y archivos auxiliares** | `INV-ROLL-03` | **Eliminación fail-closed de `-wal`/`-shm`** | Gestor de bloqueos distribuido / MVCC | Requiere supervisión activa de WAL | Errores de bloqueo de SQLite fatales y conflictos de archivos | Tiempos de espera de bloqueos sin gestionar |
-| **4. Protección de límites del sistema de archivos** | `INV-PATH-04` | **Contención estricta en la raíz y protección contra recorridos de rutas** | Límite del protocolo de sockets de red | Ruta de clave del almacén de objetos | Sincronización de rutas del sistema de archivos del host | Rutas de archivos sin restricciones |
-| **5. Verificación de integridad y estado** | `INV-VERIFY-05` | **SHA-256 + `PRAGMA quick_check` de SQLite** | Sumas de comprobación del registro Raft | Sumas de comprobación de segmentos WAL | Ninguna (se basa en tamaño/hash del archivo) | Ninguna o análisis JSON frágil |
-| **6. Protección de credenciales** | `INV-SHIELD-06` | **Análisis antes de publicar (más de 13 familias de secretos)** | RBAC de roles de base de datos | Ninguna (replica todos los bytes) | Ninguna (exfiltra secretos a la nube) | Ninguna |
-| **7. Autenticidad y sobre de datos** | `INV-HMAC-07` | **Firma HMAC-SHA256 sobre el manifiesto** | TLS mutuo (mTLS) | IAM en la nube / AWS SigV4 | Token del proveedor de nube | Ninguna |
-| **8. Combinación de filas y divergencia del esquema** | `INV-MERGE-08` | **LWW transaccional por PK + tombstones** | Transacciones ACID serializables globales | Restauración de la réplica completa (sin combinación de filas) | Copias binarias de conflicto (sin combinación de filas) | Scripts SQL personalizados frágiles |
-| **9. Retención y ámbito multinodo** | `INV-RET-09` | **Simulación por defecto, limpieza limitada al nodo** | TTL automatizado / compactación de tablas | Ciclo de vida del bucket S3 | Papelera de reciclaje de la nube / historial de versiones | Crecimiento de disco sin control |
-| **10. No elevación de privilegios y SLA de plataforma** | `INV-SLA-10` | **RunAsInvoker sin privilegios, SLA de 48 h** | Configuración compleja de demonios en varios servidores | Demonio dedicado en segundo plano | Demonio de sistema en segundo plano | Ejecución sin verificar |
+| Dimensión | Invariante | Comportamiento implementado | Límite / alcance |
+|:---|:---|:---|:---|
+| **1. Procesamiento local y transporte** | `INV-LOCAL-01` | Lee bases de datos SQLite locales y publica instantáneas en una ruta de tránsito configurada; no requiere un servidor central de bases de datos. | La ruta configurada puede ser una ubicación compartida o montada en red. El módulo no controla el acceso ni el comportamiento de ese transporte. |
+| **2. Publicación de instantáneas** | `INV-SNAP-02` | Captura una copia en línea y publica el archivo de instantánea mediante un archivo temporal y `os.replace`. | El reemplazo de cada archivo no convierte la instantánea y el manifiesto en una transacción única de varios archivos. |
+| **3. Archivos auxiliares y alcance de procesos** | `INV-ROLL-03` | Cierra las instantáneas en modo de diario de reversión y falla de forma cerrada si no puede limpiar los archivos auxiliares temporales de SQLite. | Ejecuta un solo proceso de sincronización por nodo, salvo que la aplicación anfitriona añada un bloqueo de proceso. |
+| **4. Contención de rutas de tránsito** | `INV-PATH-04` | Limita las rutas de manifiestos e instantáneas a archivos regulares directos bajo la raíz canónica de tránsito. | El módulo no controla quién puede escribir en la ubicación de tránsito. |
+| **5. Comprobaciones de integridad** | `INV-VERIFY-05` | Compara los bytes de la instantánea con el SHA-256 del manifiesto y ejecuta SQLite `PRAGMA quick_check`. | Que el resumen coincida no autentica al remitente ni al transporte. |
+| **6. Análisis de patrones de credenciales** | `INV-SHIELD-06` | De forma predeterminada, comprueba el contenido de la instantánea con los patrones configurados y cancela la publicación si encuentra una coincidencia. Informa `table.column`, nunca el valor. | Las reglas con prefijo de proveedor son una protección adicional, no una garantía. Un análisis limpio solo significa que no coincidió ningún patrón conocido; pueden pasar secretos personalizados o sin prefijo. |
+| **7. Autenticación del remitente** | `INV-HMAC-07` | La aplicación puede activar mediante la API la autenticación HMAC-SHA256 opcional del manifiesto canónico. | Sin un autenticador configurado, no se autentica al remitente. HMAC con clave compartida no es un protocolo de frescura ni una firma de clave pública. |
+| **8. Combinación de filas** | `INV-MERGE-08` | Aplica una política configurable de combinación de filas; LWW basado en marcas temporales es la opción predeterminada para las tablas admitidas. | La aplicación integrada define los supuestos del reloj, las reglas de borrado, las migraciones y los conflictos propios del dominio. |
+| **9. Retención y alcance de borrado** | `INV-RET-09` | La limpieza se ejecuta primero en modo simulación y se limita a los artefactos del nodo local, salvo que se habilite expresamente la autoridad entre nodos. | La limpieza de retención no es un servicio de copias de seguridad ni de recuperación. |
+| **10. Permisos del proceso y política de seguridad** | `INV-SLA-10` | El proceso usa los permisos del proceso que lo inicia. `SECURITY.md` fija los plazos de notificación: confirmación en 48 horas y evaluación inicial en 5 días laborables. | El módulo no impone el modo de usuario estándar ni solicita elevación de privilegios. Los plazos corresponden a la gestión de informes, no a una función de ejecución. |
 
 <a id="distributed-sql-detailed-comparison"></a>
-### Comparación detallada con SQL distribuido
+### Modelo de procesamiento y límites
 
-| Aspecto | `sqlite-transit-sync` | SQL distribuido, por ejemplo CockroachDB o YugabyteDB |
+| Aspecto | Comportamiento de `sqlite-transit-sync` | Límite / alcance |
 |---|---|---|
-| Modelo básico | Cada nodo es propietario de una base SQLite local independiente | Todos los servidores forman una única base de datos SQL lógica |
-| Escrituras | Primero locales y sincronizadas más tarde | Coordinadas directamente por el clúster |
-| Sincronización | Importación asíncrona de instantáneas y combinación de filas | Replicación continua entre nodos del clúster |
-| Consistencia | Consistencia eventual tras el intercambio correcto | Normalmente consistencia fuerte o serializable |
-| Consenso y quórum | No requiere ninguno | Normalmente consenso mayoritario basado en Raft |
-| Transacciones globales | No | Sí, incluidas transacciones que abarcan nodos o fragmentos |
-| Gestión de conflictos | `MergePolicy` específico de la aplicación; LWW por marca temporal es el valor predeterminado | Transacciones, MVCC, bloqueos y consenso |
-| Operación sin conexión | El nodo puede seguir leyendo y escribiendo de forma independiente | Las escrituras normalmente requieren un quórum accesible |
-| Interrupción de red | El trabajo local continúa; la sincronización espera | Las particiones minoritarias pueden perder la disponibilidad de escritura |
-| Gestión de fallos | Las bases de datos locales siguen disponibles; el tránsito y las copias de seguridad necesitan protección aparte | Replicación y conmutación por error automáticas mientras haya quórum |
-| Visibilidad de los datos | Los cambios se comparten después de publicarlos e importarlos | Los cambios confirmados son autoritativos de inmediato en el clúster |
-| Cambios de esquema | La aplicación migra cada base de datos local | Migraciones SQL para todo el clúster |
-| Eliminaciones | Requieren tombstones o una política personalizada | Eliminaciones SQL transaccionales normales |
-| Infraestructura | Python, SQLite y un transporte de archivos configurable | Varios servidores de bases de datos permanentes, TLS, supervisión y copias de seguridad |
-| Mínimo de servidores siempre activos | Ninguno; basta con un nodo | Normalmente al menos tres para tolerancia a fallos |
-| Fortaleza principal | Simplicidad offline-first, bajo coste y reglas de combinación específicas del dominio | Consistencia fuerte, escritores simultáneos y alta disponibilidad |
-| Limitación principal | No ofrece transacciones ACID globales ni una verdad compartida inmediata | Complejidad operativa y consumo de recursos considerablemente mayores |
+| Modelo básico | Cada nodo tiene su propia base de datos SQLite local; las instantáneas se intercambian mediante una ruta de tránsito configurada. | No hay una única base de datos con autoridad global. |
+| Escrituras | Las aplicaciones escriben localmente; quien opera el sistema ejecuta push y pull para intercambiar instantáneas. | No hay sincronización automática en segundo plano. |
+| Visibilidad | Un nodo puede ver los cambios tras un intercambio y una combinación correctos. | El módulo no promete visibilidad inmediata ni coherencia global. |
+| Transacciones globales | No se ofrecen. | La aplicación no puede confirmar una transacción conjunta entre varios nodos. |
+| Funcionamiento sin conexión | La base de datos local puede seguir utilizándose mientras el nodo está desconectado. | El intercambio de instantáneas espera a que esté disponible el tránsito configurado. |
+| Conflictos | La `MergePolicy` configurada determina cómo se combinan las filas; LWW por marcas temporales es la opción predeterminada. | Los relojes, las reglas de borrado y la semántica del dominio siguen siendo responsabilidad de la integración. |
+| Cambios de esquema | La combinación de columnas compartidas tolera divergencias de esquema limitadas. | Las migraciones y la compatibilidad del esquema siguen siendo responsabilidad de la aplicación. |
+| Gestión de fallos | Los datos locales se guardan en SQLite y las instantáneas de tránsito son archivos separados. | El módulo no ofrece replicación automática, conmutación por error ni copias de seguridad del tránsito. |
 
 <a id="advantages-disadvantages-and-typical-use-cases"></a>
 ### Ventajas, desventajas y casos de uso típicos
 
-| Sistema | Ventajas | Desventajas | Buenos casos de uso | Malos casos de uso |
+| Sistema | Ventajas | Desventajas | Casos adecuados | Casos poco adecuados |
 |---|---|---|---|---|
-| `sqlite-transit-sync` | Muy ligero; funciona sin conexión; no necesita servidor central; privacidad local; independiente del transporte; las reglas de combinación se adaptan al dominio de la aplicación | Visibilidad con retraso; la aplicación define la gestión de conflictos, eliminaciones, relojes y migraciones; no ofrece ACID global ni conmutación por error basada en quórum | Bases de datos personales de conocimiento y tareas; agentes de IA locales; intercambio entre portátiles, estaciones de trabajo y servidores; aplicaciones de campo y edge; software de escritorio con sincronización opcional; notas de investigación | Pagos, inventario escaso, reservas de asientos, colaboración en tiempo real sobre los mismos registros o muchos escritores simultáneos |
-| SQL distribuido | Base de datos compartida y autoritativa; consistencia fuerte; transacciones globales; escrituras concurrentes coordinadas; replicación y conmutación por error automáticas; escalado horizontal | Requiere servidores permanentes, redes, certificados, supervisión y actualizaciones; el quórum puede reducir la disponibilidad de escritura durante particiones; mayor latencia y coste | Sistemas financieros y de reservas; plataformas SaaS; inventario de comercio electrónico; cuentas globales; backends multijugador; servicios empresariales de alta disponibilidad | Herramientas personales pequeñas, dispositivos conectados de forma intermitente, aplicaciones de escritorio monousuario o cargas de trabajo que SQLite local ya resuelve de forma fiable |
+| `sqlite-transit-sync` | Huella local pequeña; no requiere un servidor central de bases de datos; trabajo local sin conexión; transporte por archivos configurable; políticas de combinación elegidas por la aplicación. | Los cambios llegan a otros nodos mediante push/pull; no hay transacciones globales ni conmutación automática por error; las reglas de reloj, borrado, migración y conflicto dependen de la aplicación. | Bases de datos personales o de tareas; estado local de agentes; portátiles, estaciones de trabajo o dispositivos edge con conexión intermitente; notas de investigación. | Cargas que requieren transacciones confirmadas globalmente, estado compartido inmediato, conmutación automática por error o muchos escritores concurrentes. |
 
 <a id="quick-decision-guide"></a>
 ### Guía rápida para decidir
 
-| Requisito | Preferir |
+| Requisito | Adecuación |
 |---|---|
-| Los nodos deben seguir funcionando sin conexión | `sqlite-transit-sync` |
-| Las actualizaciones pueden hacerse visibles después de un paso de sincronización | `sqlite-transit-sync` |
-| Los datos deben permanecer locales y los conflictos son poco frecuentes | `sqlite-transit-sync` |
-| Muchos clientes modifican simultáneamente los mismos registros | SQL distribuido |
-| Cada confirmación debe ser autoritativa globalmente de inmediato | SQL distribuido |
-| Son obligatorias las transacciones globales o la conmutación por error automática del clúster | SQL distribuido |
+| Los nodos deben poder seguir usando su propia base de datos local sin conexión | `sqlite-transit-sync` |
+| Las actualizaciones pueden llegar a otros nodos tras un intercambio explícito de push/pull | `sqlite-transit-sync` |
+| La aplicación puede definir sus reglas de combinación, reloj, borrado y migración | `sqlite-transit-sync` |
+| Cada escritura debe ser globalmente autoritativa de inmediato | Elegir una arquitectura con ese contrato de coherencia |
+| Se necesitan transacciones globales, conmutación automática por error o muchos escritores concurrentes | Evaluar una arquitectura que ofrezca esas propiedades |
 
-Para un número reducido de dispositivos personales o edge conectados de forma intermitente, `sqlite-transit-sync` suele ser la opción más sencilla. Un servicio PostgreSQL centralizado suele ser el siguiente paso cuando aparecen escritores realmente concurrentes. SQL distribuido resulta atractivo cuando también se necesita que la consistencia fuerte sobreviva a fallos de servidores en varios nodos operados permanentemente.
+Para unos pocos dispositivos con conexión intermitente, este módulo puede encajar si se aceptan el intercambio diferido y las reglas de combinación definidas por la aplicación. Si la carga requiere transacciones globales, estado compartido inmediato o conmutación automática por error, conviene elegir un diseño cuyo contrato documentado ofrezca esas propiedades.
 
 ---
 
@@ -333,20 +325,20 @@ Para un número reducido de dispositivos personales o edge conectados de forma i
 <a id="6-governance--runtime-invariants-matrix"></a>
 ## 6. Matriz de gobernanza e invariantes de ejecución
 
-`sqlite-transit-sync` cumple estrictamente diez invariantes básicos de gobernanza y ejecución para garantizar la integridad de los datos, el aislamiento de límites y la seguridad:
+La siguiente matriz recoge diez invariantes del proyecto, el comportamiento implementado y sus límites:
 
-| # | Invariante | Ámbito arquitectónico | Garantía y mecanismo de verificación |
+| # | Invariante | Ámbito arquitectónico | Comportamiento documentado y límites |
 |---|---|---|---|
-| 1 | **INV-LOCAL-01: local-first al 100% y zero-egress** | Arquitectura del sistema | Opera exclusivamente sobre archivos locales de bases de datos SQLite (`app.db`). Sin telemetría, sin llamadas HTTP/API salientes y sin dependencias de nube. |
+| 1 | **INV-LOCAL-01: procesamiento SQLite local y tránsito configurado** | Arquitectura del sistema | Lee bases de datos SQLite locales y publica instantáneas mediante la ruta de tránsito configurada. La ruta puede ser compartida o estar montada en red; el host y el transporte quedan fuera de este módulo. |
 | 2 | **INV-SNAP-02: atomicidad de instantáneas offline** | Publicación al tránsito | Los archivos de bases de datos activas nunca se comparten mediante sincronización de archivos. Las instantáneas en línea se obtienen con `sqlite3.backup` y se publican mediante `os.replace` atómico. |
 | 3 | **INV-ROLL-03: aislamiento limpio del diario de reversión** | Prevención de archivos auxiliares | Las copias de seguridad se cierran en modo de diario de reversión; todos los archivos auxiliares temporales de SQLite (`-wal`, `-shm`, `-journal`) se limpian de forma fail-closed antes de crear el manifiesto. |
 | 4 | **INV-PATH-04: contención estricta de las rutas de tránsito** | Límite del sistema de archivos | Las rutas de manifiestos e instantáneas deben ser archivos regulares directos dentro de la raíz canónica de tránsito. El recorrido de rutas (`../`), los enlaces simbólicos y los puntos de reanálisis fallan de forma cerrada. |
 | 5 | **INV-VERIFY-05: verificación de integridad y estado en dos etapas** | Validación antes de combinar | Cada instantánea recibida debe superar la coincidencia del resumen criptográfico SHA-256 y `PRAGMA quick_check` de SQLite antes de inspeccionar o combinar datos. |
-| 6 | **INV-SHIELD-06: protección de credenciales antes de publicar** | Inspección del contenido | El contenido se analiza sistemáticamente para detectar patrones de credenciales de más de 13 familias de secretos (`credential-triggers.json`). Si un activador coincide, la publicación se cancela de forma fail-closed y se indica `table.column`. |
-| 7 | **INV-HMAC-07: sobre de autenticidad HMAC** | Identidad y no repudio | Sobre de firma HMAC-SHA256 opcional y conectable sobre la carga canónica del manifiesto (protocolo, espacio de nombres, ID del remitente, nombre de archivo, SHA-256, tamaño y lista de redacción). |
+| 6 | **INV-SHIELD-06: protección de credenciales antes de publicar** | Inspección del contenido | De forma predeterminada, se comprueba el contenido de la instantánea con los patrones configurados; si hay coincidencia, se cancela la publicación y se informa `table.column`, nunca el valor. Los patrones con prefijo de proveedor son una protección adicional, no una garantía; que no haya coincidencias no demuestra que la instantánea no contenga secretos. |
+| 7 | **INV-HMAC-07: autenticación HMAC opcional** | Autenticación del remitente | Sobre HMAC-SHA256 opcional, inyectado mediante la API, sobre la carga canónica del manifiesto (protocolo, espacio de nombres, ID del remitente, nombre de archivo, SHA-256, tamaño y lista de redacción). HMAC con clave compartida no es un protocolo de frescura ni una firma de clave pública; sin esta opción, el manifiesto no autentica al remitente. |
 | 8 | **INV-MERGE-08: combinación determinista a nivel de fila** | Convergencia de datos | Combinación transaccional a nivel de fila (LWW por PK, unión de columnas compartidas para tolerar divergencias del esquema y política explícita de tombstones). El desempate por hash de contenido garantiza una convergencia determinista. |
 | 9 | **INV-RET-09: retención conservadora y ámbito de autoridad** | Recolección de basura | La limpieza de instantáneas es una simulación por defecto y se limita estrictamente a los artefactos del nodo local. La eliminación entre nodos (`--all-nodes`) requiere habilitación administrativa explícita. |
-| 10 | **INV-SLA-10: sin elevación de privilegios y paridad entre sistemas operativos** | Entorno de ejecución | Se ejecuta sin privilegios, en modo de usuario (`RunAsInvoker`). Paridad operativa estricta entre Linux, Microsoft Windows y macOS, sin dependencias nativas externas y con un SLA de seguridad de 48 h. |
+| 10 | **INV-SLA-10: permisos del proceso y política de seguridad** | Contexto de ejecución | El proceso hereda los permisos de quien lo inicia; el módulo no impone el modo de usuario estándar ni solicita elevación de privilegios. `SECURITY.md` fija los plazos de notificación: confirmación en 48 horas y evaluación inicial en 5 días laborables. |
 
 ---
 
@@ -354,7 +346,7 @@ Para un número reducido de dispositivos personales o edge conectados de forma i
 <a id="7-core-capabilities--decoupled-features"></a>
 ## 7. Capacidades básicas y funciones desacopladas
 
-`sqlite-transit-sync` complementa a [dev-bricks/sync-master](https://github.com/dev-bricks/sync-master) dentro de la misma familia de módulos: sync-master se ocupa del transporte de archivos (`sync.files`); este módulo, de la integridad y combinación de bases de datos (`sync.database`). Ambos pueden funcionar por separado o componerse en stacks de la familia [ellmos-ai](https://github.com/ellmos-ai); véase el catálogo de [ellmos-ai/stacks](https://github.com/ellmos-ai/stacks). Su función en ese conjunto de herramientas: no transmitir bases SQLite activas mediante sincronización de archivos, sino únicamente instantáneas verificadas y políticas de combinación seleccionables por la aplicación.
+`sqlite-transit-sync` complementa a [dev-bricks/sync-master](https://github.com/dev-bricks/sync-master) dentro de la misma familia de módulos: sync-master se ocupa del transporte de archivos (`sync.files`); este módulo, de la integridad y combinación de bases de datos (`sync.database`). Ambos pueden funcionar por separado o componerse en stacks de la familia [ellmos-ai](https://github.com/ellmos-ai); véase el catálogo de [ellmos-ai/stacks](https://github.com/ellmos-ai/stacks). Su función en ese conjunto de herramientas: no transmitir bases SQLite activas mediante sincronización de archivos, sino únicamente instantáneas que superen las comprobaciones de integridad del manifiesto y de SQLite, junto con políticas de combinación seleccionables por la aplicación.
 
 <a id="key-capabilities"></a>
 ### Capacidades clave
@@ -370,7 +362,7 @@ Para un número reducido de dispositivos personales o edge conectados de forma i
 - adaptador de referencia `TombstoneMergePolicy` opcional para eliminaciones explícitas;
 - combinación de columnas compartidas para tolerar divergencias básicas del esquema;
 - exclusión de tablas configurable y redacción de instantáneas con VACUUM después de eliminar filas;
-- análisis de credenciales a nivel de contenido que cancela la publicación si la instantánea aún contiene valores con aspecto de credencial (activado por defecto; informa `table.column`, nunca el valor);
+- análisis de contenido activado de forma predeterminada que cancela la publicación si coincide un patrón de credenciales configurado (informa `table.column`, nunca el valor). Los patrones con prefijo de proveedor son una protección adicional; un análisis limpio no demuestra que la instantánea no contenga secretos;
 - compatibilidad con `MergePolicy` personalizada para reglas de dominio, tombstones o CRDT;
 - limpieza verificada de instantáneas, con simulación por defecto, ámbito del nodo local por defecto y habilitación explícita para eliminar datos o administrar nodos externos;
 - importaciones pendientes seleccionadas para adaptadores ligeros del ciclo de vida de aplicaciones, sin duplicar la lógica de combinación ni de avance del estado;
@@ -578,7 +570,7 @@ Los patrones llevan deliberadamente el prefijo del proveedor. Una regla genéric
 <a id="this-is-not-a-secrets-manager"></a>
 ### Esto no es un gestor de secretos
 
-El análisis **elimina** las credenciales de la ruta de sincronización. No las **distribuye**. Si tu problema real es «mis máquinas necesitan las mismas contraseñas o claves de API», este módulo no es la herramienta adecuada, y tampoco lo es una carpeta para sincronizar documentos. En su lugar, elige una de estas opciones; todas mantienen el texto sin cifrar fuera del alcance de un proveedor que no controlas:
+El análisis puede detener la publicación cuando coincide un patrón configurado; no garantiza que se detecten todas las credenciales y no las **distribuye**. Si tu problema real es «mis máquinas necesitan las mismas contraseñas o claves de API», este módulo no es la herramienta adecuada, y tampoco lo es una carpeta para sincronizar documentos. Evalúa una herramienta de gestión de secretos y revisa su modelo de despliegue y confianza:
 
 | Enfoque | Adecuado para | Notas |
 |---|---|---|
@@ -589,7 +581,7 @@ El análisis **elimina** las credenciales de la ruta de sincronización. No las 
 | **Infisical / OpenBao (bifurcación de Vault)** | Equipos, identidades de máquinas y rotación de claves | Servidores de secretos reales con registros de auditoría y credenciales dinámicas; implican más piezas de las necesarias en un entorno doméstico. |
 | **Almacenes nativos de la plataforma** | Una máquina y una aplicación | Llavero de macOS, DPAPI o Administrador de credenciales de Windows, `systemd-creds` o el almacén de secretos de CI. Sin sincronización y sin exposición. |
 
-Sea cual sea la opción, la separación importante es la misma: **un canal para los datos y otro para las credenciales.** Así, la función de este módulo se limita a impedir que el primer canal se convierta silenciosamente en el segundo, justo lo que garantiza el análisis.
+Sea cual sea la opción, la separación importante es la misma: **un canal para los datos y otro para las credenciales.** El análisis de este módulo puede bloquear una instantánea cuando coincide un patrón configurado, pero no garantiza que ningún secreto pase sin detectar.
 
 ---
 
@@ -793,14 +785,14 @@ Véanse [ARCHITECTURE.md](ARCHITECTURE.md), [README_de.md](README_de.md) y [SECU
 
 <a id="third-party-licenses--transparency"></a><a id="level-1-sbom"></a>
 <a id="15-third-party-licenses--level-1-sbom"></a>
-## 15. Licencias de terceros y SBOM de nivel 1
+## 15. Inventario de licencias de terceros
 
-`sqlite-transit-sync` se dedica plenamente a la soberanía local primero: sin telemetría en tiempo de ejecución y sin dependencias externas de ejecución.
+`sqlite-transit-sync` es una biblioteca local-first de sincronización SQLite. Intercambia instantáneas mediante una ruta configurada del sistema de archivos; el comportamiento del host, el montaje y el transporte queda fuera del módulo. Las operaciones principales no tienen dependencias externas de ejecución.
 
 - **Cero dependencias de ejecución:** el motor de sincronización principal solo necesita la biblioteca estándar de Python (`>=3.10`).
 - **Capa opcional de exhibición:** el modo de exhibición cifrada Republica usa opcionalmente [`cryptography`](https://github.com/pyca/cryptography) (Apache-2.0 / BSD-3-Clause). La consulta HMAC opcional del llavero del sistema operativo usa [`keyring`](https://github.com/jaraco/keyring) (MIT).
-- **Auditoría e invariantes:** auditoría formal del 2026-09-20 con licencias 100% permisivas (MIT, Apache-2.0, BSD-3-Clause y PSFL). Se rige por **INV-LOCAL-01** (zero-egress) e **INV-SLA-10** (ejecución sin privilegios mediante RunAsInvoker).
-- **Inventario completo y SBOM:** los textos detallados de las licencias, la garantía de aislamiento sin copyleft, la certificación RunAsInvoker y la matriz de referencias cruzadas de invariantes se documentan en [THIRD_PARTY_LICENSES.md](THIRD_PARTY_LICENSES.md).
+- **Registro de licencias y política de seguridad:** el inventario mantenido por el proyecto registra los identificadores de licencia MIT, Apache-2.0, BSD-3-Clause y PSF, con fecha de registro 2026-10-02; no es una auditoría ni una certificación independiente. **INV-SLA-10** remite a la política de notificación de seguridad (confirmación en 48 horas y evaluación inicial en 5 días laborables); en ejecución, el proceso hereda los permisos de quien lo inicia y no hay imposición de privilegios.
+- **Inventario de licencias mantenido por el proyecto:** el repositorio registra los identificadores de licencia de los paquetes y los textos de licencia en [THIRD_PARTY_LICENSES.md](THIRD_PARTY_LICENSES.md). Este registro no es una auditoría ni una certificación independiente.
 - **Atribución formal:** el aviso legal de atribución consta en [NOTICE](NOTICE).
 
 ---
@@ -827,7 +819,7 @@ Véanse [ARCHITECTURE.md](ARCHITECTURE.md), [README_de.md](README_de.md) y [SECU
 | [dev-bricks/automation-master](https://github.com/dev-bricks/automation-master) | Motor de automatización | Canalización de automatización local basada en eventos con proyecciones. |
 | [dev-bricks/DevCenter](https://github.com/dev-bricks/DevCenter) | Cabina de desarrollo | Aplicación de escritorio para gestionar proyectos, entornos y flujos de trabajo con varios repositorios. |
 | [dev-bricks/CodeBox](https://github.com/dev-bricks/CodeBox) | Gestión de código | Biblioteca de código local-first e índice de patrones AST. |
-| [doc-bricks/PDFtoPDFocr](https://github.com/doc-bricks/PDFtoPDFocr) | OCR de PDF | Conversión de PDF con texto buscable y OCR, sin tráfico externo. |
+| [doc-bricks/PDFtoPDFocr](https://github.com/doc-bricks/PDFtoPDFocr) | OCR de PDF | Conversión de PDF con una capa OCR; esta guía no evalúa su comportamiento de red o privacidad. |
 | [open-bricks/open-bricks](https://github.com/open-bricks) | Centro general | Centro de documentación y coordinación para todos los componentes de código abierto. |
 | [ellmos-ai/coma](https://github.com/ellmos-ai/coma) | Ciclo de vida de trabajos y procesos de agentes | Gestiona archivos locales de trabajos e inicia o comprueba el estado de procesos; es una función separada de la verificación de instantáneas SQLite y de la combinación a nivel de fila. |
 
@@ -894,7 +886,7 @@ Utilízalo bajo tu propio riesgo. No hay compromisos de mantenimiento ni garant�
 
 Se distribuye conforme a los términos de la [licencia MIT](LICENSE).<br>
 Copyright (c) 2026 Lukas Geiger. Consulta [LICENSE](LICENSE) y [NOTICE](NOTICE) para ver todos los detalles.<br>
-Las licencias de dependencias de terceros y los avisos de SBOM de nivel 1 se auditan en [THIRD_PARTY_LICENSES.md](THIRD_PARTY_LICENSES.md).
+El inventario de dependencias y licencias mantenido por el proyecto, junto con su copia en texto plano, está en [THIRD_PARTY_LICENSES.md](THIRD_PARTY_LICENSES.md) y [THIRD_PARTY_LICENSES.txt](THIRD_PARTY_LICENSES.txt).
 
 <a id="provenance"></a>
 ### Procedencia
