@@ -25,7 +25,7 @@
 > [!NOTE]
 > **Contexte pour les LLM et les agents IA** : un plan du site lisible par machine, une vue d’ensemble de l’architecture et un guide API structurés sont disponibles dans [`llms.txt`](llms.txt).
 
-**🇬🇧 [English](README.md)** | **🇫🇷 Français** | **🇩🇪 [Version allemande](README_de.md)** | **🇪🇸 [Version espagnole](README_es.md)** | **🤝 [Contribuer](CONTRIBUTING.md)** | **🛡️ [Politique de sécurité](SECURITY.md)** | **📝 [Journal des modifications](CHANGELOG.md)** | **📋 [llms.txt](llms.txt)**
+**🇬🇧 [English](README.md)** | **🇫🇷 Français** | **🇩🇪 [Version allemande](README_de.md)** | **🇪🇸 [Version espagnole](README_es.md)** | **🇯🇵 [Version japonaise](README_ja.md)** | **🤝 [Contribuer](CONTRIBUTING.md)** | **🛡️ [Politique de sécurité](SECURITY.md)** | **📝 [Journal des modifications](CHANGELOG.md)** | **📋 [llms.txt](llms.txt)**
 
 ## 🧭 Navigation rapide
 
