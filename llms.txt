@@ -4,7 +4,7 @@
 
 - Last-checked: 2026-10-31
 - Version: 0.4.0
-- Documentation: `README.md` (English), `README_de.md` (German), `README_es.md` (Spanish), `README_fr.md` (French), `README_ja.md` (Japanese), `README_zh.md` (Simplified Chinese), and `README_pt.md` (Portuguese).
+- Documentation: `README.md` (English), `README_de.md` (German), `README_es.md` (Spanish), `README_fr.md` (French), `README_ja.md` (Japanese), `README_zh.md` (Simplified Chinese), `README_pt.md` (Portuguese), and `README_ru.md` (Russian).
 - Documentation languages checked: 2026-11-03
 - Module status: `development`; visibility projection: `public-candidate`; release gate: `LOCKED`.
 - Metadata contract: `METADATA_CONTRACT.md` (version, status and verification authority).

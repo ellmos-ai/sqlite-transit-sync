@@ -25,7 +25,7 @@
 > [!NOTE]
 > **LLM 与 AI Agent 上下文**：[`llms.txt`](llms.txt) 提供结构化、机器可读的站点地图、架构概览和 API 指南。
 
-**🇬🇧 [English Version](README.md)** | **🇩🇪 [Deutsche Version](README_de.md)** | **🇪🇸 [Versión en español](README_es.md)** | **🇫🇷 [Version française](README_fr.md)** | **🇯🇵 [日本語版](README_ja.md)** | **🇨🇳 简体中文版** | **🇵🇹 [葡萄牙语版](README_pt.md)** | **🤝 [贡献指南](CONTRIBUTING.md)** | **🛡️ [安全政策](SECURITY.md)** | **📝 [变更日志](CHANGELOG.md)** | **📋 [llms.txt](llms.txt)**
+**🇬🇧 [English Version](README.md)** | **🇩🇪 [Deutsche Version](README_de.md)** | **🇪🇸 [Versión en español](README_es.md)** | **🇫🇷 [Version française](README_fr.md)** | **🇯🇵 [日本語版](README_ja.md)** | **🇨🇳 简体中文版** | **🇵🇹 [葡萄牙语版](README_pt.md)** | **🇷🇺 [俄语版](README_ru.md)** | **🤝 [贡献指南](CONTRIBUTING.md)** | **🛡️ [安全政策](SECURITY.md)** | **📝 [变更日志](CHANGELOG.md)** | **📋 [llms.txt](llms.txt)**
 
 ## 🧭 快速导航
 

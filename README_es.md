@@ -25,7 +25,7 @@
 > [!NOTE]
 > **Contexto para LLM y agentes de IA**: El índice estructurado y legible por máquinas, la descripción general de la arquitectura y la guía de la API están disponibles en [`llms.txt`](llms.txt).
 
-**🇬🇧 [Versión en inglés](README.md)** | **🇩🇪 [Versión en alemán](README_de.md)** | **🇪🇸 Español** | **🇫🇷 [Versión en francés](README_fr.md)** | **🇯🇵 [Versión en japonés](README_ja.md)** | **🇨🇳 [Versión en chino simplificado](README_zh.md)** | **🇵🇹 [Versión en portugués](README_pt.md)** | **🤝 [Contribuir](CONTRIBUTING.md)** | **🛡️ [Política de seguridad](SECURITY.md)** | **📝 [Registro de cambios](CHANGELOG.md)** | **📋 [llms.txt](llms.txt)**
+**🇬🇧 [Versión en inglés](README.md)** | **🇩🇪 [Versión en alemán](README_de.md)** | **🇪🇸 Español** | **🇫🇷 [Versión en francés](README_fr.md)** | **🇯🇵 [Versión en japonés](README_ja.md)** | **🇨🇳 [Versión en chino simplificado](README_zh.md)** | **🇵🇹 [Versión en portugués](README_pt.md)** | **🇷🇺 [Versión en ruso](README_ru.md)** | **🤝 [Contribuir](CONTRIBUTING.md)** | **🛡️ [Política de seguridad](SECURITY.md)** | **📝 [Registro de cambios](CHANGELOG.md)** | **📋 [llms.txt](llms.txt)**
 
 <a id="-quick-navigation"></a>
 ## 🧭 Navegación rápida

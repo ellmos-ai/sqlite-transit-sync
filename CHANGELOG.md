@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- **Russische Dokumentation [2026-11-03]:** Russische README-Fassung in `README_ru.md` ergänzt; Sprachwahl und `llms.txt` auf acht README-Fassungen erweitert.
+
 - **Portugiesische Dokumentation [2026-11-03]:** `README_pt.md` ergänzt, die Sprachwahl auf sieben README-Fassungen erweitert und deutsche Suchbegriffe in allen Sprachfassungen mit echten Umlauten synchronisiert.
 
 - **Vereinfachte chinesische Dokumentation [2026-11-03]:** `README_zh.md` ergänzt und in die reziproke Sprachwahl aller sechs README-Dateien sowie in den Sprachindex von `llms.txt` aufgenommen.

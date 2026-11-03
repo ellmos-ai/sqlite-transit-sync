@@ -25,7 +25,7 @@
 > [!NOTE]
 > **Contexto para LLMs e agentes de IA**: um mapa do site estruturado e legível por máquina, uma visão geral da arquitetura e um guia da API estão disponíveis em [`llms.txt`](llms.txt).
 
-**🇬🇧 [English](README.md)** | **🇩🇪 [Versão em alemão](README_de.md)** | **🇪🇸 [Versão em espanhol](README_es.md)** | **🇫🇷 [Versão em francês](README_fr.md)** | **🇯🇵 [Versão em japonês](README_ja.md)** | **🇨🇳 [Versão em chinês simplificado](README_zh.md)** | **🇵🇹 Português** | **🤝 [Contribuir](CONTRIBUTING.md)** | **🛡️ [Política de segurança](SECURITY.md)** | **📝 [Registro de alterações](CHANGELOG.md)** | **📋 [llms.txt](llms.txt)**
+**🇬🇧 [English](README.md)** | **🇩🇪 [Versão em alemão](README_de.md)** | **🇪🇸 [Versão em espanhol](README_es.md)** | **🇫🇷 [Versão em francês](README_fr.md)** | **🇯🇵 [Versão em japonês](README_ja.md)** | **🇨🇳 [Versão em chinês simplificado](README_zh.md)** | **🇵🇹 Português** | **🇷🇺 [Versão em russo](README_ru.md)** | **🤝 [Contribuir](CONTRIBUTING.md)** | **🛡️ [Política de segurança](SECURITY.md)** | **📝 [Registro de alterações](CHANGELOG.md)** | **📋 [llms.txt](llms.txt)**
 
 ## 🧭 Navegação rápida
 
