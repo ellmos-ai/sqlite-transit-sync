@@ -1,50 +1,52 @@
-# Third-Party Licenses & Transparency Notice (Level 1 SBOM)
+# Third-Party Licenses & Project-Maintained Dependency Inventory
 
 > **Project:** `ellmos-ai/sqlite-transit-sync`<br>
-> **Audit Date:** 2026-10-02 (Prior audits: 2026-09-23, 2026-09-11)<br>
+> **Inventory Record Date (project-maintained):** 2026-10-02 (earlier recorded dates: 2026-09-23, 2026-09-11)<br>
 > **Repository License:** [MIT License](LICENSE)<br>
-> **Plain-Text SBOM Companion:** [THIRD_PARTY_LICENSES.txt](THIRD_PARTY_LICENSES.txt)<br>
+> **Plain-Text Inventory Copy:** [THIRD_PARTY_LICENSES.txt](THIRD_PARTY_LICENSES.txt)<br>
 > **Contributing Guidelines:** [CONTRIBUTING.md](CONTRIBUTING.md)<br>
 > **Repository Attribution Notice:** [NOTICE](NOTICE)<br>
-> **Architecture & Privacy:** 100% Local-First, Zero-Egress by default, Unprivileged User-Mode (`RunAsInvoker`)
+
 
 ---
 
-## Executive Summary & Compliance Assurance
+> **Scope:** This is a repository-maintained record of package-license metadata and project-stated behavior. It is not an independent audit, a legal assessment, a standards-conformance statement, or a security certification.
 
-`sqlite-transit-sync` is engineered from the ground up under strict architectural and security invariants: **100% Local-First, Zero-Egress by default, and unprivileged user-mode execution (`RunAsInvoker`)**. All snapshot capture, table redaction, credential scanning, cryptographic digest verification, and row-level merging execute entirely within local process boundaries.
+## Inventory Summary & Scope
 
-All direct, optional, and development dependencies utilized across `sqlite-transit-sync` are distributed under strictly **permissive open-source licenses** (MIT, Apache-2.0, BSD-3-Clause, PSFL-2.0). There are **zero copyleft, GPL, or AGPL dependencies**, ensuring unencumbered portability for local desktop software, embedded edge systems, and automated agent swarms.
+Project documentation describes `sqlite-transit-sync` as a local-first SQLite synchronization package. Snapshot capture, redaction, configured credential-pattern scanning, digest checks, and row-level merging are performed by its local process. The process inherits the operating-system permissions of its launcher; this inventory does not claim standard-user enforcement or privilege certification.
+
+The package/license records below list the license identifiers recorded for declared direct, optional, and development packages (including MIT, Apache-2.0, BSD-3-Clause, and PSFL-2.0). They are project-maintained records, not an independent review of license coverage or legal compatibility.
 
 ### Invariant Cross-Reference Matrix
 
-| Invariant ID | Security & Operational Mandate | Technical Enforcement Mechanism | License & Isolation Scope |
+| Project Invariant ID | Project-Stated Behavior | Source / Implementation Reference | Recorded License Attribution |
 |:---|:---|:---|:---|
-| `INV-LOCAL-01` | **100% Offline / Zero-Egress** | Operates exclusively against local SQLite database files (`app.db`), zero outbound network telemetry | [PSFL-2.0](https://docs.python.org/3/license.html) |
-| `INV-SNAP-02` | **Offline Snapshot Atomicity** | Non-locking snapshot capture via `sqlite3.backup`, published via atomic `os.replace` | [PSFL-2.0](https://docs.python.org/3/license.html) |
+| `INV-LOCAL-01` | **Local SQLite processing and configured transit path** | Reads local SQLite files and publishes snapshots to the configured transit path. That path may be shared or network-mounted; host and transport behavior are outside this module. | [PSFL-2.0](https://docs.python.org/3/license.html) |
+| `INV-SNAP-02` | **Snapshot file publication** | Captures an online backup and publishes the snapshot file through a temporary file and `os.replace`; the manifest is written separately. | [PSFL-2.0](https://docs.python.org/3/license.html) |
 | `INV-ROLL-03` | **Rollback Journal Clean Isolation** | Backups closed in rollback-journal mode; fail-closed purge of `-wal`, `-shm`, and `-journal` sidecars | [PSFL-2.0](https://docs.python.org/3/license.html) |
 | `INV-PATH-04` | **Strict Transit Path Containment** | Rejection of directory traversal (`../`), absolute paths, symlinks, and reparse points | [PSFL-2.0](https://docs.python.org/3/license.html) |
-| `INV-VERIFY-05` | **Two-Stage Integrity & Sanity** | Pre-merge validation via cryptographic SHA-256 manifest matching and SQLite `PRAGMA quick_check` | [PSFL-2.0](https://docs.python.org/3/license.html) |
-| `INV-SHIELD-06` | **Pre-Publication Credential Shield** | Content-level regex scanning across 13+ secret families (`credential-triggers.json`) with push abort | [PSFL-2.0](https://docs.python.org/3/license.html) |
-| `INV-HMAC-07` | **HMAC Authenticity Envelope** | Optional HMAC-SHA256 signature envelope over canonical manifest payload and sender ID | [PSFL-2.0](https://docs.python.org/3/license.html) |
+| `INV-VERIFY-05` | **Snapshot integrity checks** | Compares snapshot size and SHA-256 with the manifest and runs SQLite `PRAGMA quick_check`; SHA-256 alone does not authenticate the sender. | [PSFL-2.0](https://docs.python.org/3/license.html) |
+| `INV-SHIELD-06` | **Configured credential-pattern scan** | Checks configured patterns (including defaults from `credential-triggers.json`); a match can abort publication. It is a safety net, not an exhaustive secret detector. | [PSFL-2.0](https://docs.python.org/3/license.html) |
+| `INV-HMAC-07` | **Optional manifest authentication** | HMAC is added and verified only when a compatible authenticator is configured; SHA-256 alone is an integrity check, not sender authentication. | [PSFL-2.0](https://docs.python.org/3/license.html) |
 | `INV-MERGE-08` | **Deterministic Row-Level Merge** | Transactional row-level merge (LWW per PK, shared column union for schema drift, tombstone policy) | [MIT](LICENSE) |
 | `INV-RET-09` | **Conservative Retention Scoping** | Snapshot cleanup is dry-run by default, scoped strictly to local node artifacts | [MIT](LICENSE) |
-| `INV-SLA-10` | **Non-Elevation & Multi-OS Parity** | Unprivileged execution (`RunAsInvoker`) across Linux, Windows, macOS with 48h security SLA | [SECURITY.md](SECURITY.md) |
+| `INV-SLA-10` | **Process Permissions & Security Response Policy** | Inherits the caller's operating-system permissions; no standard-user or elevation enforcement is claimed | [SECURITY.md](SECURITY.md) |
 
 ---
 
-## Zero-Copyleft Isolation Guarantee & RunAsInvoker Certification
+## Recorded Dependency-License Scope & Process Permissions
 
-1. **Zero-Copyleft Guarantee:** No component of `sqlite-transit-sync` links against, vendors, or invokes any code under GPLv2, GPLv3, AGPLv3, LGPL, SSPL, or CC-BY-SA licenses. All dependencies are strictly permissive (MIT, Apache-2.0, BSD-3-Clause, PSFL-2.0).
+1. **Declared dependency-license scope:** The inventory records the license identifiers reported for the packages listed below. This record is not an independent assessment of transitive dependency coverage or legal compatibility.
 2. **Zero-Runtime-Dependency Core:** The core synchronization engine requires **zero** external runtime dependencies (`dependencies = []` in `pyproject.toml`). All core primitives (snapshotting, redaction, hashing, HMAC, merging, retention) rely entirely on standard library modules.
-3. **Unprivileged Execution (`RunAsInvoker`):** `sqlite-transit-sync` requires no administrative privileges, no daemon services, and no root credentials. It operates entirely in unprivileged user space.
-4. **Zero-Egress Perimeter:** By default, no network traffic is emitted by `sqlite-transit-sync`. Snapshots are published and pulled exclusively via local filesystem directories, mount points, or sync yards.
+3. **Process permissions:** The process inherits the operating-system permissions of its launcher. The source does not implement standard-user enforcement or request privilege elevation.
+4. **Configured transit boundary:** The module reads local SQLite databases and exchanges snapshot files through the configured filesystem path. That path may be a local directory, shared folder, or network-mounted location; host, mount, and sync-service behavior are outside the module. This inventory does not assert zero network egress.
 
 ---
 
 ## Runtime Architecture & Dependencies
 
-`sqlite-transit-sync` is engineered from the ground up as a **100% local-first, zero-egress, zero-external-dependency** SQLite synchronization engine for its core push, pull, and merge operations.
+`sqlite-transit-sync` is a local-first SQLite synchronization engine that exchanges snapshot files through a configured filesystem transit path. Its core push, pull, and merge operations have zero external runtime dependencies; behavior of a shared or network-mounted path is outside this module.
 
 ### Zero-Runtime-Dependency Guarantee (Core Engine)
 

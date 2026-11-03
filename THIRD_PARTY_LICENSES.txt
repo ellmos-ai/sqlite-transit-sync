@@ -1,71 +1,65 @@
 ===============================================================================
-THIRD PARTY LICENSES & LEVEL 1 SBOM — sqlite-transit-sync
+THIRD-PARTY LICENSE AND DEPENDENCY INVENTORY — sqlite-transit-sync
 ===============================================================================
-Stand: 2026-10-02 (Re-Audit; Stand: 2026-09-23; Erstfassung: 2026-09-11)
+Inventory record updated (project-maintained): 2026-10-02 (earlier recorded entries: 2026-09-23; first entry: 2026-09-11)
 Produkt: sqlite-transit-sync (Version 0.4.0)
 Lizenztyp: Open Source (MIT License)
 Repository: https://github.com/ellmos-ai/sqlite-transit-sync
 Attribution Notice: NOTICE (Lukas Geiger / ellmos-ai / open-bricks)
-Architektur & Privatsphaere: 100% Local-First, Zero-Egress by default, RunAsInvoker
+Prozessrechte: Der Prozess übernimmt die Betriebssystemrechte seines Aufrufers; das Modul erzwingt keinen Standardbenutzermodus.
 
 ===============================================================================
-1. EXECUTIVE SUMMARY & COMPLIANCE ASSURANCE
+1. INVENTORY SUMMARY & SCOPE
 ===============================================================================
 
-sqlite-transit-sync ist von Grund auf gemaess strikter Architektur- und
-Sicherheits-Invarianten entwickelt: 100% Local-First, Zero-Egress standardmaessig,
-und unprivilegierter Benutzermodus (RunAsInvoker). Saemtliche Snapshot-Erfassungen,
-Tabellen-Redigierungen, Credential-Scans, Hash-Pruefungen und zeilenbasierten
-Merge-Operationen laufen ausnahmslos innerhalb lokaler Prozess- und Dateisystem-
-Grenzen ab.
+Diese Datei ist ein vom Repository gepflegter Datensatz der Paket-Lizenzangaben und projektbeschriebenen Eigenschaften. Sie ist keine unabhängige Prüfung, rechtliche Bewertung, Konformitätserklärung oder Sicherheitszertifizierung.
 
-Alle direkten, optionalen sowie Entwicklungs-Abhaengigkeiten von sqlite-transit-sync
-sind unter ausnahmslos permissiven Open-Source-Lizenzen (MIT, Apache-2.0,
-BSD-3-Clause, PSFL-2.0) lizenziert. Es bestehen 0 Copyleft-, GPL- oder AGPL-
-Einschraenkungen auf Nutzerdaten oder die Anwendungslogik.
+sqlite-transit-sync wird in der Projektdokumentation als lokale SQLite-Synchronisationsbibliothek beschrieben. Der Prozess übernimmt die Betriebssystemrechte seines Aufrufers; das Modul erzwingt keinen Standardbenutzermodus.
+
+Die folgenden Paket- und Lizenzangaben geben die im Projektinventar erfassten Lizenzkennzeichen für deklarierte direkte, optionale und Entwicklungsabhängigkeiten wieder (unter anderem MIT, Apache-2.0, BSD-3-Clause und PSFL-2.0). Dies ist keine unabhängige Bewertung der Vollständigkeit transitiver Abhängigkeiten oder der rechtlichen Kompatibilität.
 
 ===============================================================================
-2. INVARIANT CROSS-REFERENCE MATRIX (LEVEL 1 SBOM)
+2. PROJECT-MAINTAINED LICENSE AND BEHAVIOR INVENTORY
 ===============================================================================
 
-Invariant ID  | Sicherheits- & Betriebsmandat          | Technische Durchsetzung               | Lizenz- & Isolationsbereich
+Projekt-Invariante | Projektbeschreibung                        | Quell-/Implementierungsreferenz        | Erfasste Lizenzangabe
 --------------+----------------------------------------+---------------------------------------+-----------------------------
-INV-LOCAL-01  | 100% Offline / Zero-Egress             | sqlite_transit_sync.core (offline)    | PSFL-2.0
-INV-SNAP-02   | Offline Snapshot Atomizitaet           | sqlite3.backup / os.replace           | PSFL-2.0
+INV-LOCAL-01  | Lokale SQLite-Daten / konfigurierter Transitpfad | Dateipfad; Transport außerhalb des Moduls | PSFL-2.0
+INV-SNAP-02   | Snapshot-Dateiveröffentlichung         | sqlite3.backup / os.replace; Manifest separat | PSFL-2.0
 INV-ROLL-03   | Rollback Journal Clean Isolation       | Sidecar purge (-wal, -shm, -journal)  | PSFL-2.0
-INV-PATH-04   | Strikte Transit-Pfadeindaemmung        | Ablehnung von ../, Symlinks & Reparse | PSFL-2.0
-INV-VERIFY-05 | Zweistufige Integritaetspruefung       | SHA-256 Manifest + PRAGMA quick_check | PSFL-2.0
-INV-SHIELD-06 | Credential Shield vor Publikation      | Regex-Scan (credential-triggers.json) | PSFL-2.0
-INV-HMAC-07   | HMAC Authentizitaetsumschlag           | HMAC-SHA256 Umschlag & Sender-ID      | PSFL-2.0
+INV-PATH-04   | Strikte Transit-Pfadeindämmung        | Ablehnung von ../, Symlinks & Reparse | PSFL-2.0
+INV-VERIFY-05 | Snapshot-Integritätsprüfung            | Größe / SHA-256 / PRAGMA quick_check; SHA-256 authentifiziert keinen Absender | PSFL-2.0
+INV-SHIELD-06 | Konfigurierter Credential-Musterscan   | credential-triggers.json; kein vollständiger Geheimnisscanner | PSFL-2.0
+INV-HMAC-07   | Optionale Manifest-Authentifizierung   | HMAC nur bei konfiguriertem Authenticator | PSFL-2.0
 INV-MERGE-08  | Deterministischer Row-Level Merge      | LWW je PK / Shared Columns / Tombstone| MIT
 INV-RET-09    | Konservatives Retention Scoping        | Dry-run Default / Local-Node Only     | MIT
-INV-SLA-10    | Non-Elevation & Multi-OS Paritaet      | RunAsInvoker / 48h Security Response  | SECURITY.md
+INV-SLA-10    | Prozessrechte & Sicherheitsrichtlinie  | Rechte des aufrufenden Prozesses       | SECURITY.md
 
 ===============================================================================
-3. ZERO-COPYLEFT ISOLATION GUARANTEE & RUNASINVOKER CERTIFICATION
+3. RECORDED LICENSE SCOPE & PROCESS PERMISSIONS
 ===============================================================================
 
-1. Zero-Copyleft Garantie:
-   Kein Bestandteil von sqlite-transit-sync linkt gegen Code unter GPL, AGPL,
-   LGPL oder sonstigen reziproken Copyleft-Lizenzen. Der gesamte Stack ist 100%
-   permissiv (MIT, Apache-2.0, BSD-3-Clause, PSFL-2.0).
+1. Erfasster Lizenzumfang:
+   Das Projektinventar dokumentiert die für die unten aufgeführten Pakete
+   angegebenen Lizenzkennzeichen. Es ist keine unabhängige Bewertung transitiver
+   Abhängigkeiten oder rechtlicher Kompatibilität.
 
 2. Zero-Runtime-Dependency Kern:
-   Die Kern-Engine benoetigt null externe Laufzeitabhaengigkeiten (dependencies = []
-   in pyproject.toml). Push-, Pull-, Merge-, Pruef- und Bereinigungsfunktionen
-   nutzen ausschliesslich die Python 3.10+ Standardbibliothek.
+   Die Kern-Engine benötigt null externe Laufzeitabhängigkeiten (dependencies = []
+   in pyproject.toml). Push-, Pull-, Merge-, Prüf- und Bereinigungsfunktionen
+   nutzen ausschließlich die Python 3.10+ Standardbibliothek.
 
-3. Unprivilegierte Ausfuehrung (RunAsInvoker):
-   sqlite-transit-sync benoetigt keinerlei administrative Rechte, Systemdienste
-   oder UAC-Elevation. Es operiert vollstaendig im Benutzerkontext.
+3. Prozessrechte:
+   Der Prozess übernimmt die Betriebssystemrechte seines Aufrufers. Der Quellcode
+   erzwingt keinen Standardbenutzermodus und fordert keine Rechteerhöhung an.
 
 4. Gesetzlicher Haftungsausschluss (§ 521 BGB):
-   Gemaess § 521 BGB (Haftung des Schenkers) ist die Haftung fuer Sach- und
-   Rechtsmaengel bei unentgeltlicher Bereitstellung auf Vorsatz und grobe
-   Fahrlaessigkeit beschraenkt.
+   Gemäß § 521 BGB (Haftung des Schenkers) ist die Haftung für Sach- und
+   Rechtsmängel bei unentgeltlicher Bereitstellung auf Vorsatz und grobe
+   Fahrlässigkeit beschränkt.
 
 5. Verbindliche 48h Sicherheits-SLA:
-   Verbindliche Erstreaktionszeit von 48 Stunden bei Sicherheitsmeldungen ueber
+   Verbindliche Erstreaktionszeit von 48 Stunden bei Sicherheitsmeldungen über
    security@ellmos.ai, security@open-bricks.org und support@lukasgeiger.com.
 
 ===============================================================================
@@ -84,17 +78,17 @@ Version: >= 42.0.0
 License: Apache License 2.0 OR BSD 3-Clause License
 SPDX: Apache-2.0 OR BSD-3-Clause
 URL: https://github.com/pyca/cryptography
-Notice: Optionale Fernet-Verschluesselung fuer Republica Schaufenster-Snapshots und versiegelte Kurier-Umschlaege.
+Notice: Optionale Fernet-Verschlüsselung für Republica-Schaufenster-Snapshots und versiegelte Kurier-Umschläge.
 
 Package: keyring (Optional Extra [keyring])
 Version: >= 25.0.0
 License: MIT License
 SPDX: MIT
 URL: https://github.com/jaraco/keyring
-Notice: Optionale Aufloesung von HMAC-Schluesselreferenzen ueber den Betriebssystem-Schluesselbund.
+Notice: Optionale Auflösung von HMAC-Schlüsselreferenzen über den Betriebssystem-Schlüsselbund.
 
 ===============================================================================
-5. TEST- UND ENTWICKLUNGSABHAENGIGKEITEN
+5. TEST- UND ENTWICKLUNGSABHÄNGIGKEITEN
 ===============================================================================
 
 Package: pytest
@@ -111,12 +105,12 @@ SPDX: MIT
 URL: https://github.com/astral-sh/ruff
 Notice: Statische Code-Analyse und Linting-Garantie.
 
-Package: tomli (fuer Python < 3.11)
+Package: tomli (für Python < 3.11)
 Version: >= 2.0
 License: MIT License
 SPDX: MIT
 URL: https://github.com/hukkin/tomli
-Notice: TOML-Parser Fallback fuer Python 3.10.
+Notice: TOML-Parser Fallback für Python 3.10.
 
 Package: setuptools
 Version: >= 68.0

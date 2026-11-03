@@ -8,13 +8,13 @@
 [![Verified: 2026-10-31](https://img.shields.io/badge/verified-2026--10--31-blue.svg)](#tests)
 [![Python Version](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12%20%7C%203.13-blue.svg)](https://www.python.org/)
 [![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20Linux%20%7C%20macOS-informational.svg)](#)
-[![Privacy](https://img.shields.io/badge/privacy-100%25%20Offline%20%7C%20Zero--Egress-brightgreen.svg)](#)
-[![Privilege: RunAsInvoker](https://img.shields.io/badge/Privilege-RunAsInvoker-success.svg)](THIRD_PARTY_LICENSES.md)
-[![Security](https://img.shields.io/badge/security-Local--First%20%7C%20HMAC--Verified-blue.svg)](SECURITY.md)
+[![Data path](https://img.shields.io/badge/data%20path-local%20SQLite%20%7C%20configured%20transit-informational.svg)](#)
+[![Execution context: Caller permissions](https://img.shields.io/badge/execution-caller%20permissions-informational.svg)](#governance-runtime-invariants-matrix)
+[![Security](https://img.shields.io/badge/security-Local--First%20%7C%20Optional--HMAC-blue.svg)](SECURITY.md)
 [![Security SLA](https://img.shields.io/badge/security%20SLA-48h%20SLA-blue.svg)](SECURITY.md)
 [![Contributing: Guide](https://img.shields.io/badge/Contributing-Guide-blue.svg)](CONTRIBUTING.md)
-[![Third-Party: Level 1 SBOM](https://img.shields.io/badge/third--party-Level%201%20SBOM%20%7C%20100%25%20permissive-brightgreen.svg)](THIRD_PARTY_LICENSES.md)
-[![Level 1 SBOM: Plain-Text](https://img.shields.io/badge/Level%201%20SBOM-Plain--Text%20Audited-brightgreen.svg)](THIRD_PARTY_LICENSES.txt)
+[![Third-Party License Inventory](https://img.shields.io/badge/third--party-license%20inventory-project%20record-informational.svg)](THIRD_PARTY_LICENSES.md)
+[![License Inventory: Plain-Text Copy](https://img.shields.io/badge/license%20inventory-plain--text%20copy-informational.svg)](THIRD_PARTY_LICENSES.txt)
 [![Attribution: NOTICE](https://img.shields.io/badge/attribution-NOTICE-blue.svg)](NOTICE)
 [![Marketing Log: Active](https://img.shields.io/badge/marketing%20log-active-blue.svg)](MARKETING-LOG.txt)
 [![License](https://img.shields.io/github/license/ellmos-ai/sqlite-transit-sync)](LICENSE)
@@ -25,7 +25,7 @@
 > [!NOTE]
 > **LLM & AI Agent Context**: A structured machine-readable sitemap, architectural overview, and API guide is available at [`llms.txt`](llms.txt).
 
-**🇬🇧 English** | **🇩🇪 [Deutsche Version](README_de.md)** | **🇪🇸 [Spanish Version](README_es.md)** | **🤝 [Contributing](CONTRIBUTING.md)** | **🛡️ [Security Policy](SECURITY.md)** | **📝 [Changelog](CHANGELOG.md)** | **📋 [llms.txt](llms.txt)**
+**🇬🇧 English** | **🇩🇪 [Deutsche Version](README_de.md)** | **🇪🇸 [Spanish Version](README_es.md)** | **🇫🇷 [French Version](README_fr.md)** | **🇯🇵 [Japanese Version](README_ja.md)** | **🇨🇳 [Simplified Chinese Version](README_zh.md)** | **🇵🇹 [Portuguese Version](README_pt.md)** | **🇷🇺 [Russian Version](README_ru.md)** | **🤝 [Contributing](CONTRIBUTING.md)** | **🛡️ [Security Policy](SECURITY.md)** | **📝 [Changelog](CHANGELOG.md)** | **📋 [llms.txt](llms.txt)**
 
 ## 🧭 Quick Navigation
 
@@ -33,7 +33,7 @@
 2. [Visual Architecture Topology & Decoupled Layers](#system-architecture-topology)
 3. [End-to-End Snapshot & Synchronization Lifecycle](#end-to-end-snapshot-synchronization-lifecycle)
 4. [Target Personas & High-Intent SEO Queries](#marketing--target-personas)
-5. [Comparative Matrix vs. Alternatives](#comparison-with-distributed-sql)
+5. [Implemented Behavior & Limits](#comparison-with-distributed-sql)
 6. [Governance & Runtime Invariants Matrix](#governance-runtime-invariants-matrix)
 7. [Core Capabilities & Decoupled Features](#what-it-provides)
 8. [Read-Only Application Projections](#read-only-application-projections)
@@ -43,7 +43,7 @@
 12. [Republica Showcase & Cipher Method](#republica-the-showcase-method)
 13. [Python API & Extension Points](#python-api)
 14. [Safety, Threat Model & Operational Limits](#safety-and-limits)
-15. [Third-Party Licenses & Level 1 SBOM](#third-party-licenses--transparency)
+15. [Third-Party License Inventory](#third-party-licenses--transparency)
 16. [Ecosystem, Sibling Tools & Bundles](#ecosystem--sibling-tools)
 17. [Testing, Verification & CI Matrix](#tests)
 18. [Statutory Notice, Liability Limitation & License (§ 521 BGB)](#license)
@@ -57,15 +57,13 @@ Version, module status, visibility and verification-date authority are defined
 in [`METADATA_CONTRACT.md`](METADATA_CONTRACT.md); they do not constitute a
 release or public-upload approval.
 
-Local-first synchronization for independent SQLite databases through verified
-snapshots and application-selectable merge policies. It is extracted from the
+Local-first synchronization for independent SQLite databases through snapshots checked for integrity and application-selectable merge policies. Sender authentication is optional through an API-injected HMAC authenticator. It is extracted from the
 BACH ProSync architecture without BACH, OneDrive, host-name, or user-path
 dependencies.
 
 This is **not a distributed SQL server**. Every node owns and opens only its
 local database. A shared folder, object-store mount, removable drive, or other
-file transport carries closed snapshots plus manifests. Pulling verifies and
-merges a snapshot into the local database inside one transaction.
+file transport carries closed snapshots plus manifests. Pulling checks SHA-256 and SQLite `PRAGMA quick_check` before merging a snapshot into the local database inside one transaction. HMAC sender authentication is checked only when an authenticator is configured.
 
 Pairs well with [sync-master](https://github.com/dev-bricks/sync-master)
 (same module family): a sync-master yard is a natural transit transport —
@@ -78,7 +76,7 @@ owns database integrity and merging; both stay independent.
 <a id="system-architecture-topology"></a><a id="system-architecture"></a>
 ## 2. Visual Architecture Topology & Decoupled Layers
 
-The following diagram illustrates the multi-node decoupled topology where local SQLite databases are bridged exclusively through closed, verified snapshot bundles in transit storage:
+The following diagram illustrates the multi-node decoupled topology where local SQLite databases are bridged exclusively through closed snapshot bundles checked for integrity against their manifests:
 
 ```mermaid
 flowchart TD
@@ -86,21 +84,21 @@ flowchart TD
         DB_A[("Local SQLite DB<br/>(app.db)")]
         BACKUP_A["Online Backup API<br/>(sqlite3.backup)"]
         REDACT_A["Table Redaction &<br/>VACUUM Engine"]
-        SHIELD_A["Credential Shield Scanner<br/>(13+ Patterns)"]
-        HMAC_A["HMAC-SHA256 Signer<br/>(Key Ring)"]
+        SHIELD_A["Configured Credential-Pattern Scan<br/>(default rules; not exhaustive)"]
+        HMAC_A["Optional HMAC Authenticator<br/>(API-injected)"]
         STATE_A["Local State Ledger<br/>(node-state.json)"]
     end
 
     subgraph TRANSIT ["Shared Transit Zone (Yard / Transport)"]
         SNAP["Closed Atomic Snapshot<br/>(*.snapshot.sqlite)"]
-        SIG["HMAC Signature Envelope<br/>(Canonical Manifest)"]
+        SIG["Optional HMAC Envelope<br/>(if configured)"]
         HASH["SHA-256 Digest<br/>(*.manifest.json)"]
         RETENTION["Retention Policy Engine<br/>(Conservative GC)"]
     end
 
     subgraph NODE_B ["Subscriber Node (Host B)"]
         GUARD_B["Path Traversal Guard<br/>(Fail-Closed Root)"]
-        VERIFY_B["Integrity & HMAC Verifier<br/>(SHA-256 + HMAC)"]
+        VERIFY_B["SHA-256 Integrity Check<br/>(HMAC if configured)"]
         SANITY_B["SQLite PRAGMA quick_check<br/>(Corruption Check)"]
         MERGE_B["Row-Level Merge Engine<br/>(LWW / Tombstones / Drift)"]
         DB_B[("Local SQLite DB<br/>(app.db)")]
@@ -116,10 +114,10 @@ flowchart TD
     DB_A --> BACKUP_A
     BACKUP_A --> REDACT_A
     REDACT_A --> SHIELD_A
-    SHIELD_A --> HMAC_A
-    HMAC_A --> SNAP
-    HMAC_A --> SIG
-    HMAC_A --> HASH
+    SHIELD_A --> HASH
+    HASH --> SNAP
+    SNAP --> SIG
+    HMAC_A -.-> SIG
     SNAP --- TRANSIT
     SIG --- TRANSIT
     HASH --- TRANSIT
@@ -133,7 +131,6 @@ flowchart TD
     SANITY_B --> MERGE_B
     MERGE_B --> DB_B
     MERGE_B --> STATE_B
-    HMAC_A -.-> STATE_A
 
     DB_A -.-> REP_EXP
     REP_EXP --> REP_FER
@@ -155,8 +152,8 @@ flowchart TD
 |              |                                          ^                                         |               |
 |              v (sqlite3.backup)                         |                                         v               |
 | +------------+------------+                             |                           +-------------+-------------+ |
-| | Online Consistent Backup|                             |                           | SHA-256 Digest & HMAC     | |
-| | (Closed Rollback-Journal|                             |                           | Signature Verification    | |
+| | Online Consistent Backup|                             |                           | SHA-256 Integrity Check   | |
+| | (Closed Rollback-Journal|                             |                           | Optional HMAC if set      | |
 | +------------+------------+                             |                           +-------------+-------------+ |
 |              |                                          |                                         |               |
 |              v                                          |                                         v               |
@@ -167,14 +164,14 @@ flowchart TD
 |              |                                          |                                         |               |
 |              v                                          |                                         v               |
 | +------------+------------+                             |                           +-------------+-------------+ |
-| | Credential Shield       |                             |                           | Transactional Merge Engine| |
-| | (13+ Vendor Regex Scan) |                             |                           | (Row-Level LWW / Drift)   | |
+| | Pattern Scan            |                             |                           | Transactional Row Merge   | |
+| | (default rules; limited) |                             |                           | (Row-Level LWW / Drift)  | |
 | +------------+------------+                             |                           +-------------+-------------+ |
 |              |                                          |                                         |               |
 |              v                                          |                                         v               |
 | +------------+------------+              +--------------+--------------+            +-------------+-------------+ |
-| | HMAC-SHA256 Signer      |              |  *.snapshot.sqlite (Atomic) |            | Local SQLite Database     | |
-| | (Keyring Authenticator) |------------->|  *.manifest.json   (Digest) |----------->| (app.db - Merged State)   | |
+| | Optional HMAC Adapter   |              |  *.snapshot.sqlite (Atomic) |            | Local SQLite Database     | |
+| | (API-injected if set)   |- - - - - - ->|  *.manifest.json   (Digest) |----------->| (app.db - Merged State)   | |
 | +-------------------------+              |  Retention Engine  (Scoped) |            +-------------+-------------+ |
 |                                          +-----------------------------+                          |               |
 |                                                                                                   v               |
@@ -188,7 +185,7 @@ flowchart TD
 | Local Database ----> Curated SQL Dump ----> Gzip Compression ----> AES-128-CBC (Fernet) ----> Encrypted Outpost   |
 | (Source Node)       (FTS Rebuilt on Dest)   (53MB -> 11MB)         (Pre-Shared Key)          (republica_root/)    |
 |                                                                                                                   |
-| Single Secret File -> Fernet Cipher Envelope -> Courier Transit -> Destination Directory (Mode 0600, Transit Clr)|
+| Single Secret File -> Fernet Cipher Envelope -> Courier Transit -> Destination Directory (Mode 0600, Transit Clr) |
 +-------------------------------------------------------------------------------------------------------------------+
 ```
 
@@ -197,14 +194,14 @@ flowchart TD
 <a id="end-to-end-snapshot-synchronization-lifecycle"></a><a id="lifecycle"></a>
 ## 3. End-to-End Snapshot & Synchronization Lifecycle
 
-The end-to-end synchronization workflow guarantees that live databases are never exposed to file-level synchronization locks, and all data crossing node boundaries is cryptographically authenticated, credential-scanned, and transactionally merged:
+The workflow keeps live database files out of file-level synchronization. It checks snapshot bytes against a SHA-256 manifest, runs the configured credential-pattern scan when enabled (default: on), and merges accepted rows transactionally. Sender authentication is available only when an API-injected HMAC authenticator is configured. Peers see changes only after a successful push/pull exchange:
 
 ```mermaid
 sequenceDiagram
     autonumber
     participant App as Application / Node A
     participant CoreA as sqlite-transit-sync (Push)
-    participant Shield as Credential Shield
+    participant Shield as Credential-Pattern Scan (default on; configurable)
     participant Transit as Shared Transit (db-transit)
     participant CoreB as sqlite-transit-sync (Pull)
     participant Target as Local DB / Node B
@@ -214,25 +211,29 @@ sequenceDiagram
     CoreA->>CoreA: Online Snapshot via SQLite Backup API
     CoreA->>CoreA: Drop Excluded Tables & VACUUM
     CoreA->>Shield: Scan Content for Secret Patterns (credential-triggers.json)
-    Shield-->>CoreA: Scan OK (0 Credentials Detected)
+    Shield-->>CoreA: No configured pattern matched (if enabled)
 
-    Note over CoreA,Transit: Phase 2: Cryptographic Sealing & Atomic Publication
-    CoreA->>CoreA: Calculate SHA-256 Digest & HMAC Envelope
+    Note over CoreA,Transit: Phase 2: Snapshot Digest & File Publication
+    CoreA->>CoreA: Calculate SHA-256 digest and size
     CoreA->>Transit: Write Temporary Snapshot & Atomic os.replace
-    CoreA->>Transit: Write Verified Manifest (*.manifest.json)
 
-    Note over Transit,CoreB: Phase 3: Transit Ingestion & Boundary Guard
+    Note over CoreA,Transit: Phase 3: Optional Manifest Authentication & Publication
+    CoreA->>CoreA: Optionally HMAC-sign manifest (if configured)
+    CoreA->>Transit: Atomically write manifest with SHA-256; HMAC only if configured (*.manifest.json)
+
+    Note over Transit,CoreB: Phase 4: Transit Ingestion & Boundary Guard
     CoreB->>Transit: Discover Manifests & Validate Path Bounds (Anti-Traversal)
-    CoreB->>CoreB: Verify HMAC Signature & SHA-256 Digest
+    CoreB->>CoreB: Verify HMAC first if configured
+    CoreB->>CoreB: Verify snapshot size and SHA-256 (integrity only)
     CoreB->>CoreB: Run PRAGMA quick_check on Isolated Snapshot
 
-    Note over CoreB,Target: Phase 4: Transactional Row Merge & State Advance
+    Note over CoreB,Target: Phase 5: Transactional Row Merge & State Advance
     CoreB->>Target: BEGIN IMMEDIATE Transaction
     CoreB->>Target: Apply Row-Level Merge Policy (LWW per PK / Tombstones)
     CoreB->>Target: Reconcile Shared Column Schema Drift
     CoreB->>Target: COMMIT Transaction
     CoreB->>CoreB: Advance Local State Ledger (node-state.json)
-    Note over Target: Local Eventual Consistency Guaranteed
+    Note over Target: Peer state reflects successful exchange; no background convergence guarantee
 ```
 
 ---
@@ -244,113 +245,99 @@ Designed for modular, decentralized ecosystems, `sqlite-transit-sync` addresses 
 
 - **`[PERSONA-01]` Autonomous AI Agent Engineers & Multi-Host Swarm Architects:**
   - *Challenge:* Multi-agent swarms operating across workstations, laptops, and servers require local state persistence without file-lock collisions.
-  - *Solution:* Decoupled transit snapshots with credential shielding prevent token leaks into shared storage while maintaining asynchronous convergence.
+  - *Solution:* The default-on scan can stop publication when a configured credential pattern matches. This is a safety net, not proof that a snapshot contains no secrets. Peers receive changes after a successful push/pull exchange.
 - **`[PERSONA-02]` Multi-Device Desktop & Edge Application Developers:**
   - *Challenge:* Power users exchanging personal notes and task databases over file sync (e.g. sync-master, Syncthing, Nextcloud) suffer database corruption and `-wal` lock-ups.
-  - *Solution:* Atomic publication via SQLite backup API and transactional row-level merge ensure local SQLite files are never directly exposed to cloud sync daemons.
-- **`[PERSONA-03]` Local-First, Zero-Egress & Air-Gapped Tool Builders:**
-  - *Challenge:* Applications requiring true data sovereignty cannot tolerate cloud lock-in, recurring database hosting fees, or background network egress.
-  - *Solution:* 100% offline-capable synchronization using local filesystem directories, mount points, or removable drives with zero external dependencies.
+  - *Solution:* The SQLite backup API and per-file publication keep live SQLite database files out of the file-sync path; transit snapshots are the files exchanged by that transport.
+- **`[PERSONA-03]` Local-First & Configurable-Transit Tool Builders:**
+  - *Challenge:* Applications requiring data sovereignty cannot tolerate cloud lock-in, recurring database hosting fees, or uncontrolled background network egress.
+  - *Solution:* The module exchanges snapshot files through a configured filesystem path. That path may be local or removable; shared or network-mounted transport remains outside the module’s control.
 - **`[PERSONA-04]` Enterprise Security, Privacy & Compliance Officers:**
   - *Challenge:* Strict zero-trust mandates forbid accidental credential synchronization, unverified binary blobs, and privileged background services.
-  - *Solution:* Pre-publication regex scanning across 13+ secret families (`credential-triggers.json`), HMAC manifest sealing, SHA-256 integrity verification, and unprivileged `RunAsInvoker` user-mode execution.
+  - *Solution:* The default-on scan checks configured credential patterns before publication; SHA-256 checks snapshot integrity against the manifest. An API-injected HMAC authenticator can be enabled for sender authentication. The process inherits the permissions of its launcher.
 
 ### High-Intent Search Queries (Bilingual EN & DE)
 
 | Intent Category | English (EN) Search Queries | German (DE) Suchbegriffe |
 |:---|:---|:---|
-| **Local-First Synchronization** | `sqlite synchronization python zero-dependency`, `local-first database snapshot sync`, `offline sqlite multi-device sync` | `lokale datenbank synchronisation offline snapshots`, `sqlite abgleich python ohne abhaengigkeiten`, `lokale datenbank replikation dateibasiert` |
-| **Integrity & Credential Shield** | `credential shielded sqlite transfer zero-egress`, `hmac verified sqlite snapshot manifest`, `anti-traversal sqlite transit sync` | `zero egress datenbank replikation snapshot`, `geheimsichere sqlite synchronisation regex`, `integritaetsgepruefte datenbank snapshote` |
+| **Local-First Synchronization** | `sqlite synchronization python zero-dependency`, `local-first database snapshot sync`, `offline sqlite multi-device sync` | `lokale datenbank synchronisation offline snapshots`, `sqlite abgleich python ohne abhängigkeiten`, `lokale datenbank replikation dateibasiert` |
+| **Integrity & Configured Credential-Pattern Scan** | `configured credential-pattern scan sqlite sync`, `configured filesystem transit sqlite sync`, `optional hmac sqlite snapshot manifest` | `konfigurierter credential musterscan sqlite sync`, `dateipfad transit sqlite sync`, `optional hmac snapshot manifest` |
 | **Row-Level Merge & Conflicts** | `row level merge lww sqlite offline`, `sqlite last write wins schema drift tolerance`, `tombstone merge policy sqlite` | `row level merge lww sqlite offline`, `last-write-wins datenbank abgleich zeitstempel`, `schema drift toleranz sqlite merge` |
-| **Decoupled Architecture** | `sqlite multi-node sync without distributed sql`, `sqlite over syncthing without corruption`, `sqlite transit yard architecture` | `sqlite synchronisation ohne verteilten server`, `sqlite ueber cloud sync ohne datenbankkorruption`, `transit yard sqlite synchronisation` |
+| **Decoupled Architecture** | `sqlite multi-node sync without distributed sql`, `sqlite over syncthing without corruption`, `sqlite transit yard architecture` | `sqlite synchronisation ohne verteilten server`, `sqlite über cloud sync ohne datenbankkorruption`, `transit yard sqlite synchronisation` |
 
 For detailed persona breakdowns, high-intent search queries, and competitive positioning, consult [MARKETING-LOG.txt](MARKETING-LOG.txt).
 
 ---
 
 <a id="comparison-with-distributed-sql"></a><a id="comparative-matrix--alternatives"></a><a id="comparative-matrix"></a>
-## 5. Comparative Matrix vs. Alternatives
+## 5. Implemented Behavior & Limits
 
-The table below contrasts `sqlite-transit-sync` with four common architectural approaches to multi-node database synchronization across the 10 core technical dimensions and runtime invariants:
+This section records the project’s implemented behavior and limits. It is not a current head-to-head audit of other products.
 
-| Technical Dimension | Invariant | `sqlite-transit-sync` | Distributed SQL (Cockroach/TiDB) | Litestream / LiteFS | Direct SQLite over Cloud-Sync | Ad-Hoc Dump/JSON Scripts |
-|:---|:---|:---|:---|:---|:---|:---|
-| **1. Execution Privacy & Egress** | `INV-LOCAL-01` | **100% Local-First / Zero-Egress** | Multi-node cluster network required | Streaming replication to S3/Cloud | Relies on 3rd-party cloud sync service | Unverified / Manual |
-| **2. Snapshot Atomicity** | `INV-SNAP-02` | **Online backup API + atomic `os.replace`** | Distributed Raft/Paxos consensus | Continuous WAL frame streaming | Partial file syncing while DB is active | Uncoordinated DB copy while locked |
-| **3. Lock Contention & Sidecars** | `INV-ROLL-03` | **Fail-closed purge of `-wal`/`-shm`** | Distributed lock manager / MVCC | Requires active WAL monitoring | Fatal SQLite locking errors & file conflicts | Unhandled lock timeouts |
-| **4. Filesystem Boundary Guard** | `INV-PATH-04` | **Strict root containment & anti-traversal** | Network socket protocol boundary | Object store key path | Host filesystem path sync | Unrestricted file paths |
-| **5. Integrity & Sanity Verification** | `INV-VERIFY-05` | **SHA-256 + SQLite `PRAGMA quick_check`** | Raft log checksums | WAL segment checksums | None (relies on file size/hash) | None or fragile JSON parsing |
-| **6. Credential Shielding** | `INV-SHIELD-06` | **Pre-publication scan (13+ secret families)** | Database role RBAC | None (replicates all bytes) | None (exfiltrates secrets to cloud) | None |
-| **7. Authenticity & Envelope** | `INV-HMAC-07` | **HMAC-SHA256 signature over manifest** | Mutual TLS (mTLS) | Cloud IAM / AWS SigV4 | Cloud provider token | None |
-| **8. Row Merge & Schema Drift** | `INV-MERGE-08` | **Transactional LWW per PK + tombstones** | Global serializable ACID transactions | Whole-replica restore (no row merge) | Binary conflict copies (no row merge) | Fragile custom SQL scripts |
-| **9. Retention & Multi-Node Scope** | `INV-RET-09` | **Dry-run default, node-scoped cleanup** | Automated TTL / table compaction | S3 bucket lifecycle | Cloud recycle bin / version history | Uncontrolled disk growth |
-| **10. Non-Elevation & Platform SLA** | `INV-SLA-10` | **Unprivileged `RunAsInvoker`, 48h SLA** | Complex multi-server daemon setup | Dedicated background daemon | System background daemon | Unverified execution |
+| Dimension | Invariant | Implemented behavior | Limit / boundary |
+|:---|:---|:---|:---|
+| **1. Local processing and transport** | `INV-LOCAL-01` | Reads local SQLite databases and publishes snapshots to a configured transit path; no central database server is required. | The configured path may be a shared or network-mounted location. Access and behavior of that transport remain outside this module. |
+| **2. Snapshot publication** | `INV-SNAP-02` | Captures an online backup and publishes the snapshot file with a temporary file and `os.replace`. | Per-file replacement does not make the snapshot and manifest one multi-file transaction. |
+| **3. Sidecars and process scope** | `INV-ROLL-03` | Closes snapshots in rollback-journal mode and fails closed when temporary SQLite sidecars cannot be cleaned. | Run one sync process per node unless the host application adds a process lock. |
+| **4. Transit path containment** | `INV-PATH-04` | Restricts manifest and snapshot paths to direct regular files under the canonical transit root. | This does not control who can write to the transit location. |
+| **5. Integrity checks** | `INV-VERIFY-05` | Compares snapshot bytes with the manifest SHA-256 and runs SQLite `PRAGMA quick_check`. | A matching digest does not authenticate the sender or transport. |
+| **6. Credential-pattern scan** | `INV-SHIELD-06` | By default, checks snapshot content against configured patterns and aborts publication on a match, reporting `table.column` but not the value. | The vendor-prefixed rules are a safety net, not a guarantee. A clean scan means no known pattern matched; bespoke or unprefixed secrets can pass. |
+| **7. Sender authentication** | `INV-HMAC-07` | An application can opt in to API-injected HMAC-SHA256 authentication for the canonical manifest. | Without a configured authenticator there is no sender authentication. Shared-key HMAC is not a freshness protocol or a public-key signature. |
+| **8. Row merge** | `INV-MERGE-08` | Applies a configurable row-level merge policy, with timestamp-based LWW as the default for supported tables. | The integrating application owns clock assumptions, deletion semantics, migrations and domain conflict rules. |
+| **9. Retention and deletion scope** | `INV-RET-09` | Cleanup is dry-run by default and scoped to local-node artifacts unless cross-node authority is explicitly enabled. | Retention cleanup is not a backup or recovery service. |
+| **10. Process permissions and security policy** | `INV-SLA-10` | The process uses the permissions of the process that launches it. `SECURITY.md` states the reporting policy: acknowledgment within 48 hours and triage within 5 business days. | The module does not enforce standard-user privileges or request elevation. The response times are a reporting policy, not a runtime feature. |
 
-### Distributed SQL Detailed Comparison
+<a id="distributed-sql-detailed-comparison"></a>
+### Processing Model and Boundaries
 
-| Aspect | `sqlite-transit-sync` | Distributed SQL, for example CockroachDB or YugabyteDB |
+| Aspect | `sqlite-transit-sync` behavior | Limit / boundary |
 |---|---|---|
-| Basic model | Every node owns an independent local SQLite database | All servers form one logical SQL database |
-| Writes | Local first, synchronized later | Coordinated directly by the cluster |
-| Synchronization | Asynchronous snapshot pull and row merge | Continuous replication between cluster nodes |
-| Consistency | Eventual consistency after successful exchange | Usually strong or serializable consistency |
-| Consensus and quorum | None required | Usually Raft-based majority consensus |
-| Global transactions | No | Yes, including transactions spanning nodes or shards |
-| Conflict handling | Application-specific `MergePolicy`; timestamp LWW is the default | Transactions, MVCC, locking and consensus |
-| Offline operation | A node can continue reading and writing independently | Writes normally require a reachable quorum |
-| Network outage | Local work continues; synchronization waits | Minority partitions may lose write availability |
-| Failure handling | Local databases remain usable; transit and backups need separate protection | Replication and automatic failover while quorum remains available |
-| Data visibility | Changes become shared after push and pull | Committed changes are immediately authoritative in the cluster |
-| Schema changes | The application migrates every local database | Cluster-wide SQL migrations |
-| Deletions | Require tombstones or a custom policy | Normal transactional SQL deletes |
-| Infrastructure | Python, SQLite and a configurable file transport | Multiple permanent database servers, TLS, monitoring and backups |
-| Minimum always-on servers | None; one node is sufficient | Commonly at least three for fault tolerance |
-| Primary strength | Offline-first simplicity, low cost and domain-specific merge rules | Strong consistency, concurrent writers and high availability |
-| Primary limitation | No global ACID transaction or immediate shared truth | Considerably higher operational complexity and resource use |
+| Basic model | Each node has its own local SQLite database; snapshots move through a configured transit path. | There is no single globally authoritative database. |
+| Writes | Applications write locally; a caller runs push and pull to exchange snapshots. | There is no automatic background synchronization. |
+| Visibility | A peer can see changes after a successful exchange and merge. | The module does not promise immediate or globally consistent visibility. |
+| Global transactions | Not provided. | The application cannot commit one transaction across multiple nodes. |
+| Offline operation | A local database can be used independently while a node is offline. | Snapshot exchange waits until the configured transit is available. |
+| Conflicts | The configured `MergePolicy` decides how rows are combined; timestamp LWW is the default. | Application clocks, deletion rules and domain semantics remain integration responsibilities. |
+| Schema changes | Shared-column merge supports limited schema drift. | Applications remain responsible for migrations and schema compatibility. |
+| Failure handling | Local data is stored in SQLite and transit snapshots are separate files. | The module does not provide automatic replication, failover or transit backups. |
 
 ### Advantages, Disadvantages and Typical Use Cases
 
 | System | Advantages | Disadvantages | Good use cases | Poor use cases |
 |---|---|---|---|---|
-| `sqlite-transit-sync` | Very small footprint; works offline; no central server; local privacy; transport-independent; merge rules can follow the application domain | Delayed visibility; application-owned conflict, deletion, clock and migration semantics; no global ACID; no quorum failover | Personal knowledge and task databases; local AI agents; laptop/workstation/server exchange; field and edge applications; desktop software with optional synchronization; research notes | Payments, scarce inventory, seat reservations, real-time collaboration on the same records, or many concurrent writers |
-| Distributed SQL | Shared authoritative database; strong consistency; global transactions; coordinated concurrent writes; automatic replication and failover; horizontal scaling | Requires permanent servers, networking, certificates, monitoring and upgrades; quorum can reduce write availability during partitions; higher latency and cost | Financial and booking systems; SaaS platforms; e-commerce inventory; global accounts; multiplayer backends; high-availability enterprise services | Small personal tools, intermittently connected devices, single-user desktop applications, or workloads already handled reliably by local SQLite |
+| `sqlite-transit-sync` | Small local footprint; no central database server; offline local work; configurable file transport; application-selectable merge policies. | Changes require push/pull to reach peers; no global transaction or automatic failover; clocks, deletions, migrations and conflicts need application rules. | Personal or task databases; local agent state; intermittently connected laptops, workstations or edge devices; research notes. | Workloads requiring globally committed transactions, immediate shared state, automatic failover or many concurrent writers. |
 
 ### Quick Decision Guide
 
-| Requirement | Prefer |
+| Requirement | Fit |
 |---|---|
-| Nodes must keep working offline | `sqlite-transit-sync` |
-| Updates may become visible after a synchronization step | `sqlite-transit-sync` |
-| Data should remain local and conflicts are infrequent | `sqlite-transit-sync` |
-| Many clients modify the same records concurrently | Distributed SQL |
-| Every commit must be globally authoritative immediately | Distributed SQL |
-| Global transactions or automatic cluster failover are mandatory | Distributed SQL |
+| Nodes need to keep using their own local database while offline | `sqlite-transit-sync` |
+| Updates may reach peers after an explicit push/pull exchange | `sqlite-transit-sync` |
+| The application can define its merge, clock, deletion and migration rules | `sqlite-transit-sync` |
+| Every write must be globally authoritative immediately | Use an architecture with that consistency contract |
+| Global transactions, automatic failover or many concurrent writers are required | Evaluate an architecture that provides those behaviors |
 
-For a small number of intermittently connected personal or edge devices,
-`sqlite-transit-sync` is usually the simpler fit. A central PostgreSQL service
-is often the next step when real concurrent writers appear. Distributed SQL
-becomes compelling when strong consistency must also survive server failures
-across several permanently operated nodes.
+For a small number of intermittently connected devices, this module may fit when delayed exchange and application-owned merge rules are acceptable. If the workload requires global transactions, immediate shared state or automatic failover, choose a design whose documented contract provides those behaviors.
 
 ---
 
 <a id="governance-runtime-invariants-matrix"></a><a id="governance--runtime-invariants"></a>
 ## 6. Governance & Runtime Invariants Matrix
 
-`sqlite-transit-sync` strictly adheres to 10 core governance and runtime invariants ensuring data integrity, boundary isolation, and security:
+The matrix below records the project’s 10 governance and runtime invariants, with the implemented behavior and relevant limits:
 
-| # | Invariant | Architectural Scope | Guarantee & Verification Mechanism |
+| # | Invariant | Architectural Scope | Documented behavior and limits |
 |---|---|---|---|
-| 1 | **INV-LOCAL-01: 100% Local-First & Zero-Egress** | System Architecture | Operates exclusively against local SQLite database files (`app.db`). Zero telemetry, zero outbound HTTP/API calls, zero cloud dependencies. |
+| 1 | **INV-LOCAL-01: Local SQLite Processing & Configured Transit** | System Architecture | Reads local SQLite databases and publishes snapshots through the configured transit path. The path may be shared or network-mounted; host and transport behavior are outside this module. |
 | 2 | **INV-SNAP-02: Offline Snapshot Atomicity** | Transit Publication | Live database files are never shared over file-sync. Online snapshots are taken via `sqlite3.backup` and published via atomic `os.replace`. |
 | 3 | **INV-ROLL-03: Rollback Journal Clean Isolation** | Sidecar Prevention | Backups are closed in rollback-journal mode; all temporary SQLite sidecars (`-wal`, `-shm`, `-journal`) are cleaned fail-closed before manifest creation. |
 | 4 | **INV-PATH-04: Strict Transit Path Containment** | Filesystem Boundary | Manifest and snapshot paths must be direct regular files within canonical transit root. Path traversal (`../`), symlinks, and reparse points fail closed. |
 | 5 | **INV-VERIFY-05: Two-Stage Integrity & Sanity Verification** | Pre-Merge Validation | Every received snapshot must pass SHA-256 cryptographic digest matching and SQLite `PRAGMA quick_check` before inspecting or merging data. |
-| 6 | **INV-SHIELD-06: Pre-Publication Credential Shielding** | Content Inspection | Content is systematically scanned for credential patterns across 13+ secret families (`credential-triggers.json`). Triggers fail-closed push abort naming `table.column`. |
-| 7 | **INV-HMAC-07: HMAC Authenticity Envelope** | Identity & Non-Repudiation | Optional pluggable HMAC-SHA256 signature envelope over canonical manifest payload (protocol, namespace, sender ID, filename, SHA-256, size, redaction list). |
+| 6 | **INV-SHIELD-06: Pre-Publication Credential Shielding** | Content Inspection | By default, configured credential patterns are checked against snapshot content; a match aborts publication and reports `table.column`, not the value. Vendor-prefixed patterns are a safety net, not a guarantee; no match does not prove that a snapshot is secret-free. |
+| 7 | **INV-HMAC-07: Optional HMAC Authentication** | Sender Authentication | Optional API-injected HMAC-SHA256 envelope over the canonical manifest payload (protocol, namespace, sender ID, filename, SHA-256, size, redaction list). Shared-key HMAC is not a freshness protocol or public-key signature; without it, the manifest does not authenticate the sender. |
 | 8 | **INV-MERGE-08: Deterministic Row-Level Merge** | Data Convergence | Transactional row-level merge (LWW per PK, shared column union for schema drift, explicit tombstone policy). Content hash tie-breaker ensures deterministic convergence. |
 | 9 | **INV-RET-09: Conservative Retention & Authority Scoping** | Garbage Collection | Snapshot cleanup is dry-run by default, scoped strictly to the local node's artifacts. Cross-node deletion (`--all-nodes`) requires explicit administrative opt-in. |
-| 10 | **INV-SLA-10: Non-Elevation & Multi-OS Parity** | Platform Runtime | Runs unprivileged in user mode (RunAsInvoker). Strict operational parity across Linux, Microsoft Windows, and macOS with zero external native dependencies and 48h security SLA. |
+| 10 | **INV-SLA-10: Process Permissions & Security Policy** | Runtime Context | The process inherits the permissions of its launcher; this module does not enforce standard-user privileges or request elevation. `SECURITY.md` states acknowledgment within 48 hours and triage within 5 business days. |
 
 ---
 
@@ -364,7 +351,7 @@ module owns database integrity and merging (`sync.database`). Both work
 standalone or composed into stacks from the
 [ellmos-ai](https://github.com/ellmos-ai) family — see the
 [ellmos-ai/stacks](https://github.com/ellmos-ai/stacks) catalog. Its role in
-that toolkit: no live SQLite over file-sync — only verified snapshots plus
+that toolkit: no live SQLite over file-sync — only snapshots that pass manifest and SQLite integrity checks, plus
 application-selectable merge policies.
 
 ### Key Capabilities
@@ -384,9 +371,9 @@ application-selectable merge policies.
 - an opt-in `TombstoneMergePolicy` reference adapter for explicit deletions;
 - shared-column merge for basic schema drift tolerance;
 - configurable table exclusion and snapshot redaction with post-delete VACUUM;
-- a content-level credential scan that aborts publication when a snapshot still
-  contains credential-shaped values (on by default; reports `table.column`, never
-  the value itself);
+- a default-on content scan that aborts publication when a configured credential
+  pattern matches (reports `table.column`, never the value). The vendor-prefixed
+  rules are a safety net; a clean scan does not prove that the snapshot has no secrets;
 - custom `MergePolicy` support for domain rules, tombstones or CRDTs;
 - verified snapshot cleanup with a dry-run default, local-node scope by default,
   and explicit opt-ins for deletion and foreign-node administration;
@@ -638,10 +625,8 @@ secrets".
 
 ### This is not a secrets manager
 
-The scan **removes** credentials from the sync path. It does not **distribute** them.
-If your actual problem is "my machines need the same passwords or API keys", this
-module is the wrong tool — and so is any document-sync folder. Pick one of these
-instead; all of them keep the plaintext away from a provider you do not control:
+The scan can stop publication when a configured pattern matches; it does not guarantee that every credential will be detected, and it does not **distribute** credentials. If your actual problem is "my machines need the same passwords or API keys", this
+module is the wrong tool — and so is any document-sync folder. Consider a purpose-built secrets tool and review its deployment and trust model:
 
 | Approach | Good for | Notes |
 |---|---|---|
@@ -653,8 +638,8 @@ instead; all of them keep the plaintext away from a provider you do not control:
 | **Platform-native stores** | one machine, one app | macOS Keychain, Windows DPAPI/Credential Manager, `systemd-creds`, or your CI's secret store. No sync, but no exposure either. |
 
 Whichever you choose, the split that matters is the same: **one channel for data,
-another for credentials.** Then this module's job is simply to make sure the first
-channel never quietly becomes the second — which is exactly what the scan enforces.
+another for credentials.** This module can block a snapshot when a configured
+pattern matches; it cannot guarantee that every secret is detected.
 
 ---
 
@@ -665,25 +650,22 @@ Each machine puts an **encrypted showcase** of its database into a shared file a
 other machine can look at it; none can change it. Hence the name — a re-publication of a
 database, readable only by whoever holds the key.
 
-Use it when `push`/`pull` does not fit: you want to *read* what another node knows without
-merging it into your rows, or the only thing the machines share is a folder — no server, no
-open ports, no trust setup — and that folder must not see your content in the clear.
+Use Republica when `push`/`pull` does not fit: you want to read another node’s data without merging it into your rows, or the machines share only a folder—no server, open ports or dedicated peer tunnel for Republica itself, although a shared Fernet key is still required—and the folder must not see your content in the clear.
 
-### Two modes, deliberately redundant
+<a id="two-modes-deliberately-redundant"></a>
+### Two modes, one configured file transit
 
-Republica is **not a stopgap until a proper tunnel exists.** It is the second of two modes
-meant to run side by side, so that a failure in one does not stop the other:
+With the same `SyncConfig`, `push`/`pull` and Republica use the same configured `transit` path. `push`/`pull` publish snapshots and merge them into the local database; Republica publishes encrypted replicas beneath a per-node subdirectory in that transit and imports them as separate read-only databases under `republica_root`. It changes encryption and merge behavior, not the transport.
 
-| Failure | Direct sync (`push`/`pull`) | Republica |
+| Condition | File-transit sync (`push`/`pull`) | Republica |
 |---|---|---|
-| A machine is asleep or offline | stalls (no peer) | keeps working — drop off now, pick up later |
-| VPN/SSH down, network blocks the tunnel | stalls | keeps working over the file area |
-| Key rotation or trust setup pending | stalls | keeps working with the shared key |
-| Shared folder broken, full or desynced | keeps working | stalls |
-| No merge policy agreed for a dataset | not applicable | keeps working — nothing is merged |
+| A peer machine is offline | A node can publish while peers are offline; `pull` can merge snapshots already in transit. New data waits until its source node publishes. | A publisher can stage an encrypted replica for later import. Data from an offline source likewise waits for publication. |
+| VPN/SSH tunnel unavailable | Requires the configured file path to remain reachable; `push`/`pull` do not open peer tunnels. | Same transit dependency; VPN/SSH matters only if it makes the configured path unavailable. |
+| Configured transit unavailable | Cannot publish or retrieve through an unavailable configured path. | Same; Republica has no alternate transport. |
+| Key rotation or trust setup pending | HMAC is optional. If an authenticator is configured, its key/trust setup must match; without it, SHA-256 checks integrity but does not authenticate the sender. | Publishing and importing require the compatible shared Fernet key; rotations must be coordinated. |
+| No application-specific merge policy is configured | Uses the configured `MergePolicy`, or timestamp LWW by default; choose a domain-specific policy if that default does not fit. | Imports a separate read-only database and does not merge rows. |
 
-The whole value is that it works on the day the other path does not, so keep it configured
-and exercised even while the direct path is healthy.
+Republica is useful when encrypted, separate read-only copies are needed. It does not provide transport failover; that would require separately configured, independently available transit paths.
 
 ### Setup cost: one key transfer
 
@@ -920,14 +902,14 @@ See [ARCHITECTURE.md](ARCHITECTURE.md), [README_de.md](README_de.md) and
 ---
 
 <a id="third-party-licenses--transparency"></a><a id="level-1-sbom"></a>
-## 15. Third-Party Licenses & Level 1 SBOM
+## 15. Third-Party License Inventory
 
-`sqlite-transit-sync` is dedicated to 100% local-first sovereignty with zero runtime telemetry and zero external runtime dependencies.
+`sqlite-transit-sync` is a local-first SQLite synchronization package. It exchanges snapshots through a configured filesystem transit path; host, mount and transport behavior are outside this module. Core operations have no external runtime dependencies.
 
 - **Zero Runtime Dependencies**: The core synchronization engine requires **only** the Python Standard Library (`>=3.10`).
 - **Optional Showcase Layer**: The Republica encrypted showcase mode optionally utilizes [`cryptography`](https://github.com/pyca/cryptography) (Apache-2.0 / BSD-3-Clause). Optional OS keyring HMAC lookup uses [`keyring`](https://github.com/jaraco/keyring) (MIT).
-- **Audit & Invariants**: Formally audited on 2026-09-20 with 100% permissive licenses (MIT, Apache-2.0, BSD-3-Clause, PSFL). Governed by **INV-LOCAL-01** (Zero-Egress) and **INV-SLA-10** (RunAsInvoker unprivileged execution).
-- **Full Inventory & SBOM**: Detailed license texts, Zero-Copyleft isolation guarantee, RunAsInvoker certification, and Invariant Cross-Reference Matrix are documented in [THIRD_PARTY_LICENSES.md](THIRD_PARTY_LICENSES.md).
+- **Inventory Record and Security Policy**: The project-maintained inventory records MIT, Apache-2.0, BSD-3-Clause and PSF license identifiers and a record date of 2026-10-02; this is not an independent audit or certification. **INV-SLA-10** points to the security reporting policy (48-hour acknowledgment and 5-business-day triage); runtime permissions follow the invoking process, with no built-in privilege enforcement.
+- **Project-Maintained License Inventory**: The repository records package-license identifiers and license texts in [THIRD_PARTY_LICENSES.md](THIRD_PARTY_LICENSES.md). This record is not an independent audit or certification.
 - **Formal Attribution**: Legal attribution notice is recorded in [NOTICE](NOTICE).
 
 ---
@@ -953,7 +935,7 @@ See [ARCHITECTURE.md](ARCHITECTURE.md), [README_de.md](README_de.md) and
 | [dev-bricks/automation-master](https://github.com/dev-bricks/automation-master) | Automation Engine | Local event-sourced automation pipeline with projection-based execution. |
 | [dev-bricks/DevCenter](https://github.com/dev-bricks/DevCenter) | Developer Cockpit | Desktop GUI for managing projects, environments, and multi-repo workflows. |
 | [dev-bricks/CodeBox](https://github.com/dev-bricks/CodeBox) | Code Management | Local-first code library and AST pattern index. |
-| [doc-bricks/PDFtoPDFocr](https://github.com/doc-bricks/PDFtoPDFocr) | Document OCR | Zero-egress searchable PDF conversion with OCR layer integration. |
+| [doc-bricks/PDFtoPDFocr](https://github.com/doc-bricks/PDFtoPDFocr) | Document OCR | Searchable PDF conversion with an OCR layer; this guide does not assess its network or privacy behavior. |
 | [open-bricks/open-bricks](https://github.com/open-bricks) | Umbrella Hub | Meta-repository and umbrella documentation for all open-source bricks. |
 | [ellmos-ai/coma](https://github.com/ellmos-ai/coma) | Agent job and process lifecycle | Manages local job files and starts or checks agent process status; a separate concern from SQLite snapshot verification and row-level merge. |
 
@@ -1016,7 +998,7 @@ Use entirely at your own risk. No maintenance commitments, no availability guara
 
 Distributed under the terms of the [MIT License](LICENSE).<br>
 Copyright (c) 2026 Lukas Geiger. See [LICENSE](LICENSE) and [NOTICE](NOTICE) for full details.<br>
-Third-party dependency licenses and Level 1 SBOM notices are audited in [THIRD_PARTY_LICENSES.md](THIRD_PARTY_LICENSES.md).
+The project-maintained third-party dependency/license inventory and plain-text copy are in [THIRD_PARTY_LICENSES.md](THIRD_PARTY_LICENSES.md) and [THIRD_PARTY_LICENSES.txt](THIRD_PARTY_LICENSES.txt).
 
 ### Provenance
 
