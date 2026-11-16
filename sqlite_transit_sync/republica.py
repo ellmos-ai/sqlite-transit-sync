@@ -53,6 +53,12 @@ Every stage earns its place:
 Security boundary
 -----------------
 
+Raw SQLite and plaintext SQL/gzip preparation use a per-call temporary directory
+under the configured local-state parent, outside the canonical transit. Keep that
+parent local, private and outside other shared/synchronized roots. Only encrypted
+bytes are copied into transit. This does not isolate other processes of the same
+OS account, guarantee physical erasure, or remove private crash leftovers.
+
 Fernet authenticates *the key*, not *the sender*: any holder of the shared key can
 publish a well-formed snapshot. That is why an imported replica is deliberately kept
 as a separate database and never merged. Establishing per-node identity is the job
@@ -79,7 +85,11 @@ from .core import (
     SyncConfig,
     SyncError,
     TransitSync,
+    _assert_no_sqlite_sidecars,
+    _assert_publication_target,
     _atomic_json_write,
+    _PublicationPaths,
+    _publish_prepared_file,
     _remove_manifest_artifacts,
     _remove_sqlite_artifacts,
     _safe_identifier,
@@ -343,7 +353,7 @@ class RepublicaTransit(TransitSync):
         # temporary directories through the /var -> /private/var alias; either
         # case must not let a key inside the transit evade the containment gate.
         key_file = Path(key_file).expanduser().resolve()
-        transit = self.config.transit
+        transit = Path(self.config.transit).expanduser().resolve()
         if key_file == transit or transit in key_file.parents:
             raise SyncError(
                 f"The encryption key must not live inside the transit directory: {key_file}"
@@ -361,107 +371,98 @@ class RepublicaTransit(TransitSync):
 
     def publish(self) -> RepublicaSnapshot:
         """Publish a consistent, redacted, scanned, encrypted snapshot."""
-        if not self.config.database.is_file():
-            raise SyncError(f"Live database not found: {self.config.database}")
+        paths = _PublicationPaths.capture(self.config)
+        if not paths.database.is_file():
+            raise SyncError(f"Live database not found: {paths.database}")
+        self._assert_key_outside_transport()
         cipher = _load_fernet(self.config.key_file)
-
         created_at = _utc_token()
-        target_dir = self._own_transit()
+        target_dir = paths.transit / paths.node_id
         target_dir.mkdir(parents=True, exist_ok=True)
+        if target_dir.resolve() != target_dir:
+            raise SyncError("Publication directory was redirected")
         final_path = target_dir / (
-            f"{self.config.namespace}__{self.config.node_id}__{created_at}{REPUBLICA_SUFFIX}"
+            f"{paths.namespace}__{paths.node_id}__{created_at}{REPUBLICA_SUFFIX}"
         )
         manifest_path = final_path.with_suffix(final_path.suffix + ".json")
-
-        staging = Path(tempfile.mkdtemp(prefix=".replica-", dir=target_dir))
-        snapshot_db = staging / "snapshot.db"
-        payload_gz = staging / "payload.sql.gz"
+        _assert_publication_target(final_path)
+        published_snapshot = False
+        manifest_attempted = False
         try:
-            self._backup_to(snapshot_db)
-            self._close_snapshot(snapshot_db)
-            redacted = self._redact_snapshot(snapshot_db)
-            leaks = self._scan_snapshot_for_secrets(snapshot_db)
-            if leaks:
-                raise SyncError(
-                    "Replica publication aborted: credential-looking values remain in "
-                    + ", ".join(leaks)
-                    + ". Remove them from the source database, add the table to "
-                    "snapshot_exclude_tables, or disable scan_snapshot_for_secrets if "
-                    "this is a false positive. The value itself is not shown on purpose."
-                )
-            self._quick_check(snapshot_db)
-
-            statements, tables, contentless = self._write_payload(snapshot_db, payload_gz)
-            payload = payload_gz.read_bytes()
-            payload_sha256 = _sha256(payload_gz)
-            payload_size = payload_gz.stat().st_size
-
-            token = cipher.encrypt(payload)
-            partial = final_path.with_name(f".{final_path.name}.partial")
-            partial.write_bytes(token)
-            digest = _sha256(partial)
-            size = partial.stat().st_size
-            os.replace(partial, final_path)
-        except Exception:
-            self._cleanup(staging, final_path, manifest_path)
+            with paths.workspace() as staging:
+                snapshot_db = staging / "snapshot.db"
+                payload_gz = staging / "payload.sql.gz"
+                self._backup_to(snapshot_db, database=paths.database)
+                self._close_snapshot(snapshot_db)
+                redacted = self._redact_snapshot(snapshot_db)
+                leaks = self._scan_snapshot_for_secrets(snapshot_db)
+                if leaks:
+                    raise SyncError(
+                        "Replica publication aborted: credential-looking values remain in "
+                        + ", ".join(leaks)
+                        + ". Remove them from the source database, add the table to "
+                        "snapshot_exclude_tables, or disable scan_snapshot_for_secrets if "
+                        "this is a false positive. The value itself is not shown on purpose."
+                    )
+                self._quick_check(snapshot_db)
+                _assert_no_sqlite_sidecars(snapshot_db)
+                statements, tables, contentless = self._write_payload(snapshot_db, payload_gz)
+                payload = payload_gz.read_bytes()
+                payload_sha256 = _sha256(payload_gz)
+                payload_size = payload_gz.stat().st_size
+                token_path = staging / "encrypted.republica"
+                token_path.write_bytes(cipher.encrypt(payload))
+                digest = _sha256(token_path)
+                size = token_path.stat().st_size
+                paths.check(self.config)
+                _publish_prepared_file(token_path, final_path, digest, size)
+                published_snapshot = True
+                paths.check(self.config)
+                manifest = {
+                    "protocol": PROTOCOL_VERSION,
+                    "republica_protocol": REPUBLICA_PROTOCOL_VERSION,
+                    "mode": "replica",
+                    "namespace": paths.namespace,
+                    "node_id": paths.node_id,
+                    "created_at": created_at,
+                    "snapshot": final_path.name,
+                    # Only the basename travels in the clear.
+                    "source_database": paths.database.name,
+                    "encryption": "fernet",
+                    "compression": "gzip",
+                    "payload": "sql-dump",
+                    "sha256": digest,
+                    "size": size,
+                    "payload_sha256": payload_sha256,
+                    "payload_size": payload_size,
+                    "statements": statements,
+                    "tables": tables,
+                    "redacted_tables": redacted,
+                    "contentless_fts": contentless,
+                }
+                manifest_attempted = True
+                _atomic_json_write(manifest_path, manifest)
+                paths.check(self.config)
+        except Exception as error:
+            try:
+                if manifest_attempted:
+                    manifest_path.unlink(missing_ok=True)
+                if published_snapshot:
+                    final_path.unlink(missing_ok=True)
+            except (OSError, SyncError) as cleanup_error:
+                raise cleanup_error from error
             raise
-        finally:
-            self._remove_tree(staging)
-
-        manifest = {
-            "protocol": PROTOCOL_VERSION,
-            "republica_protocol": REPUBLICA_PROTOCOL_VERSION,
-            "mode": "replica",
-            "namespace": self.config.namespace,
-            "node_id": self.config.node_id,
-            "created_at": created_at,
-            "snapshot": final_path.name,
-            # Basename only: a manifest travels through the transport and must not
-            # leak local directory layout or account names.
-            "source_database": self.config.database.name,
-            "encryption": "fernet",
-            "compression": "gzip",
-            "payload": "sql-dump",
-            "sha256": digest,
-            "size": size,
-            "payload_sha256": payload_sha256,
-            "payload_size": payload_size,
-            "statements": statements,
-            "tables": tables,
-            "redacted_tables": redacted,
-            "contentless_fts": contentless,
-        }
-        try:
-            _atomic_json_write(manifest_path, manifest)
-        except Exception:
-            self._cleanup(None, final_path, manifest_path)
-            raise
-
         return RepublicaSnapshot(
             path=final_path,
             manifest_path=manifest_path,
-            node_id=self.config.node_id,
-            namespace=self.config.namespace,
+            node_id=paths.node_id,
+            namespace=paths.namespace,
             created_at=created_at,
             sha256=digest,
             size=size,
             payload_sha256=payload_sha256,
             payload_size=payload_size,
         )
-
-    def _backup_to(self, target: Path) -> None:
-        source: sqlite3.Connection | None = None
-        destination: sqlite3.Connection | None = None
-        try:
-            source = sqlite3.connect(str(self.config.database))
-            destination = sqlite3.connect(str(target))
-            with destination:
-                source.backup(destination)
-        finally:
-            if destination is not None:
-                destination.close()
-            if source is not None:
-                source.close()
 
     def _write_payload(self, snapshot_db: Path, payload_gz: Path) -> tuple[int, int, list[str]]:
         connection = sqlite3.connect(f"file:{snapshot_db.as_posix()}?mode=ro", uri=True)

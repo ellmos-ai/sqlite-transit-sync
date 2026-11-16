@@ -25,7 +25,7 @@
 > [!NOTE]
 > **LLM & AI Agent Context**: A structured machine-readable sitemap, architectural overview, and API guide is available at [`llms.txt`](llms.txt).
 
-**🇬🇧 English** | **🇩🇪 [Deutsche Version](README_de.md)** | **🇪🇸 [Spanish Version](README_es.md)** | **🇫🇷 [French Version](README_fr.md)** | **🇯🇵 [Japanese Version](README_ja.md)** | **🇨🇳 [Simplified Chinese Version](README_zh.md)** | **🇵🇹 [Portuguese Version](README_pt.md)** | **🇷🇺 [Russian Version](README_ru.md)** | **🤝 [Contributing](CONTRIBUTING.md)** | **🛡️ [Security Policy](SECURITY.md)** | **📝 [Changelog](CHANGELOG.md)** | **📋 [llms.txt](llms.txt)**
+**🇬🇧 English** | **🇩🇪 [Deutsche Version](README_de.md)** | **🇪🇸 [Spanish Version](README_es.md)** | **🇫🇷 [French Version](README_fr.md)** | **🇯🇵 [Japanese Version](README_ja.md)** | **🇨🇳 [Simplified Chinese Version](README_zh.md)** | **🇵🇹 [Portuguese Version](README_pt.md)** | **🇷🇺 [Russian Version](README_ru.md)** | **🇸🇦 [Arabic Version](README_ar.md)** | **🇮🇳 [Hindi Version](README_hi.md)** | **🇧🇩 [Bengali Version](README_bn.md)** | **🤝 [Contributing](CONTRIBUTING.md)** | **🛡️ [Security Policy](SECURITY.md)** | **📝 [Changelog](CHANGELOG.md)** | **📋 [llms.txt](llms.txt)**
 
 ## 🧭 Quick Navigation
 
@@ -84,7 +84,7 @@ flowchart TD
         DB_A[("Local SQLite DB<br/>(app.db)")]
         BACKUP_A["Online Backup API<br/>(sqlite3.backup)"]
         REDACT_A["Table Redaction &<br/>VACUUM Engine"]
-        SHIELD_A["Configured Credential-Pattern Scan<br/>(default rules; not exhaustive)"]
+        SHIELD_A["Configured Credential-Pattern Scan<br/>(default rules — not exhaustive)"]
         HMAC_A["Optional HMAC Authenticator<br/>(API-injected)"]
         STATE_A["Local State Ledger<br/>(node-state.json)"]
     end
@@ -201,7 +201,7 @@ sequenceDiagram
     autonumber
     participant App as Application / Node A
     participant CoreA as sqlite-transit-sync (Push)
-    participant Shield as Credential-Pattern Scan (default on; configurable)
+    participant Shield as Credential-Pattern Scan (default on — configurable)
     participant Transit as Shared Transit (db-transit)
     participant CoreB as sqlite-transit-sync (Pull)
     participant Target as Local DB / Node B
@@ -219,7 +219,7 @@ sequenceDiagram
 
     Note over CoreA,Transit: Phase 3: Optional Manifest Authentication & Publication
     CoreA->>CoreA: Optionally HMAC-sign manifest (if configured)
-    CoreA->>Transit: Atomically write manifest with SHA-256; HMAC only if configured (*.manifest.json)
+    CoreA->>Transit: Atomically write manifest with SHA-256 — HMAC only if configured (*.manifest.json)
 
     Note over Transit,CoreB: Phase 4: Transit Ingestion & Boundary Guard
     CoreB->>Transit: Discover Manifests & Validate Path Bounds (Anti-Traversal)
@@ -233,7 +233,7 @@ sequenceDiagram
     CoreB->>Target: Reconcile Shared Column Schema Drift
     CoreB->>Target: COMMIT Transaction
     CoreB->>CoreB: Advance Local State Ledger (node-state.json)
-    Note over Target: Peer state reflects successful exchange; no background convergence guarantee
+    Note over Target: Peer state reflects successful exchange — no background convergence guarantee
 ```
 
 ---
@@ -582,6 +582,20 @@ copy after redaction and before publication. On a match it raises `SyncError`
 naming `table.column`; the matched value is never included, so the credential does
 not travel into logs, tracebacks or CI output. The partial snapshot is discarded,
 so nothing reaches the transit directory.
+
+**Preparation and publication boundary:** Raw backups, redaction and scanning run in
+a per-call temporary directory under the configured local-state parent, outside the
+canonical transit. Republica also prepares its plaintext SQL/gzip there and encrypts
+before copying anything to transit. Keep that state parent local, private and outside
+shared/synchronized folders; other sync roots and processes using the same OS account
+are outside this guarantee. The optional pattern scan is not complete secret detection.
+
+Only checked snapshot bytes (ordinary push) or ciphertext (Republica) are copied into
+an exclusively created transit temporary file, verified by size/hash, then renamed
+within that target filesystem. The manifest follows; the file pair is not one atomic
+transaction. Private cleanup errors propagate. Crashes may leave private workspaces;
+there is no secure-erasure or automatic cleanup of historical/foreign artifacts.
+
 
 **Turning it off is a legitimate choice**, not a workaround. If your transit is a
 storage location you control and trust — your own server, an EU-hosted volume under

@@ -25,7 +25,7 @@
 > [!NOTE]
 > **LLM 与 AI Agent 上下文**：[`llms.txt`](llms.txt) 提供结构化、机器可读的站点地图、架构概览和 API 指南。
 
-**🇬🇧 [English Version](README.md)** | **🇩🇪 [Deutsche Version](README_de.md)** | **🇪🇸 [Versión en español](README_es.md)** | **🇫🇷 [Version française](README_fr.md)** | **🇯🇵 [日本語版](README_ja.md)** | **🇨🇳 简体中文版** | **🇵🇹 [葡萄牙语版](README_pt.md)** | **🇷🇺 [俄语版](README_ru.md)** | **🤝 [贡献指南](CONTRIBUTING.md)** | **🛡️ [安全政策](SECURITY.md)** | **📝 [变更日志](CHANGELOG.md)** | **📋 [llms.txt](llms.txt)**
+**🇬🇧 [English Version](README.md)** | **🇩🇪 [Deutsche Version](README_de.md)** | **🇪🇸 [Versión en español](README_es.md)** | **🇫🇷 [Version française](README_fr.md)** | **🇯🇵 [日本語版](README_ja.md)** | **🇨🇳 简体中文版** | **🇵🇹 [葡萄牙语版](README_pt.md)** | **🇷🇺 [俄语版](README_ru.md)** | **🇸🇦 [阿拉伯语版](README_ar.md)** | **🇮🇳 [印地语版](README_hi.md)** | **🇧🇩 [孟加拉语版](README_bn.md)** | **🤝 [贡献指南](CONTRIBUTING.md)** | **🛡️ [安全政策](SECURITY.md)** | **📝 [变更日志](CHANGELOG.md)** | **📋 [llms.txt](llms.txt)**
 
 ## 🧭 快速导航
 
@@ -82,7 +82,7 @@ flowchart TD
         DB_A[("Local SQLite DB<br/>(app.db)")]
         BACKUP_A["Online Backup API<br/>(sqlite3.backup)"]
         REDACT_A["Table Redaction &<br/>VACUUM Engine"]
-        SHIELD_A["Configured Credential-Pattern Scan<br/>(default rules; not exhaustive)"]
+        SHIELD_A["Configured Credential-Pattern Scan<br/>(default rules — not exhaustive)"]
         HMAC_A["Optional HMAC Authenticator<br/>(API-injected)"]
         STATE_A["Local State Ledger<br/>(node-state.json)"]
     end
@@ -199,7 +199,7 @@ sequenceDiagram
     autonumber
     participant App as Application / Node A
     participant CoreA as sqlite-transit-sync (Push)
-    participant Shield as Credential-Pattern Scan (default on; configurable)
+    participant Shield as Credential-Pattern Scan (default on — configurable)
     participant Transit as Shared Transit (db-transit)
     participant CoreB as sqlite-transit-sync (Pull)
     participant Target as Local DB / Node B
@@ -217,7 +217,7 @@ sequenceDiagram
 
     Note over CoreA,Transit: Phase 3: Optional Manifest Authentication & Publication
     CoreA->>CoreA: Optionally HMAC-sign manifest (if configured)
-    CoreA->>Transit: Atomically write manifest with SHA-256; HMAC only if configured (*.manifest.json)
+    CoreA->>Transit: Atomically write manifest with SHA-256 — HMAC only if configured (*.manifest.json)
 
     Note over Transit,CoreB: Phase 4: Transit Ingestion & Boundary Guard
     CoreB->>Transit: Discover Manifests & Validate Path Bounds (Anti-Traversal)
@@ -231,7 +231,7 @@ sequenceDiagram
     CoreB->>Target: Reconcile Shared Column Schema Drift
     CoreB->>Target: COMMIT Transaction
     CoreB->>CoreB: Advance Local State Ledger (node-state.json)
-    Note over Target: Peer state reflects successful exchange; no background convergence guarantee
+    Note over Target: Peer state reflects successful exchange — no background convergence guarantee
 ```
 
 ---
@@ -579,6 +579,11 @@ config_sha256 = hashlib.sha256(payload).hexdigest()
 指出 `table.column`；不会包含匹配值，因此凭据不会出现在
 日志、traceback 或 CI 输出中。不完整快照会被丢弃，
 因此不会进入传输目录。
+
+**准备与发布的边界：** 原始备份、脱敏和扫描均在已配置本地状态父目录下的每次调用临时目录中运行，位于规范传输目录之外。Republica 也在此准备其明文 SQL/gzip，并在将任何内容复制到传输目录之前进行加密。请将该状态父目录保持在本地、私有，并置于共享/同步文件夹之外；使用相同操作系统账户的其他同步根目录和进程不在本保证范围内。可选的模式扫描并不是完全的密钥检测。
+
+只有经过检查的快照字节（普通推送）或密文（Republica）才会复制到独占创建的传输临时文件中，经过大小/哈希验证后，在该目标文件系统中重命名。清单随后写入；该文件对不是单一的原子事务。私有清理错误会向上抛出。异常崩溃可能会残留私有工作区；本模块不提供对历史/外部工件的安全擦除或自动清理保证。
+
 
 **关闭扫描是合理的选择**，并非权宜之计。如果传输位置由你控制且可信——例如
 自己的服务器、合同范围内托管于欧盟的卷，或加密的可移动驱动器——并且你

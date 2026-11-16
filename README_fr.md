@@ -25,7 +25,7 @@
 > [!NOTE]
 > **Contexte pour les LLM et les agents IA** : un plan du site lisible par machine, une vue d’ensemble de l’architecture et un guide API structurés sont disponibles dans [`llms.txt`](llms.txt).
 
-**🇬🇧 [English](README.md)** | **🇫🇷 Français** | **🇩🇪 [Version allemande](README_de.md)** | **🇪🇸 [Version espagnole](README_es.md)** | **🇯🇵 [Version japonaise](README_ja.md)** | **🇨🇳 [Chinois simplifié](README_zh.md)** | **🇵🇹 [Version portugaise](README_pt.md)** | **🇷🇺 [Version russe](README_ru.md)** | **🤝 [Contribuer](CONTRIBUTING.md)** | **🛡️ [Politique de sécurité](SECURITY.md)** | **📝 [Journal des modifications](CHANGELOG.md)** | **📋 [llms.txt](llms.txt)**
+**🇬🇧 [English](README.md)** | **🇫🇷 Français** | **🇩🇪 [Version allemande](README_de.md)** | **🇪🇸 [Version espagnole](README_es.md)** | **🇯🇵 [Version japonaise](README_ja.md)** | **🇨🇳 [Chinois simplifié](README_zh.md)** | **🇵🇹 [Version portugaise](README_pt.md)** | **🇷🇺 [Version russe](README_ru.md)** | **🇸🇦 [Version arabe](README_ar.md)** | **🇮🇳 [Version hindi](README_hi.md)** | **🇧🇩 [Version bengalie](README_bn.md)** | **🤝 [Contribuer](CONTRIBUTING.md)** | **🛡️ [Politique de sécurité](SECURITY.md)** | **📝 [Journal des modifications](CHANGELOG.md)** | **📋 [llms.txt](llms.txt)**
 
 ## 🧭 Navigation rapide
 
@@ -84,7 +84,7 @@ flowchart TD
         DB_A[("Local SQLite DB<br/>(app.db)")]
         BACKUP_A["Online Backup API<br/>(sqlite3.backup)"]
         REDACT_A["Table Redaction &<br/>VACUUM Engine"]
-        SHIELD_A["Configured Credential-Pattern Scan<br/>(default rules; not exhaustive)"]
+        SHIELD_A["Configured Credential-Pattern Scan<br/>(default rules — not exhaustive)"]
         HMAC_A["Optional HMAC Authenticator<br/>(API-injected)"]
         STATE_A["Local State Ledger<br/>(node-state.json)"]
     end
@@ -201,7 +201,7 @@ sequenceDiagram
     autonumber
     participant App as Application / Node A
     participant CoreA as sqlite-transit-sync (Push)
-    participant Shield as Credential-Pattern Scan (default on; configurable)
+    participant Shield as Credential-Pattern Scan (default on — configurable)
     participant Transit as Shared Transit (db-transit)
     participant CoreB as sqlite-transit-sync (Pull)
     participant Target as Local DB / Node B
@@ -219,7 +219,7 @@ sequenceDiagram
 
     Note over CoreA,Transit: Phase 3: Optional Manifest Authentication & Publication
     CoreA->>CoreA: Optionally HMAC-sign manifest (if configured)
-    CoreA->>Transit: Atomically write manifest with SHA-256; HMAC only if configured (*.manifest.json)
+    CoreA->>Transit: Atomically write manifest with SHA-256 — HMAC only if configured (*.manifest.json)
 
     Note over Transit,CoreB: Phase 4: Transit Ingestion & Boundary Guard
     CoreB->>Transit: Discover Manifests & Validate Path Bounds (Anti-Traversal)
@@ -233,7 +233,7 @@ sequenceDiagram
     CoreB->>Target: Reconcile Shared Column Schema Drift
     CoreB->>Target: COMMIT Transaction
     CoreB->>CoreB: Advance Local State Ledger (node-state.json)
-    Note over Target: Peer state reflects successful exchange; no background convergence guarantee
+    Note over Target: Peer state reflects successful exchange — no background convergence guarantee
 ```
 
 ---
@@ -582,6 +582,23 @@ d’instantané après le caviardage et avant la publication. En cas de correspo
 et indique `table.column` ; la valeur correspondante n’est jamais incluse, afin que l’identifiant ne se retrouve
 pas dans les journaux, les traces d’erreur ou la sortie de CI. L’instantané partiel est supprimé ; rien
 n’atteint donc le répertoire de transit.
+
+**Limite entre préparation et publication :** Les sauvegardes brutes, la rédaction et
+l’analyse s’exécutent dans un répertoire temporaire créé par appel sous le parent d’état
+local configuré, en dehors du transit canonique. Republica y prépare également son
+SQL/gzip en clair et chiffre avant de copier quoi que ce soit vers le transit. Conservez
+ce parent d’état local, privé et hors des dossiers partagés ou synchronisés ; les autres
+racines de synchronisation et les processus utilisant le même compte du système d'exploitation
+sont exclus de cette garantie. L’analyse optionnelle de motifs n’est pas une détection
+exhaustive de secrets.
+
+Seuls les octets vérifiés de l’instantané (push ordinaire) ou le texte chiffré (Republica)
+sont copiés dans un fichier temporaire de transit créé de manière exclusive, vérifiés par
+taille/hachage, puis renommés au sein de ce système de fichiers cible. Le manifeste suit ;
+la paire de fichiers ne constitue pas une transaction atomique unique. Les erreurs de
+nettoyage privé se propagent. Les plantages peuvent laisser des espaces de travail privés ;
+il n’y a pas d’effacement sécurisé ni de nettoyage automatique des artefacts historiques ou tiers.
+
 
 **Désactiver l’analyse est un choix légitime**, pas un contournement. Si votre transit est un
 emplacement de stockage que vous contrôlez et en qui vous avez confiance — votre propre serveur, un volume

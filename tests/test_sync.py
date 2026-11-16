@@ -398,13 +398,6 @@ class TransitSyncTests(unittest.TestCase):
         self.assertEqual([], transit_files(self.transit))
 
     def test_wal_source_manifest_failure_removes_snapshot_and_sidecars(self) -> None:
-        def fail_manifest(path: Path, _payload: dict) -> None:
-            path.with_name(f".{path.name}.forced.tmp").write_text(
-                "partial manifest",
-                encoding="utf-8",
-            )
-            raise OSError("forced")
-
         connection = sqlite3.connect(self.a_db)
         try:
             connection.execute("PRAGMA journal_mode=WAL")
@@ -414,8 +407,8 @@ class TransitSyncTests(unittest.TestCase):
             connection.commit()
             with (
                 mock.patch(
-                    "sqlite_transit_sync.core._atomic_json_write",
-                    side_effect=fail_manifest,
+                    "sqlite_transit_sync.core.json.dump",
+                    side_effect=OSError("forced"),
                 ),
                 self.assertRaises(OSError),
             ):

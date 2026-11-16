@@ -2,11 +2,9 @@
 
 ## [Unreleased]
 
-- **Russische Dokumentation [2026-11-03]:** Russische README-Fassung in `README_ru.md` ergänzt; Sprachwahl und `llms.txt` auf acht README-Fassungen erweitert.
-
-- **Portugiesische Dokumentation [2026-11-03]:** `README_pt.md` ergänzt, die Sprachwahl auf sieben README-Fassungen erweitert und deutsche Suchbegriffe in allen Sprachfassungen mit echten Umlauten synchronisiert.
-
-- **Vereinfachte chinesische Dokumentation [2026-11-03]:** `README_zh.md` ergänzt und in die reziproke Sprachwahl aller sechs README-Dateien sowie in den Sprachindex von `llms.txt` aufgenommen.
+- **World-Set Dokumentation in 11 Sprachen [2026-11-16]:** Arabische (`README_ar.md`), Hindi- (`README_hi.md`) und bengalische (`README_bn.md`) README-Fassungen ergänzt sowie Sicherheitsgrenze zwischen Vorbereitung und Veröffentlichung (`fff1a3b`) in allen elf Sprachfassungen (`en, de, es, fr, pt, ru, zh, ja, ar, hi, bn`), reziproken Sprachumschaltern und `llms.txt` synchronisiert.
+- **Russische, portugiesische, chinesische, japanische und französische Dokumentation [2026-11-03]:** `README_ru.md`, `README_pt.md`, `README_zh.md`, `README_ja.md` und `README_fr.md` ergänzt.
+- **Private preparation before transit publication (2026-11-03):** Keep raw push backups and Republica plaintext SQLite/SQL/gzip in a per-call directory under the local state parent, outside canonical transit. Copy only checked snapshot bytes or ciphertext to an exclusive target-filesystem temporary file, verify size/hash, then rename and write the manifest last. Propagate private cleanup failures, revalidate mutable paths/identity and canonical encryption-key containment, preserve pre-existing publication files and unrelated temporary siblings. No version/dependency/workflow change, deployment or general secret-free/OS-isolation guarantee; independent exact-head review and CI remain separate gates.
 
 - **Spanische Dokumentation [P 2026-11-02]:** Vollständige spanische Fassung in `README_es.md` ergänzt; reziproke Sprachlinks für EN/DE/ES und Sprachindex in `llms.txt` hinzugefügt.
 

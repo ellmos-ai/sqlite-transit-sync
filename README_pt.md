@@ -25,7 +25,7 @@
 > [!NOTE]
 > **Contexto para LLMs e agentes de IA**: um mapa do site estruturado e legível por máquina, uma visão geral da arquitetura e um guia da API estão disponíveis em [`llms.txt`](llms.txt).
 
-**🇬🇧 [English](README.md)** | **🇩🇪 [Versão em alemão](README_de.md)** | **🇪🇸 [Versão em espanhol](README_es.md)** | **🇫🇷 [Versão em francês](README_fr.md)** | **🇯🇵 [Versão em japonês](README_ja.md)** | **🇨🇳 [Versão em chinês simplificado](README_zh.md)** | **🇵🇹 Português** | **🇷🇺 [Versão em russo](README_ru.md)** | **🤝 [Contribuir](CONTRIBUTING.md)** | **🛡️ [Política de segurança](SECURITY.md)** | **📝 [Registro de alterações](CHANGELOG.md)** | **📋 [llms.txt](llms.txt)**
+**🇬🇧 [English](README.md)** | **🇩🇪 [Versão em alemão](README_de.md)** | **🇪🇸 [Versão em espanhol](README_es.md)** | **🇫🇷 [Versão em francês](README_fr.md)** | **🇯🇵 [Versão em japonês](README_ja.md)** | **🇨🇳 [Versão em chinês simplificado](README_zh.md)** | **🇵🇹 Português** | **🇷🇺 [Versão em russo](README_ru.md)** | **🇸🇦 [Versão em árabe](README_ar.md)** | **🇮🇳 [Versão em híndi](README_hi.md)** | **🇧🇩 [Versão em bengali](README_bn.md)** | **🤝 [Contribuir](CONTRIBUTING.md)** | **🛡️ [Política de segurança](SECURITY.md)** | **📝 [Registro de alterações](CHANGELOG.md)** | **📋 [llms.txt](llms.txt)**
 
 ## 🧭 Navegação rápida
 
@@ -75,7 +75,7 @@ flowchart TD
         DB_A[("Local SQLite DB<br/>(app.db)")]
         BACKUP_A["Online Backup API<br/>(sqlite3.backup)"]
         REDACT_A["Table Redaction &<br/>VACUUM Engine"]
-        SHIELD_A["Configured Credential-Pattern Scan<br/>(default rules; not exhaustive)"]
+        SHIELD_A["Configured Credential-Pattern Scan<br/>(default rules — not exhaustive)"]
         HMAC_A["Optional HMAC Authenticator<br/>(API-injected)"]
         STATE_A["Local State Ledger<br/>(node-state.json)"]
     end
@@ -192,7 +192,7 @@ sequenceDiagram
     autonumber
     participant App as Application / Node A
     participant CoreA as sqlite-transit-sync (Push)
-    participant Shield as Credential-Pattern Scan (default on; configurable)
+    participant Shield as Credential-Pattern Scan (default on — configurable)
     participant Transit as Shared Transit (db-transit)
     participant CoreB as sqlite-transit-sync (Pull)
     participant Target as Local DB / Node B
@@ -210,7 +210,7 @@ sequenceDiagram
 
     Note over CoreA,Transit: Phase 3: Optional Manifest Authentication & Publication
     CoreA->>CoreA: Optionally HMAC-sign manifest (if configured)
-    CoreA->>Transit: Atomically write manifest with SHA-256; HMAC only if configured (*.manifest.json)
+    CoreA->>Transit: Atomically write manifest with SHA-256 — HMAC only if configured (*.manifest.json)
 
     Note over Transit,CoreB: Phase 4: Transit Ingestion & Boundary Guard
     CoreB->>Transit: Discover Manifests & Validate Path Bounds (Anti-Traversal)
@@ -224,7 +224,7 @@ sequenceDiagram
     CoreB->>Target: Reconcile Shared Column Schema Drift
     CoreB->>Target: COMMIT Transaction
     CoreB->>CoreB: Advance Local State Ledger (node-state.json)
-    Note over Target: Peer state reflects successful exchange; no background convergence guarantee
+    Note over Target: Peer state reflects successful exchange — no background convergence guarantee
 ```
 
 ---
@@ -534,6 +534,22 @@ O valor padrão de `state` nesta tabela se aplica quando uma configuração JSON
 ### A verificação de credenciais e como desativá-la
 
 `snapshot_exclude_tables` só consegue remover tabelas que você já previu. A verificação responde à pergunta que essa regra não cobre: *uma credencial acabou colada em uma coluna de texto livre* — uma anotação, linha de log ou resumo de sessão? Ela é executada na cópia do snapshot após a redação e antes da publicação. Em caso de correspondência, gera `SyncError` e informa `table.column`; o valor encontrado nunca é incluído, então a credencial não aparece em logs, tracebacks nem na saída da CI. O snapshot parcial é descartado e nada chega ao diretório de transporte.
+
+**Limite entre preparação e publicação:** Os backups brutos, a redação e a verificação
+são executados em um diretório temporário por chamada sob o diretório pai do estado
+local configurado, fora do transporte canônico. O Republica também prepara seu SQL/gzip
+em texto simples lá e criptografa antes de copiar qualquer coisa para o transporte. Mantenha
+esse diretório pai de estado local, privado e fora de pastas compartilhadas ou sincronizadas;
+outras raízes de sincronização e processos que usam a mesma conta do sistema operacional estão
+fora desta garantia. A verificação opcional por padrões não é uma detecção completa de segredos.
+
+Apenas os bytes verificados do snapshot (push comum) ou o texto cifrado (Republica) são copiados
+em um arquivo temporário de transporte criado exclusivamente, verificados por tamanho/hash e
+depois renomeados dentro daquele sistema de arquivos de destino. O manifesto vem em seguida;
+o par de arquivos não forma uma única transação atômica. Erros de limpeza privada são propagados.
+Falhas podem deixar áreas de trabalho privadas; não há apagamento seguro ou limpeza automática
+de artefatos históricos ou externos.
+
 
 **Desativar a verificação é uma escolha legítima**, não uma solução improvisada. Se o transporte for um local de armazenamento que você controla e em que confia — seu próprio servidor, um volume hospedado na UE sob seu contrato ou uma unidade removível criptografada — e você *quiser* que as credenciais sejam transportadas com os dados, configure:
 

@@ -274,3 +274,30 @@ Aktivierungsrichtlinie. Ein erfolgreicher Prüfbericht ist daher ein Beleg für
 die konkrete geschlossene Projektion, keine Produktionsfreigabe und keine
 Absenderauthentifizierung. Transportauthentifizierung bleibt eine zusätzliche
 Grenze gemäß ADR-004 und ADR-011.
+
+## ADR-017: Private Vorbereitung und getrennte Transit-Veröffentlichung
+
+Rohbackups, Redaktion und Scan dürfen nicht erst im geteilten Transit stattfinden.
+Republica muss auch Klartext-SQL/gzip vor der Verschlüsselung dort heraushalten.
+Ein späteres Entfernen temporärer Dateien macht frühere Beobachtung durch einen
+Transportprozess nicht rückgängig.
+
+Pro Aufruf entsteht deshalb ein zufälliger Arbeitsordner beim kanonischen lokalen
+Zustandsordner, außerhalb des kanonischen Transitpfads. Dieser Elternordner bleibt
+eine vertrauenswürdige, private Anwendungsentscheidung. TEMP/TMP bestimmen den
+Stagingpfad nicht. Konfigurationspfade und Knotenidentität werden je Aufruf erfasst
+und vor beziehungsweise nach Veröffentlichung erneut geprüft.
+
+Nach Prüfung beziehungsweise Verschlüsselung werden ausschließlich die vorgesehenen
+Bytes in eine exklusiv erzeugte temporäre Datei im Zieldateisystem kopiert,
+geflusht, nach Größe/Hash geprüft und dort umbenannt. Ein direktes Rename vom
+privaten Arbeitsordner wäre über Dateisystemgrenzen nicht tragfähig. Das Manifest
+folgt zuletzt; Snapshot und Manifest sind weiterhin keine gemeinsame Transaktion.
+Fremde Ziel- und Tempdateien werden nicht vorsorglich gelöscht. Fehler beim
+privaten Aufräumen propagieren; verbleibender Klartext darf nicht als erfolgreich
+bereinigt gemeldet werden.
+
+Keine neue Konfigurationsoption, Version oder Merge-Semantik. Nicht zugesagt:
+Isolation von Prozessen desselben OS-Kontos, zusätzlichen externen Syncwurzeln,
+Absturzresten, Windows-ACLs oder physischer Datenwiederherstellung. Bestehende
+Installationen und historische Artefakte werden nicht automatisch migriert.

@@ -25,7 +25,7 @@
 > [!NOTE]
 > **LLM・AIエージェント向け情報**: 機械可読なサイトマップ、アーキテクチャ概要、APIガイドを [`llms.txt`](llms.txt) にまとめています。
 
-**🇬🇧 [English](README.md)** | **🇩🇪 [ドイツ語版](README_de.md)** | **🇪🇸 [スペイン語版](README_es.md)** | **🇫🇷 [フランス語版](README_fr.md)** | **🇯🇵 日本語** | **🇨🇳 [簡体字中国語版](README_zh.md)** | **🇵🇹 [ポルトガル語版](README_pt.md)** | **🇷🇺 [ロシア語版](README_ru.md)** | **🤝 [貢献ガイド](CONTRIBUTING.md)** | **🛡️ [セキュリティポリシー](SECURITY.md)** | **📝 [変更履歴](CHANGELOG.md)** | **📋 [llms.txt](llms.txt)**
+**🇬🇧 [English](README.md)** | **🇩🇪 [ドイツ語版](README_de.md)** | **🇪🇸 [スペイン語版](README_es.md)** | **🇫🇷 [フランス語版](README_fr.md)** | **🇯🇵 日本語** | **🇨🇳 [簡体字中国語版](README_zh.md)** | **🇵🇹 [ポルトガル語版](README_pt.md)** | **🇷🇺 [ロシア語版](README_ru.md)** | **🇸🇦 [アラビア語版](README_ar.md)** | **🇮🇳 [ヒンディー語版](README_hi.md)** | **🇧🇩 [ベンガル語版](README_bn.md)** | **🤝 [貢献ガイド](CONTRIBUTING.md)** | **🛡️ [セキュリティポリシー](SECURITY.md)** | **📝 [変更履歴](CHANGELOG.md)** | **📋 [llms.txt](llms.txt)**
 
 ## 🧭 クイックナビゲーション
 
@@ -75,7 +75,7 @@ flowchart TD
         DB_A[("Local SQLite DB<br/>(app.db)")]
         BACKUP_A["Online Backup API<br/>(sqlite3.backup)"]
         REDACT_A["Table Redaction &<br/>VACUUM Engine"]
-        SHIELD_A["Configured Credential-Pattern Scan<br/>(default rules; not exhaustive)"]
+        SHIELD_A["Configured Credential-Pattern Scan<br/>(default rules — not exhaustive)"]
         HMAC_A["Optional HMAC Authenticator<br/>(API-injected)"]
         STATE_A["Local State Ledger<br/>(node-state.json)"]
     end
@@ -192,7 +192,7 @@ sequenceDiagram
     autonumber
     participant App as Application / Node A
     participant CoreA as sqlite-transit-sync (Push)
-    participant Shield as Credential-Pattern Scan (default on; configurable)
+    participant Shield as Credential-Pattern Scan (default on — configurable)
     participant Transit as Shared Transit (db-transit)
     participant CoreB as sqlite-transit-sync (Pull)
     participant Target as Local DB / Node B
@@ -210,7 +210,7 @@ sequenceDiagram
 
     Note over CoreA,Transit: Phase 3: Optional Manifest Authentication & Publication
     CoreA->>CoreA: Optionally HMAC-sign manifest (if configured)
-    CoreA->>Transit: Atomically write manifest with SHA-256; HMAC only if configured (*.manifest.json)
+    CoreA->>Transit: Atomically write manifest with SHA-256 — HMAC only if configured (*.manifest.json)
 
     Note over Transit,CoreB: Phase 4: Transit Ingestion & Boundary Guard
     CoreB->>Transit: Discover Manifests & Validate Path Bounds (Anti-Traversal)
@@ -224,7 +224,7 @@ sequenceDiagram
     CoreB->>Target: Reconcile Shared Column Schema Drift
     CoreB->>Target: COMMIT Transaction
     CoreB->>CoreB: Advance Local State Ledger (node-state.json)
-    Note over Target: Peer state reflects successful exchange; no background convergence guarantee
+    Note over Target: Peer state reflects successful exchange — no background convergence guarantee
 ```
 
 ---
@@ -528,6 +528,11 @@ config_sha256 = hashlib.sha256(payload).hexdigest()
 ### 認証情報検査と無効化方法
 
 `snapshot_exclude_tables` で除外できるのは、あらかじめ想定したテーブルだけです。検査はその設定では答えられない問いに対応します。つまり、メモ、ログ行、セッションの要約などの自由記述列に認証情報が貼り付けられていないかを調べます。秘匿化後、公開前のスナップショット複製に対して実行します。一致すると `SyncError` を送出し、`table.column` を示します。一致した値は含まれないため、認証情報がログ、トレースバック、CI出力に流れることはありません。途中までのスナップショットは破棄され、転送ディレクトリには届きません。
+
+**準備と公開の境界:** 生のバックアップ、秘匿化、および検査は、正規の転送領域の外側にある、設定されたローカル状態の親ディレクトリ配下の呼び出しごとの一時ディレクトリで実行されます。Republica もそこで平文の SQL/gzip を準備し、転送領域にコピーする前に暗号化します。この状態の親ディレクトリは、ローカルかつ非公開に保ち、共有・同期フォルダの外側に配置してください。同一 OS アカウントを使用する他の同期ルートやプロセスはこの保証の対象外です。任意のパターン検査は完全な機密検出ではありません。
+
+検査済みのスナップショットバイト（通常のプッシュ）または暗号文（Republica）のみが、排他的に作成された転送用一時ファイルにコピーされ、サイズとハッシュが検証された後、その対象ファイルシステム内でリネームされます。マニフェストがそれに続きます。このファイルペアは単一のアトミックなトランザクションではありません。プライベートなクリーンアップエラーは伝播します。クラッシュによりプライベートな作業スペースが残る場合があります。過去のアーティファクトや外部のアーティファクトに対する安全な完全消去や自動クリーンアップは提供されません。
+
 
 **無効化は正当な選択肢であり、回避策ではありません**。自分で管理し信頼できる場所（自前サーバー、契約に基づくEU内ホストのボリューム、暗号化したリムーバブルドライブなど）を転送領域として使い、認証情報もデータと一緒に運びたい場合は、次のように設定します。
 

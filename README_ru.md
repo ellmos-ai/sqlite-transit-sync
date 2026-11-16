@@ -25,7 +25,7 @@
 > [!NOTE]
 > **Контекст для LLM и ИИ-агентов**: структурированная машиночитаемая карта разделов, архитектурный обзор и руководство по API доступны в [`llms.txt`](llms.txt).
 
-**🇬🇧 [English Version](README.md)** | **🇩🇪 [Deutsche Version](README_de.md)** | **🇪🇸 [Spanish Version](README_es.md)** | **🇫🇷 [French Version](README_fr.md)** | **🇯🇵 [Japanese Version](README_ja.md)** | **🇨🇳 [Simplified Chinese Version](README_zh.md)** | **🇵🇹 [Portuguese Version](README_pt.md)** | **🇷🇺 Русский** | **🤝 [Вклад в проект](CONTRIBUTING.md)** | **🛡️ [Политика безопасности](SECURITY.md)** | **📝 [Журнал изменений](CHANGELOG.md)** | **📋 [llms.txt](llms.txt)**
+**🇬🇧 [English Version](README.md)** | **🇩🇪 [Deutsche Version](README_de.md)** | **🇪🇸 [Spanish Version](README_es.md)** | **🇫🇷 [French Version](README_fr.md)** | **🇯🇵 [Japanese Version](README_ja.md)** | **🇨🇳 [Simplified Chinese Version](README_zh.md)** | **🇵🇹 [Portuguese Version](README_pt.md)** | **🇷🇺 Русский** | **🇸🇦 [Арабская версия](README_ar.md)** | **🇮🇳 [Версия на хинди](README_hi.md)** | **🇧🇩 [Бенгальская версия](README_bn.md)** | **🤝 [Вклад в проект](CONTRIBUTING.md)** | **🛡️ [Политика безопасности](SECURITY.md)** | **📝 [Журнал изменений](CHANGELOG.md)** | **📋 [llms.txt](llms.txt)**
 
 ## 🧭 Быстрая навигация
 
@@ -94,7 +94,7 @@ flowchart TD
         DB_A[("Local SQLite DB<br/>(app.db)")]
         BACKUP_A["Online Backup API<br/>(sqlite3.backup)"]
         REDACT_A["Table Redaction &<br/>VACUUM Engine"]
-        SHIELD_A["Configured Credential-Pattern Scan<br/>(default rules; not exhaustive)"]
+        SHIELD_A["Configured Credential-Pattern Scan<br/>(default rules — not exhaustive)"]
         HMAC_A["Optional HMAC Authenticator<br/>(API-injected)"]
         STATE_A["Local State Ledger<br/>(node-state.json)"]
     end
@@ -216,7 +216,7 @@ sequenceDiagram
     autonumber
     participant App as Application / Node A
     participant CoreA as sqlite-transit-sync (Push)
-    participant Shield as Credential-Pattern Scan (default on; configurable)
+    participant Shield as Credential-Pattern Scan (default on — configurable)
     participant Transit as Shared Transit (db-transit)
     participant CoreB as sqlite-transit-sync (Pull)
     participant Target as Local DB / Node B
@@ -234,7 +234,7 @@ sequenceDiagram
 
     Note over CoreA,Transit: Phase 3: Optional Manifest Authentication & Publication
     CoreA->>CoreA: Optionally HMAC-sign manifest (if configured)
-    CoreA->>Transit: Atomically write manifest with SHA-256; HMAC only if configured (*.manifest.json)
+    CoreA->>Transit: Atomically write manifest with SHA-256 — HMAC only if configured (*.manifest.json)
 
     Note over Transit,CoreB: Phase 4: Transit Ingestion & Boundary Guard
     CoreB->>Transit: Discover Manifests & Validate Path Bounds (Anti-Traversal)
@@ -248,7 +248,7 @@ sequenceDiagram
     CoreB->>Target: Reconcile Shared Column Schema Drift
     CoreB->>Target: COMMIT Transaction
     CoreB->>CoreB: Advance Local State Ledger (node-state.json)
-    Note over Target: Peer state reflects successful exchange; no background convergence guarantee
+    Note over Target: Peer state reflects successful exchange — no background convergence guarantee
 ```
 
 ---
@@ -617,6 +617,22 @@ config_sha256 = hashlib.sha256(payload).hexdigest()
 `SyncError` с указанием `table.column`; найденное значение не попадает в
 логи, traceback или вывод CI. Неполный снимок удаляется, поэтому в каталог
 transit ничего не поступает.
+
+**Граница между подготовкой и публикацией:** Необработанные резервные копии, редактирование
+данных и сканирование выполняются во временном каталоге для каждого вызова внутри настроенного
+родительского каталога локального состояния, за пределами канонического transit. Republica также
+готовит там открытый SQL/gzip и шифрует данные перед копированием в transit. Храните этот
+родительский каталог состояния локальным, закрытым и вне общих или синхронизируемых папок; другие
+корни синхронизации и процессы под той же учетной записью ОС не подпадают под эту гарантию.
+Необязательное сканирование по шаблонам не является полным обнаружением секретов.
+
+Только проверенные байты снимка (обычный push) или зашифрованный текст (Republica) копируются
+в монопольно созданный временный файл transit, проверяются по размеру и хешу, а затем
+переименовываются внутри этой целевой файловой системы. Затем записывается манифест; пара файлов
+не образует единой атомарной транзакции. Ошибки очистки закрытой области распространяются дальше.
+Сбои могут оставлять закрытые рабочие каталоги; безопасное удаление данных или автоматическая
+очистка старых/сторонних артефактов не предусмотрены.
+
 
 **Отключить сканирование — допустимый выбор, а не обход защиты.** Если transit
 — это хранилище, которым вы управляете и которому доверяете (собственный

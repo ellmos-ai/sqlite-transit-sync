@@ -25,7 +25,7 @@
 > [!NOTE]
 > **Contexto para LLM y agentes de IA**: El índice estructurado y legible por máquinas, la descripción general de la arquitectura y la guía de la API están disponibles en [`llms.txt`](llms.txt).
 
-**🇬🇧 [Versión en inglés](README.md)** | **🇩🇪 [Versión en alemán](README_de.md)** | **🇪🇸 Español** | **🇫🇷 [Versión en francés](README_fr.md)** | **🇯🇵 [Versión en japonés](README_ja.md)** | **🇨🇳 [Versión en chino simplificado](README_zh.md)** | **🇵🇹 [Versión en portugués](README_pt.md)** | **🇷🇺 [Versión en ruso](README_ru.md)** | **🤝 [Contribuir](CONTRIBUTING.md)** | **🛡️ [Política de seguridad](SECURITY.md)** | **📝 [Registro de cambios](CHANGELOG.md)** | **📋 [llms.txt](llms.txt)**
+**🇬🇧 [Versión en inglés](README.md)** | **🇩🇪 [Versión en alemán](README_de.md)** | **🇪🇸 Español** | **🇫🇷 [Versión en francés](README_fr.md)** | **🇯🇵 [Versión en japonés](README_ja.md)** | **🇨🇳 [Versión en chino simplificado](README_zh.md)** | **🇵🇹 [Versión en portugués](README_pt.md)** | **🇷🇺 [Versión en ruso](README_ru.md)** | **🇸🇦 [Versión en árabe](README_ar.md)** | **🇮🇳 [Versión en hindi](README_hi.md)** | **🇧🇩 [Versión en bengalí](README_bn.md)** | **🤝 [Contribuir](CONTRIBUTING.md)** | **🛡️ [Política de seguridad](SECURITY.md)** | **📝 [Registro de cambios](CHANGELOG.md)** | **📋 [llms.txt](llms.txt)**
 
 <a id="-quick-navigation"></a>
 ## 🧭 Navegación rápida
@@ -77,7 +77,7 @@ flowchart TD
         DB_A[("Local SQLite DB<br/>(app.db)")]
         BACKUP_A["Online Backup API<br/>(sqlite3.backup)"]
         REDACT_A["Table Redaction &<br/>VACUUM Engine"]
-        SHIELD_A["Configured Credential-Pattern Scan<br/>(default rules; not exhaustive)"]
+        SHIELD_A["Configured Credential-Pattern Scan<br/>(default rules — not exhaustive)"]
         HMAC_A["Optional HMAC Authenticator<br/>(API-injected)"]
         STATE_A["Local State Ledger<br/>(node-state.json)"]
     end
@@ -196,7 +196,7 @@ sequenceDiagram
     autonumber
     participant App as Application / Node A
     participant CoreA as sqlite-transit-sync (Push)
-    participant Shield as Credential-Pattern Scan (default on; configurable)
+    participant Shield as Credential-Pattern Scan (default on — configurable)
     participant Transit as Shared Transit (db-transit)
     participant CoreB as sqlite-transit-sync (Pull)
     participant Target as Local DB / Node B
@@ -214,7 +214,7 @@ sequenceDiagram
 
     Note over CoreA,Transit: Phase 3: Optional Manifest Authentication & Publication
     CoreA->>CoreA: Optionally HMAC-sign manifest (if configured)
-    CoreA->>Transit: Atomically write manifest with SHA-256; HMAC only if configured (*.manifest.json)
+    CoreA->>Transit: Atomically write manifest with SHA-256 — HMAC only if configured (*.manifest.json)
 
     Note over Transit,CoreB: Phase 4: Transit Ingestion & Boundary Guard
     CoreB->>Transit: Discover Manifests & Validate Path Bounds (Anti-Traversal)
@@ -228,7 +228,7 @@ sequenceDiagram
     CoreB->>Target: Reconcile Shared Column Schema Drift
     CoreB->>Target: COMMIT Transaction
     CoreB->>CoreB: Advance Local State Ledger (node-state.json)
-    Note over Target: Peer state reflects successful exchange; no background convergence guarantee
+    Note over Target: Peer state reflects successful exchange — no background convergence guarantee
 ```
 
 ---
@@ -538,6 +538,23 @@ El valor predeterminado de `state` de esta tabla se aplica al cargar una configu
 ### El análisis de credenciales y cómo desactivarlo
 
 `snapshot_exclude_tables` solo puede descartar una tabla que ya hayas previsto. El análisis responde a una pregunta que esa regla no resuelve: *¿se ha pegado una credencial en una columna de texto libre*, como una nota, una línea de registro o un resumen de sesión? Se ejecuta sobre la copia de la instantánea después de redactarla y antes de publicarla. Si encuentra una coincidencia, genera `SyncError` e indica `table.column`; nunca incluye el valor coincidente, de modo que la credencial no llega a los registros, los seguimientos de errores ni la salida de CI. La instantánea parcial se descarta y nada llega al directorio de tránsito.
+
+**Límite entre preparación y publicación:** Las copias sin depurar, la redacción y
+el análisis se realizan en un directorio temporal por llamada junto al estado local
+configurado, fuera del tránsito canónico. Republica también prepara allí SQL/gzip en
+claro y cifra antes de copiar al tránsito. El directorio del estado debe ser local,
+privado y estar fuera de carpetas compartidas o sincronizadas. Otras raíces de
+sincronización y procesos de la misma cuenta del sistema quedan fuera de esta garantía;
+el análisis opcional de patrones no detecta todos los secretos.
+
+Solo los bytes verificados de la instantánea (push normal) o el texto cifrado
+(Republica) se copian a un archivo temporal de tránsito creado de forma exclusiva.
+Tras comprobar tamaño y hash, se renombra dentro del sistema de archivos de destino.
+El manifiesto se escribe después; ambos archivos no forman una transacción atómica
+conjunta. Los errores al limpiar el área privada se propagan. Una caída puede dejar
+directorios privados; no se garantiza el borrado físico seguro ni la limpieza
+automática de artefactos históricos o ajenos.
+
 
 **Desactivarlo es una decisión legítima**, no una solución provisional. Si el almacenamiento de tránsito está bajo tu control y es de confianza (tu propio servidor, un volumen alojado en la UE bajo tu contrato o una unidad extraíble cifrada) y *quieres* que las credenciales viajen con los datos, configura lo siguiente:
 

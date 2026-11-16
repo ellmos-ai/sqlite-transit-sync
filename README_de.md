@@ -25,7 +25,7 @@
 > [!NOTE]
 > **Kontext für LLMs und KI-Agenten**: Ein strukturierter maschinenlesbarer Verzeichnisbaum, ein Architekturüberblick und ein API-Leitfaden stehen unter [`llms.txt`](llms.txt) bereit.
 
-**🇬🇧 [English Version](README.md)** | **🇩🇪 Deutsch** | **🇪🇸 [Spanische Version](README_es.md)** | **🇫🇷 [Französische Version](README_fr.md)** | **🇯🇵 [Japanische Version](README_ja.md)** | **🇨🇳 [Vereinfachtes Chinesisch](README_zh.md)** | **🇵🇹 [Portugiesische Version](README_pt.md)** | **🇷🇺 [Russische Version](README_ru.md)** | **🤝 [Mitwirken](CONTRIBUTING.md)** | **🛡️ [Sicherheitsrichtlinie](SECURITY.md)** | **📝 [Changelog](CHANGELOG.md)** | **📋 [llms.txt](llms.txt)**
+**🇬🇧 [English Version](README.md)** | **🇩🇪 Deutsch** | **🇪🇸 [Spanische Version](README_es.md)** | **🇫🇷 [Französische Version](README_fr.md)** | **🇯🇵 [Japanische Version](README_ja.md)** | **🇨🇳 [Vereinfachtes Chinesisch](README_zh.md)** | **🇵🇹 [Portugiesische Version](README_pt.md)** | **🇷🇺 [Russische Version](README_ru.md)** | **🇸🇦 [Arabische Version](README_ar.md)** | **🇮🇳 [Hindi-Version](README_hi.md)** | **🇧🇩 [Bengalische Version](README_bn.md)** | **🤝 [Mitwirken](CONTRIBUTING.md)** | **🛡️ [Sicherheitsrichtlinie](SECURITY.md)** | **📝 [Changelog](CHANGELOG.md)** | **📋 [llms.txt](llms.txt)**
 
 ## 🧭 Schnellnavigation
 
@@ -85,7 +85,7 @@ flowchart TD
         DB_A[("Lokale SQLite-DB<br/>(app.db)")]
         BACKUP_A["Online-Backup-API<br/>(sqlite3.backup)"]
         REDACT_A["Tabellen-Redaktion &<br/>VACUUM-Engine"]
-        SHIELD_A["Konfigurierter Credential-Musterscan<br/>(Standardmuster; nicht vollständig)"]
+        SHIELD_A["Konfigurierter Credential-Musterscan<br/>(Standardmuster — nicht vollständig)"]
         HMAC_A["Optionaler HMAC-Authenticator<br/>(per API injiziert)"]
         STATE_A["Lokales Status-Ledger<br/>(node-state.json)"]
     end
@@ -204,7 +204,7 @@ sequenceDiagram
     autonumber
     participant App as Anwendung / Knoten A
     participant CoreA as sqlite-transit-sync (Push)
-    participant Shield as Credential-Musterscan (standardmäßig aktiv; konfigurierbar)
+    participant Shield as Credential-Musterscan (standardmäßig aktiv — konfigurierbar)
     participant Transit as Shared Transit (db-transit)
     participant CoreB as sqlite-transit-sync (Pull)
     participant Target as Lokale DB / Knoten B
@@ -222,7 +222,7 @@ sequenceDiagram
 
     Note over CoreA,Transit: Phase 3: Optionale Manifest-Authentifizierung & Veröffentlichung
     CoreA->>CoreA: Manifest optional per HMAC signieren (falls konfiguriert)
-    CoreA->>Transit: Manifest mit SHA-256 atomar schreiben; HMAC nur bei Konfiguration (*.manifest.json)
+    CoreA->>Transit: Manifest mit SHA-256 atomar schreiben — HMAC nur bei Konfiguration (*.manifest.json)
 
     Note over Transit,CoreB: Phase 4: Transit-Aufnahme & Pfadgrenzen-Wächter
     CoreB->>Transit: Manifeste erkennen & Pfadgrenzen prüfen (Anti-Traversierung)
@@ -236,7 +236,7 @@ sequenceDiagram
     CoreB->>Target: Schema-Drift über gemeinsame Spaltenmenge auflösen
     CoreB->>Target: COMMIT Transaktion
     CoreB->>CoreB: Lokales Status-Ledger fortschreiben (node-state.json)
-    Note over Target: Knoten sehen den Stand nach erfolgreichem Austausch; keine Konvergenz im Hintergrund zugesagt
+    Note over Target: Knoten sehen den Stand nach erfolgreichem Austausch — keine Konvergenz im Hintergrund zugesagt
 ```
 
 ---
@@ -575,6 +575,22 @@ Er wird auf der Snapshot-Kopie nach der Schwärzung und vor der Veröffentlichun
 Bei einem Treffer wird `SyncError` ausgelöst und `table.column` benannt; der Wert selbst
 taucht nirgendwo in Logs, Tracebacks oder CI-Ausgaben auf. Der unvollständige Snapshot wird
 verworfen, sodass nichts den Transit-Ordner erreicht.
+
+**Grenze zwischen Vorbereitung und Veröffentlichung:** Rohbackups, Redaktion und
+Scan laufen pro Aufruf in einem temporären Verzeichnis beim konfigurierten lokalen
+Zustandsordner, außerhalb des kanonischen Transitordners. Republica bereitet dort auch
+Klartext-SQL und gzip vor und verschlüsselt vor dem Kopieren in den Transit. Der
+Zustandsordner muss lokal, privat und außerhalb geteilter/synchronisierter Ordner
+liegen. Weitere Syncwurzeln und Prozesse desselben OS-Kontos sind nicht abgedeckt;
+der optionale Musterscan erkennt nicht jedes Geheimnis.
+
+Nur geprüfte Snapshotbytes (normales Pushen) oder Chiffretext (Republica) gelangen
+in eine exklusiv erzeugte temporäre Transitdatei. Nach Größen-/Hashprüfung wird
+innerhalb dieses Zieldateisystems umbenannt; das Manifest folgt. Das Dateipaar ist
+keine gemeinsame atomare Transaktion. Fehler beim privaten Aufräumen propagieren.
+Abstürze können private Arbeitsverzeichnisse hinterlassen; sichere physische
+Datenlöschung und automatische Bereinigung alter/fremder Artefakte werden nicht zugesagt.
+
 
 Das Abschalten ist eine legitime Option, wenn der Transit vollständig vertrauenswürdig ist:
 
