@@ -204,15 +204,16 @@ class TestMetadata(unittest.TestCase):
             "python-3.10",
             "platform-Windows",
             "actions/workflows/ci.yml/badge.svg",
-            "privacy-100%25%20Offline",
+            ("data%20path-local%20SQLite%20%7C%20configured%20transit", "Datenpfad-lokales%20SQLite%20%7C%20konfigurierter%20Transit"),
             "security-Local--First",
             "Ecosystem-ellmos--ai",
             "Umbrella-open--bricks",
             "version-0.4.0",
             "llms.txt-available",
         ]:
-            self.assertIn(badge_fragment, readme_en, f"Badge fragment '{badge_fragment}' missing in README.md")
-            self.assertIn(badge_fragment, readme_de, f"Badge fragment '{badge_fragment}' missing in README_de.md")
+            en_fragment, de_fragment = badge_fragment if isinstance(badge_fragment, tuple) else (badge_fragment, badge_fragment)
+            self.assertIn(en_fragment, readme_en, f"Badge fragment '{en_fragment}' missing in README.md")
+            self.assertIn(de_fragment, readme_de, f"Badge fragment '{de_fragment}' missing in README_de.md")
 
     def test_tracked_public_view_has_no_local_artifact_or_path_leak(self):
         tracked = subprocess.check_output(
@@ -375,10 +376,10 @@ class TestMetadata(unittest.TestCase):
         self.assertTrue(lic_file.is_file(), "THIRD_PARTY_LICENSES.md must exist in repository root")
         text = lic_file.read_text(encoding="utf-8")
         self.assertIn("Zero-Runtime-Dependency Guarantee", text)
-        self.assertTrue(any(d in text for d in ["Audit Date:** 2026-10-02", "Audit Date:** 2026-09-23"]), "Audit date should be 2026-10-02 or 2026-09-23")
-        self.assertIn("Level 1 SBOM", text)
-        self.assertIn("RunAsInvoker", text)
-        self.assertIn("Zero-Copyleft Isolation Guarantee", text)
+        self.assertTrue(any(d in text for d in ["Inventory Record Date (project-maintained):** 2026-10-02", "Inventory Record Date (project-maintained):** 2026-09-23"]), "Inventory record date should be 2026-10-02 or 2026-09-23")
+        self.assertIn("Project-Maintained Dependency Inventory", text)
+        self.assertIn("inherits the operating-system permissions of its launcher", text)
+        self.assertIn("not an independent assessment of transitive dependency coverage or legal compatibility", text)
         self.assertIn("INV-LOCAL-01", text)
         self.assertIn("INV-SLA-10", text)
         self.assertIn("MIT License", text)
@@ -461,12 +462,16 @@ class TestMetadata(unittest.TestCase):
             for pid in ["[PERSONA-01]", "[PERSONA-02]", "[PERSONA-03]", "[PERSONA-04]"]:
                 self.assertIn(pid, content, f"Persona {pid} missing in {fname}")
 
-    def test_comparative_matrix_sections(self):
-        """Both READMEs must contain the 10-dimension comparative matrix vs 4 alternatives."""
+    def test_implemented_behavior_matrix_sections(self):
+        """Both READMEs must document the 10-dimension behavior matrix and its limits."""
         for fname in ["README.md", "README_de.md"]:
             content = (ROOT / fname).read_text(encoding="utf-8")
-            self.assertIn("Distributed SQL", content, f"Distributed SQL missing in {fname}")
-            self.assertIn("Litestream / LiteFS", content, f"Litestream / LiteFS missing in {fname}")
+            heading, boundary = {
+                "README.md": ("## 5. Implemented Behavior & Limits", "Per-file replacement does not make the snapshot and manifest one multi-file transaction."),
+                "README_de.md": ("## 5. Implementiertes Verhalten und Grenzen", "Der Austausch einer einzelnen Datei macht Snapshot und Manifest nicht zu einer gemeinsamen Transaktion über mehrere Dateien."),
+            }[fname]
+            self.assertIn(heading, content, f"Implemented behavior matrix missing in {fname}")
+            self.assertIn(boundary, content, f"Snapshot/manifest publication boundary missing in {fname}")
             for inv in [
                 "INV-LOCAL-01",
                 "INV-SNAP-02",
@@ -641,7 +646,7 @@ class TestMetadata(unittest.TestCase):
             "INV-SLA-10",
         ]:
             self.assertIn(inv, content, f"Invariant '{inv}' missing in CONTRIBUTING.md")
-        self.assertIn("RunAsInvoker", content)
+        self.assertIn("The process inherits the operating-system permissions of its launcher", content)
         self.assertIn(r"C:\_Local_DEV\repos\sqlite-transit-sync", content)
         self.assertIn("T-20260920-167562623", content)
         self.assertIn("§ 521 BGB", content)
@@ -698,9 +703,9 @@ class TestMetadata(unittest.TestCase):
         urls = data.get("project", {}).get("urls", {})
         self.assertIn("Contributing", urls)
         self.assertTrue(urls["Contributing"].endswith("CONTRIBUTING.md"))
-        self.assertIn("Level 1 SBOM", urls)
-        self.assertIn("Level 1 SBOM (Text)", urls)
-        self.assertTrue(urls["Level 1 SBOM (Text)"].endswith("THIRD_PARTY_LICENSES.txt"))
+        self.assertIn("Dependency Inventory", urls)
+        self.assertIn("Dependency Inventory (Text)", urls)
+        self.assertTrue(urls["Dependency Inventory (Text)"].endswith("THIRD_PARTY_LICENSES.txt"))
         self.assertIn("Plain-Text License", urls)
         self.assertTrue(urls["Plain-Text License"].endswith("LICENSE"))
         self.assertIn("Third-Party Licenses (Text)", urls)
@@ -709,15 +714,15 @@ class TestMetadata(unittest.TestCase):
         pytest_addopts = data.get("tool", {}).get("pytest", {}).get("ini_options", {}).get("addopts", "")
         self.assertIn("--basetemp=.pytest_temp", pytest_addopts)
 
-    def test_level1_sbom_plain_text_companion_and_recency(self):
-        """THIRD_PARTY_LICENSES.txt companion must exist, match version, and contain Stand 2026-10-02."""
+    def test_dependency_inventory_plain_text_companion_and_recency(self):
+        """THIRD_PARTY_LICENSES.txt companion must exist, match version, and contain the project-maintained inventory date 2026-10-02."""
         txt_file = ROOT / "THIRD_PARTY_LICENSES.txt"
         self.assertTrue(txt_file.is_file(), "THIRD_PARTY_LICENSES.txt must exist")
         content = txt_file.read_text(encoding="utf-8")
         self.assertIn(f"Version {sqlite_transit_sync.__version__}", content)
-        self.assertIn("Stand: 2026-10-02", content)
+        self.assertIn("Inventory record updated (project-maintained): 2026-10-02", content)
         self.assertIn("§ 521 BGB", content)
-        self.assertIn("RunAsInvoker", content)
+        self.assertIn("Der Prozess übernimmt die Betriebssystemrechte seines Aufrufers", content)
         for inv in [
             "INV-LOCAL-01",
             "INV-SNAP-02",

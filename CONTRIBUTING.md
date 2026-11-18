@@ -7,22 +7,22 @@
 <a id="english"></a>
 ## English
 
-Thank you for your interest in contributing to **sqlite-transit-sync** (`ellmos-ai/sqlite-transit-sync`), a local-first SQLite synchronization engine through verified snapshots and configurable row-level merge policies built with Python 3.10+ standard library.
+Thank you for your interest in contributing to **sqlite-transit-sync** (`ellmos-ai/sqlite-transit-sync`), a local-first SQLite synchronization engine through snapshots checked against SHA-256 manifests and SQLite `PRAGMA quick_check`, with configurable row-level merge policies, built with the Python 3.10+ standard library.
 
 ### 1. Architectural Principles & 10 Governance Invariants
 
 All contributions must strictly adhere to our core architectural invariants:
 
-1. **Local-First & Zero Egress (`INV-LOCAL-01`)**: 100% offline-ready operation. Zero outbound telemetry, network tracking, analytics, or mandatory cloud infrastructure. All data remains exclusively within local SQLite databases and local transit directories.
-2. **Offline Snapshot Atomicity (`INV-SNAP-02`)**: Non-locking consistent snapshot capture via `sqlite3.backup`, published through atomic `os.replace`. Live operational databases are never synced directly.
+1. **Local SQLite Processing & Configured Transit (`INV-LOCAL-01`)**: Reads local SQLite databases and exchanges snapshot files through the configured filesystem path. The path may be shared or network-mounted; host, mount and transport behavior are outside this module.
+2. **Offline Snapshot Atomicity (`INV-SNAP-02`)**: Online consistent snapshot capture via `sqlite3.backup`, published through atomic `os.replace`. Live operational databases are never synced directly.
 3. **Rollback Journal Clean Isolation (`INV-ROLL-03`)**: Snapshots are closed cleanly in rollback-journal mode; fail-closed purge of temporary `-wal`, `-shm`, and `-journal` sidecars before publication.
 4. **Strict Transit Path Containment (`INV-PATH-04`)**: Absolute rejection of directory traversal (`../`), absolute paths, symbolic links, and reparse points in manifests and snapshots.
 5. **Two-Stage Integrity & Sanity (`INV-VERIFY-05`)**: Pre-merge validation via cryptographic SHA-256 manifest matching and SQLite `PRAGMA quick_check`.
-6. **Pre-Publication Credential Shield (`INV-SHIELD-06`)**: Content-level regex scanning across 13+ secret families (`credential-triggers.json`) with mandatory push abort upon secret detection.
-7. **HMAC Authenticity Envelope (`INV-HMAC-07`)**: Optional HMAC-SHA256 signature envelope over canonical manifest payload, sender ID, and trust anchors.
+6. **Pre-Publication Credential Pattern Scan (`INV-SHIELD-06`)**: By default, snapshot content is checked against configured vendor-prefixed patterns. A match aborts publication and reports `table.column`, not the value. This is a safety net, not a guarantee; bespoke or unprefixed secrets can pass, and a clean scan means only that no known pattern matched. See `SECURITY.md`.
+7. **Optional HMAC Sender Authentication (`INV-HMAC-07`)**: An API-injected shared-key HMAC-SHA256 authenticator can verify the canonical manifest and sender when configured. Without it, SHA-256 verifies only that the snapshot bytes match the manifest; it does not authenticate the sender. HMAC is not a freshness protocol or a public-key signature.
 8. **Deterministic Row-Level Merge (`INV-MERGE-08`)**: Transactional row-level merge (Last-Write-Wins per primary key, shared column union for schema drift, explicit tombstone policy).
 9. **Conservative Retention Scoping (`INV-RET-09`)**: Snapshot cleanup is dry-run by default, scoped strictly to authorized local-node artifacts.
-10. **Non-Elevation & Multi-OS Parity (`INV-SLA-10`)**: Pure `RunAsInvoker` unprivileged execution across Linux, Windows, and macOS without administrative elevation. Binding 48-hour security response SLA via `security@ellmos.ai`, `security@open-bricks.org`, and `support@lukasgeiger.com`.
+10. **Process Permissions & Security Policy (`INV-SLA-10`)**: The process inherits the operating-system permissions of its launcher; this project does not enforce standard-user mode or request elevation. Valid reports can be sent to security@ellmos.ai, security@open-bricks.org, or support@lukasgeiger.com. `SECURITY.md` acknowledges valid reports within 48 hours and provides triage assessments within 5 business days, with progress updates until a patch is released.
 
 ### 2. Plan D Local Development Workflow
 
@@ -57,33 +57,34 @@ Before submitting a pull request or pushing commits, verify all local quality ga
 4. `git diff --check`: Zero whitespace or line-ending anomalies.
 5. `git diff -G"version = "`: Zero unauthorized version modifications.
 
-### 5. Statutory Notice (§ 521 BGB) & Zero-Copyleft on User Data
+<a id="5-statutory-notice-521-bgb-zero-copyleft-on-user-data"></a>
+### 5. Statutory Notice (§ 521 BGB) & Project License Scope
 
 This software is provided free of charge under the permissive MIT License. In accordance with German statutory law (**§ 521 BGB** — *Haftung des Schenkers*), liability for defects in quality and title is strictly limited to intentional misconduct (*Vorsatz*) and gross negligence (*grobe Fahrlässigkeit*).
 
-**Zero-Copyleft Guarantee:** Processing, synchronizing, redacting, or validating databases using sqlite-transit-sync does **not** subject user databases, schema definitions, or exported snapshots to any viral or copyleft licensing obligation. All user data remains 100% private and proprietary.
+**Project license inventory and user data:** The repository’s dependency inventory lists declared package-license identifiers. It does not determine licensing obligations, if any, for an integrating application’s databases, schemas, exports, or snapshots. It is not a legal opinion or a guarantee about user data; review obligations for your use case.
 
 ---
 
 <a id="deutsch"></a>
 ## Deutsch
 
-Vielen Dank für dein Interesse an einer Mitwirkung bei **sqlite-transit-sync** (`ellmos-ai/sqlite-transit-sync`), einer Local-First-Synchronisations-Engine für SQLite-Datenbanken über verifizierte Snapshots und konfigurierbare zeilenbasierte Merge-Policies, implementiert mit der Python 3.10+ Standardbibliothek.
+Vielen Dank für dein Interesse an einer Mitwirkung bei **sqlite-transit-sync** (`ellmos-ai/sqlite-transit-sync`), einer Local-First-Synchronisations-Engine für SQLite-Datenbanken mit SHA-256-Manifest- und SQLite-`PRAGMA quick_check`-Prüfungen sowie konfigurierbaren zeilenbasierten Merge-Policies, implementiert mit der Python-3.10+-Standardbibliothek.
 
 ### 1. Architektur-Prinzipien & 10 Governance-Invarianten
 
 Alle Beiträge müssen unsere verbindlichen Kern-Invarianten strikt einhalten:
 
-1. **Local-First & Zero Egress (`INV-LOCAL-01`)**: 100% Offline-Betrieb. Keine ausgehende Telemetrie, kein Tracking, keine Analyse-Dienste und keine Cloud-Pflicht. Alle Daten verbleiben ausnahmslos in lokalen SQLite-Datenbanken und lokalen Transit-Verzeichnissen.
-2. **Offline Snapshot-Atomizität (`INV-SNAP-02`)**: Sperrfreie konsistente Snapshot-Erstellung mittels `sqlite3.backup`, atomare Bereitstellung über `os.replace`. Live-Datenbanken werden niemals direkt synchronisiert.
+1. **Lokale SQLite-Verarbeitung & konfigurierter Transit (`INV-LOCAL-01`)**: Liest lokale SQLite-Datenbanken und tauscht Snapshot-Dateien über den konfigurierten Dateisystempfad aus. Dieser kann freigegeben oder netzwerkgestützt sein; Host, Mount und Transport liegen außerhalb des Moduls.
+2. **Offline Snapshot-Atomizität (`INV-SNAP-02`)**: Konsistente Online-Snapshot-Erstellung mittels `sqlite3.backup`, atomare Bereitstellung über `os.replace`. Live-Datenbanken werden niemals direkt synchronisiert.
 3. **Rollback-Journal Isolierung (`INV-ROLL-03`)**: Snapshots werden im Rollback-Journal-Modus sauber geschlossen; Fail-Closed Bereinigung temporärer `-wal`, `-shm` und `-journal` Sidecars vor der Veröffentlichung.
 4. **Strikte Transit-Pfadeindämmung (`INV-PATH-04`)**: Striktes Abweisen von Directory Traversal (`../`), absoluten Pfaden, symbolischen Links und Reparse Points in Manifesten und Snapshots.
 5. **Zweistufige Integritätsprüfung (`INV-VERIFY-05`)**: Vor dem Merge erfolgt eine Validierung über kryptografische SHA-256 Manifest-Abgleiche und SQLite `PRAGMA quick_check`.
-6. **Credential-Schutz vor Veröffentlichung (`INV-SHIELD-06`)**: Regex-Inhaltsscan über 13+ Secret-Familien (`credential-triggers.json`) mit zwingendem Push-Abbruch bei Funden.
-7. **HMAC-Authentizitätsumschlag (`INV-HMAC-07`)**: Optionaler HMAC-SHA256 Signaturumschlag über kanonische Manifest-Nutzdaten, Absender-IDs und Vertrauensanker.
+6. **Scan konfigurierter Credential-Muster (`INV-SHIELD-06`)**: Snapshot-Inhalte werden standardmäßig anhand konfigurierter, präfixbasierter Muster geprüft. Bei einem Treffer wird die Veröffentlichung abgebrochen und `table.column`, nicht der Wert, gemeldet. Der Scan ist ein Sicherheitsnetz, keine Garantie; individuelle oder nicht präfixierte Geheimnisse können unentdeckt bleiben. Ein sauberer Scan bedeutet nur, dass kein bekanntes Muster passte. Siehe `SECURITY.md`.
+7. **Optionale HMAC-Absenderauthentifizierung (`INV-HMAC-07`)**: Ein per API injizierter Shared-Key-HMAC-SHA256-Authenticator kann das kanonische Manifest und den Absender bei entsprechender Konfiguration prüfen. Ohne ihn stellt SHA-256 nur fest, dass die Snapshot-Bytes mit dem Manifest übereinstimmen; der Absender wird dadurch nicht authentifiziert. HMAC ist kein Frischeprotokoll und keine Public-Key-Signatur.
 8. **Deterministischer zeilenbasierter Merge (`INV-MERGE-08`)**: Transaktionaler zeilenbasierter Merge (Last-Write-Wins je Primärschlüssel, Schnittmengen-Spaltenabgleich bei Schema-Drift, explizite Tombstone-Policy).
 9. **Konservative Aufbewahrungs-Scoping (`INV-RET-09`)**: Bereinigung erfolgt standardmäßig als Dry-Run und ist strikt auf autorisierte lokale Knotenartefakte begrenzt.
-10. **Rechtefreier Betrieb & Multi-OS-Parität (`INV-SLA-10`)**: Reiner `RunAsInvoker`-Betrieb unter Linux, Windows und macOS ohne Administratorrechte. Verbindliche 48-Stunden-Sicherheitsreaktions-SLA via `security@ellmos.ai`, `security@open-bricks.org` und `support@lukasgeiger.com`.
+10. **Prozessrechte & Sicherheitsrichtlinie (`INV-SLA-10`)**: Der Prozess übernimmt die Betriebssystemrechte seines Aufrufers; das Projekt erzwingt keinen Standardbenutzermodus und fordert keine Rechteerhöhung an. Gültige Meldungen können an security@ellmos.ai, security@open-bricks.org oder support@lukasgeiger.com gesendet werden. `SECURITY.md` sagt zu, gültige Meldungen innerhalb von 48 Stunden zu bestätigen und innerhalb von 5 Werktagen eine Triage-Einschätzung zu geben, mit regelmäßigen Statusmeldungen bis zur Veröffentlichung eines Patches.
 
 ### 2. Plan D Lokaler Entwicklungsworkflow
 
@@ -118,8 +119,9 @@ Vor dem Erstellen eines Pull Requests oder dem Pushen von Commits müssen alle l
 4. `git diff --check`: Null Whitespace- oder Zeilenumbruch-Probleme.
 5. `git diff -G"version = "`: Null unautorisierte Versionsänderungen.
 
-### 5. Gesetzlicher Hinweis (§ 521 BGB) & Zero-Copyleft auf Nutzerdaten
+<a id="5-gesetzlicher-hinweis-521-bgb-zero-copyleft-auf-nutzerdaten"></a>
+### 5. Gesetzlicher Hinweis (§ 521 BGB) & Lizenzumfang des Projekts
 
 Diese Software wird unentgeltlich unter der permissiven MIT-Lizenz bereitgestellt. Gemäß **§ 521 BGB** (*Haftung des Schenkers*) ist die Haftung für Sach- und Rechtsmängel auf Vorsatz und grobe Fahrlässigkeit beschränkt.
 
-**Zero-Copyleft Garantie:** Das Verarbeiten, Synchronisieren oder Bereinigen von Datenbanken mit sqlite-transit-sync unterwirft Anwendungsdatenbanken, Schemata oder exportierte Snapshots **keiner** Copyleft-Lizenzpflicht. Alle Nutzerdaten bleiben zu 100% privat und geschützt.
+**Projektinventar und Nutzerdaten:** Das Abhängigkeitsinventar des Repositorys erfasst Lizenzkennzeichen deklarierter Pakete. Es legt nicht fest, welche Lizenzpflichten für Datenbanken, Schemata, Exporte oder Snapshots einer integrierenden Anwendung gelten. Es ist weder Rechtsgutachten noch Zusicherung zur Lizenzlage von Nutzerdaten; prüfe die für deinen Anwendungsfall geltenden Verpflichtungen.
