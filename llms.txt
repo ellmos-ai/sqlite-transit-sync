@@ -2,13 +2,16 @@
 
 > Local-first SQLite synchronization through transit snapshots, SHA-256 manifest integrity checks, and configurable row-level merge policies. Sender authentication is opt-in through an API-injected HMAC authenticator. Extracted from the BACH ProSync architecture for standalone, zero-dependency Python projects.
 
-- Last-checked: 2026-10-31
+- Last-checked: 2026-11-23
 - Version: 0.4.0
+- Product Skill: `SKILL.md` (agentic usage instructions, CLI/API contracts, safety gates)
+- Compatibility Pointer: `llm.txt`
 - Documentation: `README.md` (English), `README_de.md` (German), `README_es.md` (Spanish), `README_fr.md` (French), `README_ja.md` (Japanese), `README_zh.md` (Simplified Chinese), `README_pt.md` (Portuguese), `README_ru.md` (Russian), `README_ar.md` (Arabic), `README_hi.md` (Hindi), and `README_bn.md` (Bengali).
-- Documentation languages checked: 2026-11-16
+- Documentation languages checked: 2026-11-23
 - Module status: `development`; visibility projection: `public-candidate`; release gate: `LOCKED`.
 - Metadata contract: `METADATA_CONTRACT.md` (version, status and verification authority).
 - Security policy: `SECURITY.md` (Supported Versions 0.4.x, 48h SLA + 5 business days triage, Direct Contacts).
+- Code of Conduct: `CODE_OF_CONDUCT.md` (Bilingual EN/DE, Contributor Covenant v2.1).
 - License, Attribution & Dependency/License Inventory: `LICENSE`, `NOTICE`, `THIRD_PARTY_LICENSES.md`, `THIRD_PARTY_LICENSES.txt` (project-maintained package-license records; not an independent audit or certification).
 - Contributing Guide: `CONTRIBUTING.md` (Bilingual guidelines, Invariants INV-LOCAL-01..INV-SLA-10, Quality Gates, § 521 BGB statutory notice).
 - Discoverability & Marketing: `MARKETING-LOG.txt` (target personas, bilingual search queries, project capabilities and limits).
@@ -18,7 +21,7 @@
 
 ## System Overview
 
-`sqlite-transit-sync` is a Python 3.10+ library (zero dependencies for merge mode; the optional Republica mode adds `cryptography`) and CLI for synchronizing local SQLite databases through shared or asynchronous file transports (shared folders, object-store mounts, removable drives, or sync-master yards). Use a trusted transport, or configure authenticated transport or API-injected HMAC. SHA-256 checks snapshot bytes against the manifest; by itself it does not authenticate the sender. HMAC sender authentication is optional and shared-key based. Includes ownership-aware snapshot retention policies, strict read-only application projection verification, and synthetic BACH golden comparison. Verified passing test suite on 2026-10-31 (100% green: 164 passed, 43 subtests).
+`sqlite-transit-sync` is a Python 3.10+ library (zero dependencies for merge mode; the optional Republica mode adds `cryptography`) and CLI for synchronizing local SQLite databases through shared or asynchronous file transports (shared folders, object-store mounts, removable drives, or sync-master yards). Use a trusted transport, or configure authenticated transport or API-injected HMAC. SHA-256 checks snapshot bytes against the manifest; by itself it does not authenticate the sender. HMAC sender authentication is optional and shared-key based. Includes ownership-aware snapshot retention policies, strict read-only application projection verification, and synthetic BACH golden comparison. Verified passing test suite on 2026-11-23 (`182 passed, 2 skipped` POSIX-only tests on Windows; 184 collected).
 
 It avoids live SQLite database locking over file sync by using:
 1. Online consistent snapshots via SQLite Backup API (`sqlite3.Connection.backup`).

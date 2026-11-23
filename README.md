@@ -4,8 +4,8 @@
 
 [![CI](https://github.com/ellmos-ai/sqlite-transit-sync/actions/workflows/ci.yml/badge.svg)](https://github.com/ellmos-ai/sqlite-transit-sync/actions/workflows/ci.yml)
 [![Version](https://img.shields.io/badge/version-0.4.0-blue.svg)](CHANGELOG.md)
-[![Tests](https://img.shields.io/badge/tests-164%20passed%20%7C%2043%20subtests%20%7C%20100%25%20green-brightgreen.svg)](#tests)
-[![Verified: 2026-10-31](https://img.shields.io/badge/verified-2026--10--31-blue.svg)](#tests)
+[![Tests](https://img.shields.io/badge/tests-182%20passed%20%7C%202%20skipped%20(POSIX)-brightgreen.svg)](#tests)
+[![Verified: 2026-11-23](https://img.shields.io/badge/verified-2026--11--23-blue.svg)](#tests)
 [![Python Version](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12%20%7C%203.13-blue.svg)](https://www.python.org/)
 [![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20Linux%20%7C%20macOS-informational.svg)](#)
 [![Data path](https://img.shields.io/badge/data%20path-local%20SQLite%20%7C%20configured%20transit-informational.svg)](#)
@@ -21,11 +21,12 @@
 [![Ecosystem: ellmos-ai](https://img.shields.io/badge/Ecosystem-ellmos--ai-blue.svg)](https://github.com/ellmos-ai)
 [![Umbrella: open-bricks](https://img.shields.io/badge/Umbrella-open--bricks-purple.svg)](https://github.com/open-bricks)
 [![llms.txt](https://img.shields.io/badge/llms.txt-available-informational.svg)](llms.txt)
+[![Agent Skill: SKILL.md](https://img.shields.io/badge/agent%20skill-SKILL.md-blue.svg)](SKILL.md)
 
 > [!NOTE]
-> **LLM & AI Agent Context**: A structured machine-readable sitemap, architectural overview, and API guide is available at [`llms.txt`](llms.txt).
+> **LLM & AI Agent Context**: A structured machine-readable sitemap, architectural overview, and API guide is available at [`llms.txt`](llms.txt), with the product usage skill in [`SKILL.md`](SKILL.md) and compatibility pointer in [`llm.txt`](llm.txt).
 
-**🇬🇧 English** | **🇩🇪 [Deutsche Version](README_de.md)** | **🇪🇸 [Spanish Version](README_es.md)** | **🇫🇷 [French Version](README_fr.md)** | **🇯🇵 [Japanese Version](README_ja.md)** | **🇨🇳 [Simplified Chinese Version](README_zh.md)** | **🇵🇹 [Portuguese Version](README_pt.md)** | **🇷🇺 [Russian Version](README_ru.md)** | **🇸🇦 [Arabic Version](README_ar.md)** | **🇮🇳 [Hindi Version](README_hi.md)** | **🇧🇩 [Bengali Version](README_bn.md)** | **🤝 [Contributing](CONTRIBUTING.md)** | **🛡️ [Security Policy](SECURITY.md)** | **📝 [Changelog](CHANGELOG.md)** | **📋 [llms.txt](llms.txt)**
+**🇬🇧 English** | **🇩🇪 [Deutsche Version](README_de.md)** | **🇪🇸 [Spanish Version](README_es.md)** | **🇫🇷 [French Version](README_fr.md)** | **🇯🇵 [Japanese Version](README_ja.md)** | **🇨🇳 [Simplified Chinese Version](README_zh.md)** | **🇵🇹 [Portuguese Version](README_pt.md)** | **🇷🇺 [Russian Version](README_ru.md)** | **🇸🇦 [Arabic Version](README_ar.md)** | **🇮🇳 [Hindi Version](README_hi.md)** | **🇧🇩 [Bengali Version](README_bn.md)** | **🤝 [Contributing](CONTRIBUTING.md)** | **📜 [Code of Conduct](CODE_OF_CONDUCT.md)** | **🛡️ [Security Policy](SECURITY.md)** | **📝 [Changelog](CHANGELOG.md)** | **🤖 [SKILL.md](SKILL.md)** | **📋 [llms.txt](llms.txt)**
 
 ## 🧭 Quick Navigation
 
@@ -429,13 +430,29 @@ sqlite-transit-sync verify-projection \
 ## 9. Installation & Prerequisites
 
 ```bash
+# Core installation (Python >= 3.10, zero external runtime dependencies)
 python -m pip install -e .
+
+# Optional: enable encrypted Republica showcase & OS keyring HMAC lookup
+python -m pip install -e ".[crypto,keyring]"
+```
+
+### Install with your LLM
+
+Point your coding assistant or AI agent at [`SKILL.md`](SKILL.md) and [`llms.txt`](llms.txt) (compatibility pointer: [`llm.txt`](llm.txt)):
+
+```text
+Read SKILL.md and llms.txt in this repository, install sqlite-transit-sync in an isolated Python 3.10+ environment (zero core dependencies), verify `sqlite-transit-sync --help`, and configure push/pull with database and state strictly outside the transit directory.
 ```
 
 ---
 
 <a id="quick-start"></a><a id="quickstart"></a>
 ## 10. Quickstart & Multi-Node Workflow
+
+<p align="center">
+  <img src="assets/terminal-workflow.svg" width="100%" alt="sqlite-transit-sync multi-node CLI and snapshot verification workflow preview">
+</p>
 
 Create a config on every node. Each node uses its own database and state file,
 but the same transit directory and namespace.
@@ -663,6 +680,29 @@ pattern matches; it cannot guarantee that every secret is detected.
 Each machine puts an **encrypted showcase** of its database into a shared file area. Every
 other machine can look at it; none can change it. Hence the name — a re-publication of a
 database, readable only by whoever holds the key.
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant Source as Source Node (Local)
+    participant Key as Out-of-Band Fernet Key
+    participant Transit as Untrusted Shared Transit
+    participant Dest as Consumer Node (republica_root)
+
+    Note over Source,Key: One-time keygen on local disk - copy out of band
+    Source->>Key: keygen --key-file ~/.keys/republica.key
+
+    Note over Source,Transit: Mode A - Encrypted Read-Only Showcase
+    Source->>Source: Online backup + curated SQL dump + gzip
+    Source->>Transit: republica-publish (Fernet AES-128-CBC + HMAC)
+    Dest->>Transit: republica-import (verify Fernet HMAC, never merge)
+    Dest->>Dest: Restore + rebuild FTS into republica_root/
+
+    Note over Source,Dest: Mode B - Sealed Envelope Courier (Single File)
+    Source->>Transit: envelope-send --file ./api-token.txt
+    Dest->>Transit: envelope-receive --into <local-target-dir>
+    Dest->>Dest: Write file mode 0600 + remove envelope from transit
+```
 
 Use Republica when `push`/`pull` does not fit: you want to read another node’s data without merging it into your rows, or the machines share only a folder—no server, open ports or dedicated peer tunnel for Republica itself, although a shared Fernet key is still required—and the folder must not see your content in the clear.
 
@@ -1011,8 +1051,10 @@ Use entirely at your own risk. No maintenance commitments, no availability guara
 ### License & Attribution
 
 Distributed under the terms of the [MIT License](LICENSE).<br>
-Copyright (c) 2026 Lukas Geiger. See [LICENSE](LICENSE) and [NOTICE](NOTICE) for full details.<br>
+Copyright (c) 2026 Lukas Geiger. See [LICENSE](LICENSE), [NOTICE](NOTICE), and [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) for full details.<br>
 The project-maintained third-party dependency/license inventory and plain-text copy are in [THIRD_PARTY_LICENSES.md](THIRD_PARTY_LICENSES.md) and [THIRD_PARTY_LICENSES.txt](THIRD_PARTY_LICENSES.txt).
+
+> Idea & approval: Geiger · Text assistance: LLM-assisted · Graphics: AI-assisted
 
 ### Provenance
 

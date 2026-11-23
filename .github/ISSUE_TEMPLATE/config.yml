@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security Vulnerability (Private SLA)
+    url: https://github.com/ellmos-ai/sqlite-transit-sync/blob/main/SECURITY.md
+    about: Please report security issues privately per SECURITY.md (48h response SLA), never in public issues.
+  - name: Documentation & LLM Index
+    url: https://github.com/ellmos-ai/sqlite-transit-sync/blob/main/llms.txt
+    about: Machine-readable API, CLI, and architecture overview.
