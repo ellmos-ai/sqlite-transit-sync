@@ -60,7 +60,7 @@ INV-SLA-10    | Prozessrechte & Sicherheitsrichtlinie  | Rechte des aufrufenden 
 
 5. Verbindliche 48h Sicherheits-SLA:
    Verbindliche Erstreaktionszeit von 48 Stunden bei Sicherheitsmeldungen über
-   security@ellmos.ai, security@open-bricks.org und support@lukasgeiger.com.
+   GitHub Private Vulnerability Reporting (siehe SECURITY.md).
 
 ===============================================================================
 4. LAUFZEIT-KOMPONENTEN

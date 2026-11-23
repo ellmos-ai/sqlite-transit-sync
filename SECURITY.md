@@ -113,11 +113,8 @@ redaction list.
 ## Reporting Vulnerabilities
 
 If you discover a security vulnerability, please report it responsibly:
-- **Email (Direct Security Contact)**: [security@ellmos.ai](mailto:security@ellmos.ai)
-- **Secondary Contact**: [support@lukasgeiger.com](mailto:support@lukasgeiger.com)
-- **Umbrella Security**: [security@open-bricks.org](mailto:security@open-bricks.org)
-- **Maintainer**: [lukas@open-bricks.org](mailto:lukas@open-bricks.org)
-- **GitHub Advisory**: Use the [Private Vulnerability Reporting](https://github.com/ellmos-ai/sqlite-transit-sync/security/advisories/new) tab on GitHub.
+- **GitHub Private Vulnerability Reporting**: [Report a vulnerability](https://github.com/ellmos-ai/sqlite-transit-sync/security/advisories/new) (preferred and only monitored channel).
+- There is currently no monitored security mailbox; please do not report by e-mail and do not open public issues for vulnerabilities.
 
 We acknowledge receipt of valid reports within **48 hours** and provide triage assessments within **5 business days**, with regular progress updates until a patch is released.
 Do not include live databases, actual credentials, or personal records in a report. Provide a minimal synthetic database and redacted manifest instead.
@@ -173,11 +170,8 @@ Die `cleanup`-Routine verifiziert jedes geplante Snapshot- und Manifestpaar einz
 ## Sicherheitskontakt & Schwachstellenmeldung
 
 Sicherheitsrelevante Schwachstellen bitte vertraulich melden:
-- **E-Mail (Sicherheitskontakt)**: [security@ellmos.ai](mailto:security@ellmos.ai)
-- **Sekundärkontakt**: [support@lukasgeiger.com](mailto:support@lukasgeiger.com)
-- **Dachorganisation Security**: [security@open-bricks.org](mailto:security@open-bricks.org)
-- **Maintainer**: [lukas@open-bricks.org](mailto:lukas@open-bricks.org)
-- **GitHub Advisory**: Über [Private Vulnerability Reporting](https://github.com/ellmos-ai/sqlite-transit-sync/security/advisories/new).
+- **GitHub Private Vulnerability Reporting**: [Schwachstelle melden](https://github.com/ellmos-ai/sqlite-transit-sync/security/advisories/new) (bevorzugter und einziger überwachter Meldeweg).
+- Derzeit gibt es kein überwachtes Postfach für Sicherheitsmeldungen; bitte nicht per E-Mail und nicht über öffentliche Issues melden.
 
 Wir bestätigen den Eingang valider Sicherheitsberichte innerhalb von **48 Stunden** und stellen eine verbindliche Triage-Einschätzung innerhalb von **5 Werktagen** bereit, begleitet von regelmäßigen Fortschrittsberichten bis zur Veröffentlichung eines Patches.
 Fügen Sie Meldungen niemals Live-Datenbanken, echte Zugangsdaten oder persönliche Daten bei. Nutzen Sie stattdessen eine minimale synthetische Testdatenbank und ein anonymisiertes Manifest.
