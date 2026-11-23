@@ -5,7 +5,7 @@
 [![CI](https://github.com/ellmos-ai/sqlite-transit-sync/actions/workflows/ci.yml/badge.svg)](https://github.com/ellmos-ai/sqlite-transit-sync/actions/workflows/ci.yml)
 [![Version](https://img.shields.io/badge/version-0.4.0-blue.svg)](CHANGELOG.md)
 [![Tests](https://img.shields.io/badge/tests-182%20passed%20%7C%202%20skipped%20(POSIX)-brightgreen.svg)](#tests-und-qualitaetssicherung)
-[![Geprüft: 2026-11-23](https://img.shields.io/badge/gepr%C3%BCft-2026--10--31-blue.svg)](#tests-und-qualitaetssicherung)
+[![Geprüft: 2026-11-23](https://img.shields.io/badge/gepr%C3%BCft-2026--11--23-blue.svg)](#tests-und-qualitaetssicherung)
 [![Python Version](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12%20%7C%203.13-blue.svg)](https://www.python.org/)
 [![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20Linux%20%7C%20macOS-informational.svg)](#)
 [![Datenpfad](https://img.shields.io/badge/Datenpfad-lokales%20SQLite%20%7C%20konfigurierter%20Transit-informational.svg)](#)

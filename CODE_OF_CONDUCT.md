@@ -42,7 +42,7 @@ This Code of Conduct applies within all community spaces, and also applies when 
 
 ### Enforcement
 
-Instances of abusive, harassing, or otherwise unacceptable behavior may be reported to the community leaders responsible for enforcement at `support@lukasgeiger.com` or `security@ellmos.ai` (organization fallback: `security@open-bricks.org`). All complaints will be reviewed and investigated promptly and fairly.
+Instances of abusive, harassing, or otherwise unacceptable behavior may be reported to the community leaders responsible for enforcement through the GitHub contact channels of this repository or by contacting the maintainers directly on GitHub. Do not post sensitive reports in public issues. All complaints will be reviewed and investigated promptly and fairly.
 
 All community leaders are obligated to respect the privacy and security of the reporter of any incident.
 
@@ -81,7 +81,7 @@ Beispiele für inakzeptables Verhalten:
 
 ### Durchsetzung und Meldung
 
-Verstöße können vertraulich an `support@lukasgeiger.com` oder `security@ellmos.ai` (Organisations-Fallback: `security@open-bricks.org`) gemeldet werden. Alle Meldungen werden zeitnah, fair und unter Wahrung der Vertraulichkeit geprüft.
+Verstöße können über die GitHub-Kontaktwege dieses Repositorys oder direkt über GitHub an die Maintainer gemeldet werden. Sensible Meldungen gehören nicht in öffentliche Issues. Alle Meldungen werden zeitnah, fair und unter Wahrung der Vertraulichkeit geprüft.
 
 ### Herkunft
 
