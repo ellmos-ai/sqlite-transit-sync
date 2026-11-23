@@ -96,7 +96,9 @@ class TestMetadata(unittest.TestCase):
         # ellmos.ai / open-bricks.org do not resolve, lukasgeiger.com has no MX
         # (ellmos-ai/ellmos-homebase-mcp#21); reports go through GitHub private reporting.
         dead = ("security@ellmos.ai", "security@open-bricks.org", "lukas@open-bricks.org", "support@lukasgeiger.com")
-        for rel in ("SECURITY.md", "CONTRIBUTING.md", "THIRD_PARTY_LICENSES.md", "THIRD_PARTY_LICENSES.txt", "llms.txt"):
+        files = ["SECURITY.md", "CONTRIBUTING.md", "THIRD_PARTY_LICENSES.md", "THIRD_PARTY_LICENSES.txt", "llms.txt"]
+        files += sorted(p.name for p in ROOT.glob("README*.md"))
+        for rel in files:
             text = (ROOT / rel).read_text(encoding="utf-8")
             for address in dead:
                 self.assertNotIn(address, text, f"{rel} still advertises {address}")
