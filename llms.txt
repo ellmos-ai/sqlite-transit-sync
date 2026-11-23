@@ -7,7 +7,7 @@
 - Product Skill: `SKILL.md` (agentic usage instructions, CLI/API contracts, safety gates)
 - Compatibility Pointer: `llm.txt`
 - Documentation: `README.md` (English), `README_de.md` (German), `README_es.md` (Spanish), `README_fr.md` (French), `README_ja.md` (Japanese), `README_zh.md` (Simplified Chinese), `README_pt.md` (Portuguese), `README_ru.md` (Russian), `README_ar.md` (Arabic), `README_hi.md` (Hindi), and `README_bn.md` (Bengali).
-- Documentation languages checked: 2026-11-23
+- Documentation languages checked: 2026-11-23 (badges in all 11 READMEs; the SKILL.md/P-022 agent section and terminal workflow preview are currently in `README.md` and `README_de.md` only)
 - Module status: `development`; visibility projection: `public-candidate`; release gate: `LOCKED`.
 - Metadata contract: `METADATA_CONTRACT.md` (version, status and verification authority).
 - Security policy: `SECURITY.md` (Supported Versions 0.4.x, 48h SLA + 5 business days triage, Direct Contacts).
