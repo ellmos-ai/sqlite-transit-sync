@@ -1,0 +1,77 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 520" width="880" height="520" role="img" aria-labelledby="title desc">
+  <title id="title">sqlite-transit-sync — Multi-Node CLI &amp; Snapshot Verification Workflow</title>
+  <desc id="desc">Dark-mode terminal preview illustrating local SQLite snapshot publication, SHA-256 and PRAGMA quick_check verification, transactional pull merge, and read-only projection checks.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0b1220"/>
+      <stop offset="100%" stop-color="#111a2e"/>
+    </linearGradient>
+    <linearGradient id="headerBar" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#162238"/>
+      <stop offset="100%" stop-color="#1b2b45"/>
+    </linearGradient>
+    <filter id="shadow" x="-5%" y="-5%" width="110%" height="110%">
+      <feDropShadow dx="0" dy="10" stdDeviation="14" flood-color="#000000" flood-opacity="0.45"/>
+    </filter>
+  </defs>
+
+  <rect width="880" height="520" rx="16" fill="#060b14"/>
+  <rect x="20" y="20" width="840" height="480" rx="12" fill="url(#bg)" stroke="#243554" stroke-width="1.5" filter="url(#shadow)"/>
+  <path d="M20 32 a12 12 0 0 1 12 -12 h816 a12 12 0 0 1 12 12 v28 h-840 z" fill="url(#headerBar)"/>
+  <line x1="20" y1="60" x2="860" y2="60" stroke="#243554" stroke-width="1"/>
+
+  <circle cx="44" cy="40" r="6" fill="#ef4444"/>
+  <circle cx="64" cy="40" r="6" fill="#f59e0b"/>
+  <circle cx="84" cy="40" r="6" fill="#10b981"/>
+  <text x="440" y="45" text-anchor="middle" fill="#cbd5e1" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" font-weight="600">sqlite-transit-sync v0.4.0 — local-first snapshot &amp; merge pipeline</text>
+
+  <rect x="698" y="29" width="144" height="22" rx="11" fill="#0f2922" stroke="#10b981" stroke-width="1"/>
+  <text x="770" y="44" text-anchor="middle" fill="#34d399" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="11" font-weight="600">ZERO CORE DEPS</text>
+
+  <g font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="12.5">
+    <!-- Step 1: init + push -->
+    <text x="42" y="90" fill="#38bdf8">$ sqlite-transit-sync push --config node_a.json</text>
+    <text x="42" y="110" fill="#94a3b8">[1/3] Online backup via sqlite3.backup (rollback-journal closed, sidecars=0)</text>
+    <text x="42" y="128" fill="#94a3b8">[2/3] Redaction + VACUUM + credential-pattern scan (credential-triggers.json)</text>
+    <text x="42" y="146" fill="#34d399">  OK  published node_a_20261123T013500Z.snapshot.sqlite  sha256=8a9c1f4e...</text>
+
+    <line x1="42" y1="164" x2="838" y2="164" stroke="#1e2d48" stroke-width="1" stroke-dasharray="4 4"/>
+
+    <!-- Step 2: verify + pull -->
+    <text x="42" y="188" fill="#38bdf8">$ sqlite-transit-sync verify --config node_b.json &amp;&amp; sqlite-transit-sync pull --config node_b.json</text>
+    <text x="42" y="208" fill="#94a3b8">[gate] Path containment check: direct regular files inside canonical transit</text>
+    <text x="42" y="226" fill="#94a3b8">[gate] SHA-256 manifest match + PRAGMA quick_check=ok + optional HMAC check</text>
+    <text x="42" y="244" fill="#34d399">  OK  merged node_a -&gt; app.db (BEGIN IMMEDIATE; LWW PK: inserted=14, updated=3)</text>
+
+    <line x1="42" y1="262" x2="838" y2="262" stroke="#1e2d48" stroke-width="1" stroke-dasharray="4 4"/>
+
+    <!-- Step 3: verify-projection & republica -->
+    <text x="42" y="286" fill="#38bdf8">$ sqlite-transit-sync verify-projection --contract mediplaner-reminder-projection.v1 \</text>
+    <text x="58" y="304" fill="#38bdf8">    --database ./closed-projection.sqlite --consumer-id reminder-consumer --minimum-offline-seconds 2592000</text>
+    <text x="42" y="324" fill="#a7f3d0">  {"ok": true, "contract": "mediplaner-reminder-projection.v1", "checkpoint_advanced": true}</text>
+
+    <line x1="42" y1="342" x2="838" y2="342" stroke="#1e2d48" stroke-width="1" stroke-dasharray="4 4"/>
+
+    <!-- Step 4: cleanup dry-run -->
+    <text x="42" y="366" fill="#38bdf8">$ sqlite-transit-sync cleanup --config node_a.json --keep-days 7 --keep-per-node 10</text>
+    <text x="42" y="386" fill="#fbbf24">  DRY-RUN  scoped to local node_a; pass --apply after reviewing JSON plan</text>
+  </g>
+
+  <!-- Bottom summary cards -->
+  <g font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">
+    <rect x="42" y="410" width="254" height="68" rx="8" fill="#0f192d" stroke="#263b5e" stroke-width="1"/>
+    <text x="56" y="432" fill="#38bdf8" font-size="11.5" font-weight="700">1. ATOMIC SNAPSHOTS</text>
+    <text x="56" y="450" fill="#cbd5e1" font-size="11">Never syncs live -wal/-shm</text>
+    <text x="56" y="466" fill="#94a3b8" font-size="11">os.replace + SHA-256 manifest</text>
+
+    <rect x="313" y="410" width="254" height="68" rx="8" fill="#0f192d" stroke="#263b5e" stroke-width="1"/>
+    <text x="327" y="432" fill="#34d399" font-size="11.5" font-weight="700">2. FAIL-CLOSED GATES</text>
+    <text x="327" y="450" fill="#cbd5e1" font-size="11">Anti-traversal + quick_check</text>
+    <text x="327" y="466" fill="#94a3b8" font-size="11">Credential scan + opt HMAC</text>
+
+    <rect x="584" y="410" width="254" height="68" rx="8" fill="#0f192d" stroke="#263b5e" stroke-width="1"/>
+    <text x="598" y="432" fill="#c084fc" font-size="11.5" font-weight="700">3. REPUBLICA &amp; ENVELOPE</text>
+    <text x="598" y="450" fill="#cbd5e1" font-size="11">Fernet read-only showcases</text>
+    <text x="598" y="466" fill="#94a3b8" font-size="11">0600 sealed courier files</text>
+  </g>
+</svg>

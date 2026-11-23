@@ -4,8 +4,8 @@
 
 [![CI](https://github.com/ellmos-ai/sqlite-transit-sync/actions/workflows/ci.yml/badge.svg)](https://github.com/ellmos-ai/sqlite-transit-sync/actions/workflows/ci.yml)
 [![Version](https://img.shields.io/badge/version-0.4.0-blue.svg)](CHANGELOG.md)
-[![Tests](https://img.shields.io/badge/tests-164%20passed%20%7C%2043%20subtests%20%7C%20100%25%20green-brightgreen.svg)](#tests-und-qualitaetssicherung)
-[![Geprüft: 2026-10-31](https://img.shields.io/badge/gepr%C3%BCft-2026--10--31-blue.svg)](#tests-und-qualitaetssicherung)
+[![Tests](https://img.shields.io/badge/tests-182%20passed%20%7C%202%20skipped%20(POSIX)-brightgreen.svg)](#tests-und-qualitaetssicherung)
+[![Geprüft: 2026-11-23](https://img.shields.io/badge/gepr%C3%BCft-2026--10--31-blue.svg)](#tests-und-qualitaetssicherung)
 [![Python Version](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12%20%7C%203.13-blue.svg)](https://www.python.org/)
 [![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20Linux%20%7C%20macOS-informational.svg)](#)
 [![Datenpfad](https://img.shields.io/badge/Datenpfad-lokales%20SQLite%20%7C%20konfigurierter%20Transit-informational.svg)](#)
@@ -21,11 +21,12 @@
 [![Ecosystem: ellmos-ai](https://img.shields.io/badge/Ecosystem-ellmos--ai-blue.svg)](https://github.com/ellmos-ai)
 [![Umbrella: open-bricks](https://img.shields.io/badge/Umbrella-open--bricks-purple.svg)](https://github.com/open-bricks)
 [![llms.txt](https://img.shields.io/badge/llms.txt-available-informational.svg)](llms.txt)
+[![Agent Skill: SKILL.md](https://img.shields.io/badge/agent%20skill-SKILL.md-blue.svg)](SKILL.md)
 
 > [!NOTE]
-> **Kontext für LLMs und KI-Agenten**: Ein strukturierter maschinenlesbarer Verzeichnisbaum, ein Architekturüberblick und ein API-Leitfaden stehen unter [`llms.txt`](llms.txt) bereit.
+> **Kontext für LLMs und KI-Agenten**: Ein strukturierter maschinenlesbarer Verzeichnisbaum, ein Architekturüberblick und ein API-Leitfaden stehen unter [`llms.txt`](llms.txt) bereit, ergänzt um den Produkt-Skill [`SKILL.md`](SKILL.md) und den Verweis [`llm.txt`](llm.txt).
 
-**🇬🇧 [English Version](README.md)** | **🇩🇪 Deutsch** | **🇪🇸 [Spanische Version](README_es.md)** | **🇫🇷 [Französische Version](README_fr.md)** | **🇯🇵 [Japanische Version](README_ja.md)** | **🇨🇳 [Vereinfachtes Chinesisch](README_zh.md)** | **🇵🇹 [Portugiesische Version](README_pt.md)** | **🇷🇺 [Russische Version](README_ru.md)** | **🇸🇦 [Arabische Version](README_ar.md)** | **🇮🇳 [Hindi-Version](README_hi.md)** | **🇧🇩 [Bengalische Version](README_bn.md)** | **🤝 [Mitwirken](CONTRIBUTING.md)** | **🛡️ [Sicherheitsrichtlinie](SECURITY.md)** | **📝 [Changelog](CHANGELOG.md)** | **📋 [llms.txt](llms.txt)**
+**🇬🇧 [English Version](README.md)** | **🇩🇪 Deutsch** | **🇪🇸 [Spanische Version](README_es.md)** | **🇫🇷 [Französische Version](README_fr.md)** | **🇯🇵 [Japanische Version](README_ja.md)** | **🇨🇳 [Vereinfachtes Chinesisch](README_zh.md)** | **🇵🇹 [Portugiesische Version](README_pt.md)** | **🇷🇺 [Russische Version](README_ru.md)** | **🇸🇦 [Arabische Version](README_ar.md)** | **🇮🇳 [Hindi-Version](README_hi.md)** | **🇧🇩 [Bengalische Version](README_bn.md)** | **🤝 [Mitwirken](CONTRIBUTING.md)** | **📜 [Verhaltenskodex](CODE_OF_CONDUCT.md)** | **🛡️ [Sicherheitsrichtlinie](SECURITY.md)** | **📝 [Changelog](CHANGELOG.md)** | **🤖 [SKILL.md](SKILL.md)** | **📋 [llms.txt](llms.txt)**
 
 ## 🧭 Schnellnavigation
 
@@ -434,13 +435,29 @@ sqlite-transit-sync verify-projection \
 ## 9. Installation & Voraussetzungen
 
 ```bash
+# Kern-Installation (Python >= 3.10, null externe Laufzeitabhängigkeiten)
 python -m pip install -e .
+
+# Optional: verschlüsselten Republica-Modus & OS-Keyring-HMAC-Auflösung aktivieren
+python -m pip install -e ".[crypto,keyring]"
+```
+
+### Mit deinem LLM installieren
+
+Verweise deinen KI-Assistenten direkt auf [`SKILL.md`](SKILL.md) und [`llms.txt`](llms.txt) (Kompatibilitätszeiger: [`llm.txt`](llm.txt)):
+
+```text
+Lies SKILL.md und llms.txt in diesem Repository, installiere sqlite-transit-sync in einer isolierten Python-3.10+-Umgebung (null Kernabhängigkeiten), prüfe `sqlite-transit-sync --help` und richte push/pull so ein, dass Datenbank und Statusdatei strikt außerhalb des Transit-Verzeichnisses bleiben.
 ```
 
 ---
 
 <a id="kurzstart"></a><a id="arbeitsablauf"></a>
 ## 10. Kurzstart & Multi-Knoten-Arbeitsablauf
+
+<p align="center">
+  <img src="assets/terminal-workflow.svg" width="100%" alt="sqlite-transit-sync Terminal-Vorschau für Multi-Knoten-CLI und Snapshot-Prüfung">
+</p>
 
 Auf jedem Knoten eine Konfiguration anlegen. Jeder Knoten nutzt eine eigene
 Datenbank- und Statusdatei, aber denselben Transit-Ordner und denselben Namespace.
@@ -657,6 +674,29 @@ einem gemeinsamen Dateibereich ab. Alle anderen Rechner können hineinsehen;
 keiner kann Änderungen zurückschreiben. Daher der Name — eine Wiederveröffentlichung
 (Re-Publication) einer Datenbank, die ausschließlich von Inhabern des Schlüssels
 gelesen werden kann.
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant Source as Quellknoten (Lokal)
+    participant Key as Out-of-Band Fernet-Key
+    participant Transit as Geteilter Transit-Ordner
+    participant Dest as Zielknoten (republica_root)
+
+    Note over Source,Key: Einmaliges keygen lokal - Weitergabe out-of-band
+    Source->>Key: keygen --key-file ~/.keys/republica.key
+
+    Note over Source,Transit: Modus A - Verschlüsseltes Read-Only-Schaufenster
+    Source->>Source: Online-Backup + kuratierter SQL-Dump + gzip
+    Source->>Transit: republica-publish (Fernet AES-128-CBC + HMAC)
+    Dest->>Transit: republica-import (Fernet-HMAC prüfen, nie mergen)
+    Dest->>Dest: Wiederherstellen + FTS neu bauen in republica_root/
+
+    Note over Source,Dest: Modus B - Versiegelter Kurier-Umschlag (Einzeldatei)
+    Source->>Transit: envelope-send --file ./api-token.txt
+    Dest->>Transit: envelope-receive --into <local-target-dir>
+    Dest->>Dest: Datei mit Modus 0600 schreiben + aus Transit entfernen
+```
 
 Nutzen Sie Republica, wenn `push`/`pull` nicht passt: Sie möchten Daten eines anderen Knotens *lesen*, ohne sie in Ihre eigenen Zeilen zusammenzuführen, oder die Rechner teilen nur einen Ordner — ohne Server, offene Ports oder dedizierten Peer-Tunnel für Republica selbst, aber weiterhin mit einem gemeinsamen Fernet-Schlüssel — und dieser Ordner darf Ihre Inhalte nicht im Klartext sehen.
 
@@ -980,8 +1020,10 @@ Use entirely at your own risk. No maintenance commitments, no availability guara
 ### Lizenz & Namensnennung
 
 Veröffentlicht unter den Bedingungen der [MIT-Lizenz](LICENSE).<br>
-Copyright (c) 2026 Lukas Geiger. Siehe [LICENSE](LICENSE) und [NOTICE](NOTICE) für vollständige Details.<br>
+Copyright (c) 2026 Lukas Geiger. Siehe [LICENSE](LICENSE), [NOTICE](NOTICE) und [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) für vollständige Details.<br>
 Das projektgepflegte Inventar der Drittanbieter-Abhängigkeiten und Lizenzangaben sowie dessen Textfassung stehen in [THIRD_PARTY_LICENSES.md](THIRD_PARTY_LICENSES.md) und [THIRD_PARTY_LICENSES.txt](THIRD_PARTY_LICENSES.txt).
+
+> Idee & Abnahme: Geiger · Textassistenz: LLM-gestützt · Grafik: KI-gestützt
 
 ### Herkunft
 

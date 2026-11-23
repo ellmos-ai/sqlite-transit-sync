@@ -1,3 +1,4 @@
 include README*.md
-include SECURITY.md DECISIONS.md
+include SECURITY.md DECISIONS.md CODE_OF_CONDUCT.md SKILL.md llm.txt
 include LICENSE NOTICE CHANGELOG.md CONTRIBUTING.md THIRD_PARTY_LICENSES.md THIRD_PARTY_LICENSES.txt llms.txt
+recursive-include assets *.svg *.png

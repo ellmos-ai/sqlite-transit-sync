@@ -847,6 +847,92 @@ class TestMetadata(unittest.TestCase):
         self.assertIn("2026-10-31", changelog)
         self.assertIn("Pfad A Technische Hygiene", changelog)
 
+    def test_policy_p022_skill_and_llm_entrypoints(self):
+        """Policy P-022 files (SKILL.md, llm.txt, llms.txt) and README LLM install blocks must stay aligned."""
+        skill_file = ROOT / "SKILL.md"
+        llm_file = ROOT / "llm.txt"
+        manifest_file = ROOT / "MANIFEST.in"
+        self.assertTrue(skill_file.is_file(), "SKILL.md must exist for Policy P-022")
+        self.assertTrue(llm_file.is_file(), "llm.txt must exist as compatibility pointer")
+
+        skill_text = skill_file.read_text(encoding="utf-8")
+        for token in (
+            "sqlite-transit-sync",
+            "0.4.0",
+            "push",
+            "pull",
+            "verify-projection",
+            "cleanup",
+            "republica-publish",
+        ):
+            self.assertIn(token, skill_text, f"SKILL.md missing expected token '{token}'")
+
+        llm_text = llm_file.read_text(encoding="utf-8")
+        self.assertIn("llms.txt", llm_text)
+        self.assertIn("SKILL.md", llm_text)
+
+        manifest_text = manifest_file.read_text(encoding="utf-8")
+        for req in ("SKILL.md", "llm.txt", "CODE_OF_CONDUCT.md"):
+            self.assertIn(req, manifest_text, f"{req} missing from MANIFEST.in")
+
+        readme_en = (ROOT / "README.md").read_text(encoding="utf-8")
+        readme_de = (ROOT / "README_de.md").read_text(encoding="utf-8")
+        self.assertIn("### Install with your LLM", readme_en)
+        self.assertIn("### Mit deinem LLM installieren", readme_de)
+        for content in (readme_en, readme_de):
+            self.assertIn("SKILL.md", content)
+            self.assertIn("llm.txt", content)
+
+    def test_visual_terminal_workflow_and_republica_sequence_diagram(self):
+        """Terminal SVG preview and Republica/Envelope sequence diagram must exist in EN & DE READMEs."""
+        svg_file = ROOT / "assets" / "terminal-workflow.svg"
+        self.assertTrue(svg_file.is_file(), "assets/terminal-workflow.svg must exist")
+        svg_text = svg_file.read_text(encoding="utf-8")
+        self.assertIn("<svg", svg_text)
+        self.assertIn("</svg>", svg_text)
+
+        for fname in ("README.md", "README_de.md"):
+            content = (ROOT / fname).read_text(encoding="utf-8")
+            self.assertIn("assets/banner.png", content)
+            self.assertIn("assets/terminal-workflow.svg", content)
+            mermaid_blocks = re.findall(r"```mermaid\s*\n(.*?)\n```", content, re.DOTALL)
+            self.assertGreaterEqual(
+                len(mermaid_blocks),
+                3,
+                f"Expected >= 3 Mermaid diagrams in {fname}, got {len(mermaid_blocks)}",
+            )
+            self.assertTrue(
+                any("republica-publish" in block for block in mermaid_blocks),
+                f"Missing Republica/Envelope sequenceDiagram in {fname}",
+            )
+
+    def test_community_health_and_ki_disclosure_contract(self):
+        """Bilingual CODE_OF_CONDUCT.md, issue templates, and Geiger disclosure must exist."""
+        coc_file = ROOT / "CODE_OF_CONDUCT.md"
+        self.assertTrue(coc_file.is_file(), "CODE_OF_CONDUCT.md must exist")
+        coc_text = coc_file.read_text(encoding="utf-8")
+        self.assertIn("Contributor Covenant", coc_text)
+        self.assertIn("Verhaltenskodex (Deutsch)", coc_text)
+
+        template_dir = ROOT / ".github" / "ISSUE_TEMPLATE"
+        for name in ("bug_report.md", "feature_request.md", "config.yml"):
+            self.assertTrue((template_dir / name).is_file(), f"Missing issue template: {name}")
+
+        readme_en = (ROOT / "README.md").read_text(encoding="utf-8")
+        readme_de = (ROOT / "README_de.md").read_text(encoding="utf-8")
+        self.assertIn("Idea & approval: Geiger", readme_en)
+        self.assertIn("Idee & Abnahme: Geiger", readme_de)
+
+    def test_pfad_b_marketing_20261123_recency(self):
+        """CHANGELOG.md and llms.txt must record the 2026-11-23 Path B update without bumping version."""
+        changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
+        self.assertIn("2026-11-23", changelog)
+        self.assertIn("Pfad B Discoverability", changelog)
+
+        llms = (ROOT / "llms.txt").read_text(encoding="utf-8")
+        self.assertIn("- Last-checked: 2026-11-23", llms)
+        self.assertIn("SKILL.md", llms)
+
 
 if __name__ == "__main__":
     unittest.main()
