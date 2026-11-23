@@ -162,7 +162,4 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ## Security Inquiries & Contact
 
-For questions or security disclosures regarding third-party components, consult [SECURITY.md](SECURITY.md) or contact:
-- **Lead Security Coordinator:** `security@ellmos.ai`
-- **Technical Maintainer:** `support@lukasgeiger.com`
-- **Open-Bricks Security Team:** `security@open-bricks.org` / `lukas@open-bricks.org`
+For questions or security disclosures regarding third-party components, consult [SECURITY.md](SECURITY.md) and use [GitHub Private Vulnerability Reporting](https://github.com/ellmos-ai/sqlite-transit-sync/security/advisories/new). There is currently no monitored security mailbox.

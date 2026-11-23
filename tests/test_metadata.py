@@ -89,9 +89,19 @@ class TestMetadata(unittest.TestCase):
         self.assertIn("0.4.x", content)
         self.assertIn("48 hours", content)
         self.assertIn("48 Stunden", content)
-        self.assertIn("security@ellmos.ai", content)
-        self.assertIn("support@lukasgeiger.com", content)
-        self.assertIn("security@open-bricks.org", content)
+        self.assertIn("security/advisories/new", content)
+        self.assert_no_dead_security_contacts()
+
+    def assert_no_dead_security_contacts(self):
+        # ellmos.ai / open-bricks.org do not resolve, lukasgeiger.com has no MX
+        # (ellmos-ai/ellmos-homebase-mcp#21); reports go through GitHub private reporting.
+        dead = ("security@ellmos.ai", "security@open-bricks.org", "lukas@open-bricks.org", "support@lukasgeiger.com")
+        files = ["SECURITY.md", "CONTRIBUTING.md", "THIRD_PARTY_LICENSES.md", "THIRD_PARTY_LICENSES.txt", "llms.txt"]
+        files += sorted(p.name for p in ROOT.glob("README*.md"))
+        for rel in files:
+            text = (ROOT / rel).read_text(encoding="utf-8")
+            for address in dead:
+                self.assertNotIn(address, text, f"{rel} still advertises {address}")
 
     def test_projection_contract_docs_and_package_data_are_bilingual(self):
         """Projection docs, contract names, and package data must stay synchronized."""
@@ -650,8 +660,7 @@ class TestMetadata(unittest.TestCase):
         self.assertIn(r"C:\_Local_DEV\repos\sqlite-transit-sync", content)
         self.assertIn("T-20260920-167562623", content)
         self.assertIn("§ 521 BGB", content)
-        self.assertIn("security@ellmos.ai", content)
-        self.assertIn("security@open-bricks.org", content)
+        self.assertIn("security/advisories/new", content)
 
     def test_ci_lifecycle_workflows_and_labels_contract(self):
         """Lifecycle workflows (auto-assign, label-sync) and canonical labels.yml must exist and be hardened."""
