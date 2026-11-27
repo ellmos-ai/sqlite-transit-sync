@@ -3272,7 +3272,8 @@ class _FtsBudget:
                                 uri=True, timeout=min(self.limits.busy_milliseconds / 1000,
                                                       max(0.001, self.until-time.monotonic())))
             c.set_progress_handler(lambda: int(time.monotonic() >= self.until), 1000)
-            c.setlimit(sqlite3.SQLITE_LIMIT_LENGTH, self.limits.text_bytes)
+            if hasattr(c, "setlimit") and hasattr(sqlite3, "SQLITE_LIMIT_LENGTH"):
+                c.setlimit(sqlite3.SQLITE_LIMIT_LENGTH, self.limits.text_bytes)
             if writable:
                 page_size = c.execute("PRAGMA page_size").fetchone()[0]
                 pages = self.limits.output_bytes // page_size
