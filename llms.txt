@@ -36,6 +36,7 @@ It avoids live SQLite database locking over file sync by using:
 ## Key Features
 
 - **Zero External Dependencies (core)**: Standard library Python 3.10+ only for `push`/`pull`. The optional Republica mode adds `cryptography` via `pip install 'sqlite-transit-sync[crypto]'`.
+- **Typed Format-2 FTS5 Transit Contracts**: Explicit `FtsSnapshotContract`, `FtsMergeContract`, and `FtsReceiveLimits` declarations for derived SQLite FTS5 virtual tables across `push`/`pull` and closed rollback-journal staging without syncing raw shadow pages.
 - **Atomic & Safe Transit**: Never syncs live SQLite files directly. Uses isolated snapshot zones.
 - **Configurable Merge Policies**: Built-in `LastWriteWinsPolicy` and support for custom domain `MergePolicy` implementations (tombstones, CRDTs).
 - **Data Privacy & Exclusion**: Exclude sensitive tables from transit snapshots with post-delete `VACUUM`.

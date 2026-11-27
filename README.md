@@ -573,6 +573,20 @@ without that key. `sqlite-transit-sync init` instead writes
 `.<config-stem>-state.json` when `--state` is omitted (for `node.json`:
 `.node-state.json`).
 
+### Credential scan coverage boundary
+
+The active scanner binds `main.table_list`, `table_xinfo`, `index_xinfo` and
+`sqlite_schema` (including schema DDL, triggers, view definitions, ordinary
+table columns, generated values and implicit rowids). Expression indexes and
+opaque BLOB encodings fail closed. Untyped `TransitSync.push()` rejects all
+virtual and shadow tables (`[virtual-or-shadow]`). For untyped
+`RepublicaTransit` (`fts_contract=None`), verified external-content FTS5
+(`content=<ordinary_table>`) is admitted only after prototype shadow-layout
+verification, base-table non-redaction, FTS config scanning and FTS5
+`'integrity-check'` against stale or orphaned index tokens; internal,
+contentless and FTS3/4 tables still fail closed unless explicit `scan_snapshot_for_secrets=false`
+opt-out or typed format-2 FTS5 contracts are used.
+
 ### The credential scan, and how to turn it off
 
 `snapshot_exclude_tables` can only drop a table you already anticipated. The scan
@@ -1020,3 +1034,14 @@ Extracted in 2026 from BACH `system/hub/db_sync.py` (ProSync). The standalone
 module replaces BACH-specific paths, handlers, secrets and table assumptions
 with configuration and policy interfaces. It also merges per primary key and
 adds verified manifests.
+
+### Typed format-2 FTS5 contracts (optional)
+
+Applications requiring direct FTS5 snapshot synchronization, observed row-level
+merging or typed encrypted replicas can pass keyword-only `fts_contract=FtsSnapshotContract(...)`,
+optional `fts_limits=FtsReceiveLimits(...)` and `fts_merge_contract=FtsMergeContract(...)`
+to `TransitSync` / `RepublicaTransit` (with `HMACSnapshotAuthenticator`). Private
+staging revalidates paths, identities and key containment across preparation and
+publication, retires absent SQLite sidecars at verified `closed=True` boundaries,
+and preserves binary input bytes on Windows (`O_BINARY`). See [ARCHITECTURE.md](ARCHITECTURE.md)
+and [DECISIONS.md](DECISIONS.md) for full contract semantics.

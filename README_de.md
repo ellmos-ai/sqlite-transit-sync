@@ -566,6 +566,20 @@ config_sha256 = hashlib.sha256(payload).hexdigest()
 | `republica_root` | `~/.republica` | Zielordner importierter Schaufenster; gehört nicht in den Transit |
 | `allow_key_in_synced_folder` | `false` | Hebt die Prüfung auf, die Schlüssel in Sync-Ordnern abweist |
 
+### Abdeckungsgrenze des Credential-Scans
+
+Der aktive Scanner bindet `main.table_list`, `table_xinfo`, `index_xinfo` und
+`sqlite_schema` (einschließlich Schema-DDL, Triggern, View-Definitionen, aller
+gewöhnlichen Tabellenspalten, generated-Werten sowie impliziter Rowids).
+Expression-Indizes und opake BLOB-Kodierungen verweigern fail-closed. Das
+untypisierte `TransitSync.push()` lehnt sämtliche virtuellen und Shadow-Tabellen
+ab (`[virtual-or-shadow]`). Für untypisiertes `RepublicaTransit` (`fts_contract=None`)
+ist verifiziertes External-Content-FTS5 (`content=<gewöhnliche Tabelle>`) nach
+Prototyp-Layoutprüfung, Nicht-Redaktion der Basistabelle, FTS-Konfigurationsscan
+und FTS5-`'integrity-check'` gegen veraltete oder verwaiste Indextokens
+zulässig; internes, inhaltsloses und FTS3/4-FTS bleiben ohne expliziten
+`fts_contract` weiterhin verweigert.
+
 ### Der Credential-Scan und wie man ihn abschaltet
 
 `snapshot_exclude_tables` kann nur Tabellen leeren, die vorher bekannt waren.
@@ -989,3 +1003,14 @@ Das Modul wurde 2026 aus BACH `system/hub/db_sync.py` (ProSync) extrahiert. Die
 eigenständige Fassung ersetzt BACH-spezifische Pfade, Handler, Secrets und
 Tabellenannahmen durch Konfigurations- und Policy-Schnittstellen. Sie führt den
 Merge außerdem je Primärschlüssel aus und ergänzt geprüfte Manifeste.
+
+### Getypte Format-2-FTS5-Verträge (optional)
+
+Anwendungen mit direkter FTS5-Snapshotsynchronisation, beobachtetem Row-Merge
+oder getypten verschlüsselten Replikas können `fts_contract=FtsSnapshotContract(...)`,
+optional `fts_limits=FtsReceiveLimits(...)` sowie `fts_merge_contract=FtsMergeContract(...)`
+(mit `HMACSnapshotAuthenticator`) an `TransitSync` / `RepublicaTransit` übergeben.
+Die private Vorbereitung prüft Pfade, Identitäten und Schlüsselgrenzen durchgängig,
+bereinigt legitim geschlossene Sidecars an verifizierten `closed=True`-Grenzen und
+bewahrt Binärbytes unter Windows (`O_BINARY`). Siehe [ARCHITECTURE.md](ARCHITECTURE.md)
+und [DECISIONS.md](DECISIONS.md).
