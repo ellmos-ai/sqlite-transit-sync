@@ -75,21 +75,46 @@ import re
 import sqlite3
 import stat
 import tempfile
+import zlib
 from collections.abc import Iterator
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any
 
 from .core import (
+    FTS_SNAPSHOT_FORMAT,
     PROTOCOL_VERSION,
+    FtsCommittedPartialError,
+    FtsMergeContract,
+    FtsReceiveLimits,
+    FtsSnapshotContract,
     SyncConfig,
     SyncError,
     TransitSync,
     _assert_no_sqlite_sidecars,
     _assert_publication_target,
     _atomic_json_write,
+    _fts_call,
+    _fts_check_parents,
+    _fts_file_identity,
+    _fts_finish_received,
+    _fts_manifest,
+    _fts_owned_check,
+    _fts_parent_identity,
+    _fts_private_root,
+    _fts_publish_copy,
+    _fts_publish_prepared,
+    _fts_remove_owned,
+    _fts_validate_input,
+    _fts_write_owned,
+    _FtsBoundInput,
+    _FtsBudget,
+    _FtsOwnedLeaf,
+    _FtsPreparedArtifactOwner,
+    _is_reparse_or_symlink,
     _PublicationPaths,
     _publish_prepared_file,
+    _quote_identifier,
     _remove_manifest_artifacts,
     _remove_sqlite_artifacts,
     _safe_identifier,
@@ -119,11 +144,15 @@ _FTS_SHADOW_SUFFIXES = (
 
 _STATEMENT_TARGET = re.compile(
     r"""\s*(?:CREATE\s+TABLE|CREATE\s+VIRTUAL\s+TABLE|INSERT\s+INTO)\s+"""
-    r"""(?:IF\s+NOT\s+EXISTS\s+)?["'\[`]?([A-Za-z0-9_]+)""",
+    r"""(?:IF\s+NOT\s+EXISTS\s+)?"""
+    r"""(?:"((?:[^"]|"")+)"|`((?:[^`]|``)+)`|'((?:[^']|'')+)'|\[([^\]]+)\]|([A-Za-z_][A-Za-z0-9_]*))""",
     re.IGNORECASE,
 )
-_SQLITE_MASTER_INSERT = re.compile(r"\s*INSERT\s+INTO\s+sqlite_master", re.IGNORECASE)
-_FTS_CONTENT_OPTION = re.compile(r"content\s*=\s*'([^']*)'|content\s*=\s*([A-Za-z0-9_]+)", re.IGNORECASE)
+_SQLITE_MASTER_INSERT = re.compile(r"\s*INSERT\s+INTO\s+(?:sqlite_master|sqlite_schema)\b", re.IGNORECASE)
+_FTS_CONTENT_OPTION = re.compile(
+    r"""content\s*=\s*(?:'([^']*)'|"([^"]*)"|`([^`]*)`|\[([^\]]*)\]|([A-Za-z0-9_]+))""",
+    re.IGNORECASE,
+)
 
 # Folders whose whole purpose is to copy their contents elsewhere. A key in one of
 # them is a key already handed to the transport it is supposed to protect.
@@ -216,13 +245,34 @@ def _fts_tables(connection: sqlite3.Connection) -> dict[str, dict[str, Any]]:
     ).fetchall()
     for name, sql in rows:
         match = _FTS_CONTENT_OPTION.search(sql or "")
-        source = (match.group(1) or match.group(2) or "") if match else None
+        source = next((group for group in match.groups() if group is not None), "") if match else None
         tables[name] = {
             "sql": sql,
             "external": bool(source),
             "contentless": match is not None and source == "",
         }
     return tables
+
+
+def _statement_target(statement: str) -> str | None:
+    match = _STATEMENT_TARGET.match(statement)
+    if match is None:
+        return None
+    if match.group(1) is not None:
+        return match.group(1).replace('""', '"')
+    if match.group(2) is not None:
+        return match.group(2).replace("``", "`")
+    if match.group(3) is not None:
+        return match.group(3).replace("''", "'")
+    if match.group(4) is not None:
+        return match.group(4)
+    return match.group(5)
+
+
+def _sql_literal(value: str | int) -> str:
+    if type(value) is int:
+        return str(value)
+    return "'" + value.replace("'", "''") + "'"
 
 
 def _curated_dump(connection: sqlite3.Connection) -> Iterator[str]:
@@ -241,7 +291,24 @@ def _curated_dump(connection: sqlite3.Connection) -> Iterator[str]:
     would only cover table selection, not this rewrite.
     """
     fts = _fts_tables(connection)
-    shadows = {f"{table}{suffix}" for table in fts for suffix in _FTS_SHADOW_SUFFIXES}
+    shadows = {
+        row[1]
+        for row in connection.execute("PRAGMA main.table_list")
+        if row[0] == "main" and row[2] == "shadow"
+    }
+    if not shadows and fts:
+        shadows = {f"{table}{suffix}" for table in fts for suffix in _FTS_SHADOW_SUFFIXES}
+
+    fts_configs: dict[str, list[tuple[str, str | int]]] = {}
+    for name in fts:
+        cfg_table = f"{name}_config"
+        if cfg_table in shadows:
+            rows = connection.execute(
+                f"SELECT k, v FROM main.{_quote_identifier(cfg_table)} ORDER BY k"
+            ).fetchall()
+            extra = [(k, v) for k, v in rows if k != "version" and type(v) in (str, int)]
+            if extra:
+                fts_configs[name] = extra
 
     for statement in connection.iterdump():
         stripped = statement.strip()
@@ -251,8 +318,7 @@ def _curated_dump(connection: sqlite3.Connection) -> Iterator[str]:
             continue
         if stripped == "COMMIT;":
             continue  # re-emitted last, after the rebuilt indexes
-        match = _STATEMENT_TARGET.match(stripped)
-        target = match.group(1) if match else None
+        target = _statement_target(stripped)
         if target in shadows:
             continue
         if target in fts and fts[target]["external"]:
@@ -260,10 +326,15 @@ def _curated_dump(connection: sqlite3.Connection) -> Iterator[str]:
         yield statement
 
     for name, info in fts.items():
-        yield f"{info['sql']};"
+        ddl = (info["sql"] or "").rstrip().rstrip(";")
+        yield f"{ddl};"
+        quoted = _quote_identifier(name)
+        for key, value in fts_configs.get(name, ()):
+            yield f"INSERT INTO {quoted}({quoted}, rank) VALUES({_sql_literal(key)}, {_sql_literal(value)});"
     for name, info in fts.items():
         if info["external"]:
-            yield f'INSERT INTO "{name}"("{name}") VALUES(\'rebuild\');'
+            quoted = _quote_identifier(name)
+            yield f"INSERT INTO {quoted}({quoted}) VALUES('rebuild');"
     yield "COMMIT;"
 
 
@@ -321,9 +392,20 @@ class RepublicaTransit(TransitSync):
     snapshot, plus encryption.
     """
 
-    def __init__(self, config: SyncConfig, policy: Any | None = None) -> None:
-        super().__init__(config, policy)
-        self._assert_key_outside_transport()
+    def __init__(self, config: SyncConfig, policy: Any | None = None, *,
+                 authenticator: Any | None = None, fts_contract: FtsSnapshotContract | None = None,
+                 fts_limits: FtsReceiveLimits | None = None,
+                 fts_merge_contract: FtsMergeContract | None = None) -> None:
+        if fts_contract is None and authenticator is None and fts_limits is None and fts_merge_contract is None:
+            super().__init__(config, policy)
+            self._assert_key_outside_transport()
+            return
+        super().__init__(config, policy, authenticator, fts_contract=fts_contract,
+                         fts_limits=fts_limits, fts_merge_contract=fts_merge_contract)
+        if fts_contract is not None:
+            _fts_call("replica-key-contract", self._assert_key_outside_transport)
+        else:
+            self._assert_key_outside_transport()
 
     # -- paths -----------------------------------------------------------
 
@@ -369,12 +451,25 @@ class RepublicaTransit(TransitSync):
 
     # -- publish ---------------------------------------------------------
 
+    def _scan_snapshot_for_secrets(
+        self,
+        path: Path,
+        *,
+        allow_external_fts5: bool = True,
+    ) -> list[str]:
+        return super()._scan_snapshot_for_secrets(
+            path,
+            allow_external_fts5=allow_external_fts5 and self._fts_contract is None,
+        )
+
     def publish(self) -> RepublicaSnapshot:
         """Publish a consistent, redacted, scanned, encrypted snapshot."""
+        self._assert_key_outside_transport()
+        if self._fts_contract is not None:
+            return _fts_republica_publish(self)
         paths = _PublicationPaths.capture(self.config)
         if not paths.database.is_file():
             raise SyncError(f"Live database not found: {paths.database}")
-        self._assert_key_outside_transport()
         cipher = _load_fernet(self.config.key_file)
         created_at = _utc_token()
         target_dir = paths.transit / paths.node_id
@@ -485,6 +580,8 @@ class RepublicaTransit(TransitSync):
 
     def available(self) -> list[dict[str, Any]]:
         """List foreign replica manifests in the transit, newest per node last."""
+        if self._fts_contract is not None:
+            return _fts_call("replica-inventory", lambda: _fts_republica_available(self))
         found: list[dict[str, Any]] = []
         if not self.config.transit.is_dir():
             return found
@@ -500,6 +597,8 @@ class RepublicaTransit(TransitSync):
         return sorted(found, key=lambda item: (item["node_id"], item["created_at"]))
 
     def _read_republica_manifest(self, manifest_path: Path) -> dict[str, Any]:
+        if self._fts_contract is not None:
+            return _fts_call("replica-manifest", lambda: _fts_republica_manifest(self, manifest_path))
         try:
             manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
         except (OSError, ValueError) as error:
@@ -536,6 +635,8 @@ class RepublicaTransit(TransitSync):
         Never merges: each source node gets its own database file under
         ``republica_root``. The local database is not opened at all.
         """
+        if self._fts_contract is not None:
+            return _fts_republica_import(self, node_id)
         cipher = _load_fernet(self.config.key_file)
         newest: dict[str, dict[str, Any]] = {}
         for manifest in self.available():
@@ -551,6 +652,8 @@ class RepublicaTransit(TransitSync):
         return results
 
     def _import_one(self, cipher: Any, manifest: dict[str, Any], source_node: str) -> RepublicaImport:
+        if self._fts_contract is not None:
+            return _fts_republica_import_one(self, cipher, manifest, source_node)
         snapshot_path = Path(manifest["_path"])
         if not snapshot_path.is_file():
             raise SyncError(f"Replica snapshot missing: {snapshot_path}")
@@ -936,3 +1039,356 @@ def _unlock_file(path: Path) -> None:
         path.chmod(stat.S_IWRITE | stat.S_IREAD)
     except OSError:
         pass
+
+
+# Format2 is an explicit encrypted binary alternative. Legacy/envelopes remain.
+def _fts_republica_manifest(sync: RepublicaTransit, path: Path) -> dict[str, Any]:
+    value, digest = _fts_manifest(sync, path, replica=True)
+    if (value.get("republica_protocol") != 2 or type(value.get("republica_protocol")) is not int
+            or value.get("mode") != "replica" or value.get("payload") != "sqlite-logical-fts5-v1"
+            or value.get("encryption") != "fernet" or value.get("compression") != "gzip"):
+        raise SyncError("FTS replica format mismatch")
+    for size_key, maximum in (("payload_size", sync._fts_limits.compressed_bytes),
+                              ("clean_size", sync._fts_limits.snapshot_bytes)):
+        if type(value.get(size_key)) is not int or not 0 < value[size_key] <= maximum:
+            raise SyncError("FTS replica signed size budget")
+    for key in ("payload_sha256", "clean_sha256"):
+        if type(value.get(key)) is not str or re.fullmatch(r"[0-9a-f]{64}", value[key]) is None:
+            raise SyncError("FTS replica digest type")
+    maximum_cipher = min(sync._fts_limits.cipher_bytes,
+                         4*((57+16*(sync._fts_limits.compressed_bytes//16+1)+2)//3))
+    if value["size"] > maximum_cipher:
+        raise SyncError("FTS replica cipher allocation budget")
+    return {**value, "_path": str(path.parent/value["snapshot"]),
+            "_manifest_path": str(path), "_manifest_sha256": digest,
+            "payload_checked": False}
+
+
+def _fts_republica_available(sync: RepublicaTransit) -> list[dict[str, Any]]:
+    if not sync.config.transit.is_dir():
+        return []
+    found = []
+    count = 0
+    for path in sync.config.transit.glob(f"*/{sync.config.namespace}__*__*.republica.json"):
+        count += 1
+        if count>sync._fts_limits.relations:
+            raise SyncError("FTS replica manifest count budget")
+        value = _fts_call("replica-manifest", lambda: _fts_republica_manifest(sync, path))
+        if value["node_id"] != sync.config.node_id:
+            found.append(value)
+    return sorted(found, key=lambda item:(item["node_id"],item["created_at"]))
+
+
+def _fts_republica_publish(sync: RepublicaTransit) -> RepublicaSnapshot:
+    phase = ["replica-contract"]
+    def publish() -> RepublicaSnapshot:
+        owner = None
+        completed = interrupted = False
+        try:
+            if not sync.config.transit.is_dir():
+                raise SyncError("FTS replica transport root must preexist")
+            sync._assert_key_outside_transport()
+            cipher = _load_fernet(sync.config.key_file)
+            owner = _FtsPreparedArtifactOwner(sync, _FtsBudget(sync._fts_limits))
+            phase[0] = "replica-backup-reconstruction"
+            effect = owner.prepare_live()
+            clean_digest, clean_size = _sha256(owner.output), owner.output.stat().st_size
+            compressed = owner.new("clean.sqlite.gz")
+            bound = _FtsBoundInput(owner.output, owner.budget.limits.output_bytes)
+            try:
+                compressor = zlib.compressobj(level=6, wbits=16+zlib.MAX_WBITS)
+                def chunks() -> Any:
+                    for block in bound.chunks(owner.budget):
+                        result = compressor.compress(block)
+                        if result:
+                            yield result
+                    yield compressor.flush()
+                payload_size, payload_digest = _fts_write_owned(owner, compressed, chunks(), maximum=owner.budget.limits.compressed_bytes)
+                bound.check()
+            finally:
+                bound.close()
+            bound = _FtsBoundInput(compressed, owner.budget.limits.compressed_bytes)
+            try:
+                payload = bound.read(owner.budget)
+                if hashlib.sha256(payload).hexdigest() != payload_digest:
+                    raise SyncError("FTS replica compressed bytes drift")
+                token = cipher.encrypt(payload)  # Allocation bounded by local compressed limit.
+                owner.budget.check()
+                bound.check()
+            finally:
+                bound.close()
+            encrypted = owner.new("clean.republica")
+            size, digest = _fts_write_owned(owner, encrypted, (token,), maximum=owner.budget.limits.cipher_bytes)
+            target_dir = sync._own_transit()
+            parents = _fts_parent_identity(target_dir)
+            target_dir.mkdir(mode=0o700, exist_ok=True)
+            _fts_check_parents(parents)
+            if _is_reparse_or_symlink(target_dir) or not target_dir.is_dir():
+                raise SyncError("FTS replica target parent alias")
+            created = _utc_token()
+            final = target_dir/f"{sync.config.namespace}__{sync.config.node_id}__{created}.republica"
+            manifest = {"protocol":2,"republica_protocol":2,"mode":"replica",
+                "format":FTS_SNAPSHOT_FORMAT,"namespace":sync.config.namespace,
+                "node_id":sync.config.node_id,"created_at":created,"snapshot":final.name,
+                "sha256":digest,"size":size,"payload_sha256":payload_digest,
+                "payload_size":payload_size,"clean_sha256":clean_digest,"clean_size":clean_size,
+                "encryption":"fernet","compression":"gzip","payload":FTS_SNAPSHOT_FORMAT,**effect}
+            manifest_path, digest, size = _fts_publish_prepared(sync, owner, encrypted, final, manifest, phase)
+            completed = True
+            return RepublicaSnapshot(final,manifest_path,sync.config.node_id,sync.config.namespace,
+                                     created,digest,size,payload_digest,payload_size)
+        except BaseException as error:
+            interrupted = not isinstance(error, Exception)
+            raise
+        finally:
+            if owner is not None and not completed:
+                owner.abort(interrupted=interrupted)
+    return _fts_call("replica-publication", publish)
+
+
+def _fts_republica_receive(sync: RepublicaTransit, cipher: Any,
+                           metadata: dict[str, Any]) -> tuple[_FtsPreparedArtifactOwner, Any]:
+    path = Path(metadata["_manifest_path"])
+    manifest = _fts_republica_manifest(sync, path)
+    if manifest != metadata:
+        raise SyncError("FTS selected replica metadata drift")
+    budget = _FtsBudget(sync._fts_limits)
+    owner = None
+    bound = _FtsBoundInput(Path(manifest["_path"]), budget.limits.cipher_bytes)
+    interrupted = False
+    try:
+        token = bound.read(budget)
+        if len(token) != manifest["size"] or hashlib.sha256(token).hexdigest() != manifest["sha256"]:
+            raise SyncError("FTS replica ciphertext commitment mismatch")
+        payload = cipher.decrypt(token)
+        budget.check()
+        if len(payload) != manifest["payload_size"] or len(payload) > budget.limits.compressed_bytes or hashlib.sha256(payload).hexdigest() != manifest["payload_sha256"]:
+            raise SyncError("FTS replica compressed commitment mismatch")
+        owner = _FtsPreparedArtifactOwner(sync, budget)
+        decompressor = zlib.decompressobj(16+zlib.MAX_WBITS)
+        def chunks() -> Any:
+            emitted = 0
+            for offset in range(0,len(payload),65536):
+                budget.check()
+                if decompressor.eof:
+                    raise SyncError("FTS replica extra gzip member")
+                block = decompressor.decompress(payload[offset:offset+65536],budget.limits.snapshot_bytes+1-emitted)
+                emitted += len(block)
+                if emitted > budget.limits.snapshot_bytes or decompressor.unconsumed_tail or decompressor.unused_data:
+                    raise SyncError("FTS replica expansion budget/trailing data")
+                yield block
+            tail = decompressor.flush(budget.limits.snapshot_bytes+1-emitted)
+            emitted += len(tail)
+            if emitted > budget.limits.snapshot_bytes or not decompressor.eof or decompressor.unused_data or decompressor.unconsumed_tail:
+                raise SyncError("FTS replica incomplete/extra gzip")
+            yield tail
+        _fts_write_owned(owner, owner.source, chunks(), maximum=budget.limits.snapshot_bytes,
+                         expected_hash=manifest["clean_sha256"],expected_size=manifest["clean_size"])
+        bound.check()
+        report = _fts_finish_received(owner, manifest)
+        if _fts_republica_manifest(sync,path) != manifest:
+            raise SyncError("FTS replica manifest drift")
+        bound.check()
+        return owner, report
+    except BaseException as error:
+        interrupted = not isinstance(error, Exception)
+        if owner is not None:
+            owner.abort(interrupted=interrupted)
+        raise
+    finally:
+        bound.close()
+
+
+def _fts_relocate_leaf(owner: _FtsPreparedArtifactOwner, leaf: Any, target: Path,
+                       parents: tuple[tuple[Path, int, int], ...]) -> Any:
+    """Retire a transferred inode before any fallible post-replace FS check.
+
+    Destination parents were bound before replace. The returned installed or
+    restored leaf is phase-local and never generic temporary-abort authority.
+    Existing inode checks remain responsible for the following verification.
+    """
+    owner.owned.remove(leaf)
+    return _FtsOwnedLeaf(target, parents, leaf.device, leaf.inode)
+
+
+def _fts_republica_import_one(sync: RepublicaTransit, cipher: Any,
+                              metadata: dict[str, Any], source_node: str) -> RepublicaImport:
+    committed = [False]
+    failed, result = False, None
+    try:
+        result = _fts_republica_import_owned(sync,cipher,metadata,source_node,committed)
+    except Exception:
+        failed = True
+    if failed:
+        if committed[0]:
+            raise FtsCommittedPartialError("FTS operation incomplete [replica-committed-partial]") from None
+        raise SyncError("FTS operation refused [replica-import]") from None
+    return result
+
+
+def _fts_republica_import_owned(sync: RepublicaTransit, cipher: Any,
+                               metadata: dict[str, Any], source_node: str,
+                               committed: list[bool]) -> RepublicaImport:
+    if metadata["node_id"] != source_node or _safe_identifier(source_node,"node") != source_node:
+        raise SyncError("FTS replica source identity mismatch")
+    _fts_private_root(sync.republica_root,sync.config.transit)
+    target = sync._republica_path(source_node)
+    parents = _fts_parent_identity(target.parent)
+    target.parent.mkdir(mode=0o700,exist_ok=True)
+    _fts_check_parents(parents)
+    if _is_reparse_or_symlink(target.parent):
+        raise SyncError("FTS replica destination alias")
+    owner, report = _fts_republica_receive(sync,cipher,metadata)
+    previous = backup = stage = installed = old_leaf = None
+    original_mode = old_identity = old_hash = None
+    completed = interrupted = preserve_recovery = mode_attempted = False
+    # phase: received
+    try:
+        # The owner's lifetime already includes this first fallible binding.
+        target_parents = _fts_parent_identity(target)
+        digest = _sha256(owner.output)
+        expected_relations = {(kind,name):(count,sha) for kind,name,count,sha in report.relations}
+        if target.exists() or _is_reparse_or_symlink(target):
+            previous = _FtsBoundInput(target,owner.budget.limits.snapshot_bytes)
+            old_identity = previous.identity
+            original_mode = target.lstat().st_mode
+            old_private = owner.new("previous-replica.sqlite")
+            old_leaf = next(leaf for leaf in owner.owned if leaf.path == old_private)
+            old_size,old_hash = _fts_write_owned(owner,old_private,previous.chunks(owner.budget),maximum=owner.budget.limits.snapshot_bytes)
+            previous.check()
+            backup = _fts_publish_copy(old_private,target.with_name("."+target.name+owner.work.name+".rollback"),old_hash,owner.owned)
+        stage = _fts_publish_copy(owner.output,target.with_name("."+target.name+owner.work.name+".stage"),digest,owner.owned)
+        _fts_owned_check(stage,owner.owned)
+        if _sha256(stage.path) != digest:
+            raise SyncError("FTS replica stage bytes drift")
+        if previous is not None:
+            previous.check()
+            previous.close()
+            previous = None  # Windows replace cannot retain a denied-delete FD.
+            _fts_owned_check(backup,owner.owned)
+            if _fts_file_identity(target) != old_identity or _sha256(target) != old_hash:
+                raise SyncError("FTS replica previous bytes drift")
+            mode_attempted = True
+            os.chmod(target,0o600)
+        elif target.exists() or _is_reparse_or_symlink(target):
+            raise SyncError("FTS replica unexpected target")
+        _fts_owned_check(stage,owner.owned)
+        _fts_check_parents(target_parents)
+        next_installed = _FtsOwnedLeaf(target,target_parents,stage.device,stage.inode)
+        os.replace(stage.path,target)
+        # Record the real syscall effect and protect its inode BEFORE relocation,
+        # lstat/hash/chmod/reopen or any other fallible post-install operation.
+        committed[0] = True
+        # phase: installed-unverified
+        installed = next_installed
+        _fts_relocate_leaf(owner,stage,target,target_parents)
+        stage = None
+        _fts_owned_check(installed,[installed])
+        if _sha256(target) != digest:
+            raise SyncError("FTS installed replica bytes mismatch")
+        proof = _fts_validate_input(owner,target,index=True)
+        if proof['relations'] != expected_relations or _sha256(target) != digest:
+            raise SyncError("FTS installed replica logical/index mismatch")
+        _fts_owned_check(installed,[installed])
+        os.chmod(target,stat.S_IRUSR|stat.S_IRGRP|stat.S_IROTH)
+        if target.stat().st_mode & 0o222:
+            raise SyncError("FTS replica readonly failed")
+        _fts_file_identity(target)
+        owner.cleanup()
+        if backup is not None:
+            _fts_remove_owned(backup,owner.owned)
+            backup = None
+        _fts_owned_check(installed,[installed])
+        if _sha256(target) != digest:
+            raise SyncError("FTS final replica bytes drift")
+        # phase: installation-proved
+        completed=True
+        return RepublicaImport(source_node,sync.config.namespace,metadata['created_at'],str(target),
+                               len([r for r in report.relations if r[0]=='ordinary']),
+                               sum(r[2] for r in report.relations if r[0]=='ordinary'),
+                               list(report.rebuilt_indexes))
+    except BaseException as error:
+        interrupted = not isinstance(error,Exception)
+        try:
+            if committed[0]:
+                # Installed targets are not in owner.owned. They may be removed
+                # only by this proved rollback, never by the generic abort.
+                _fts_owned_check(installed,[installed])
+                os.chmod(target,0o600)
+                if backup is not None:
+                    _fts_owned_check(backup,owner.owned)
+                    if _sha256(backup.path) != old_hash:
+                        raise SyncError("FTS replica rollback bytes drift")
+                    restored = _FtsOwnedLeaf(target,target_parents,backup.device,backup.inode)
+                    os.replace(backup.path,target)
+                    # Immediately detach the original image from temp deletion,
+                    # before any fallible relocation/hash/chmod/parent proof.
+                    # phase: restored-unverified
+                    installed = None
+                    _fts_relocate_leaf(owner,backup,target,target_parents)
+                    backup = None
+                    _fts_owned_check(restored,[restored])
+                    if _sha256(target) != old_hash:
+                        raise SyncError("FTS replica rollback failed")
+                    os.chmod(target,original_mode)
+                    _fts_owned_check(restored,[restored])
+                    _fts_file_identity(target)
+                    if (_sha256(target) != old_hash
+                            or stat.S_IMODE(target.lstat().st_mode) != stat.S_IMODE(original_mode)):
+                        raise SyncError("FTS replica rollback mode/bytes failed")
+                elif old_identity is None:
+                    _fts_remove_owned(installed,[installed])
+                    installed = None
+                    _fts_check_parents(target_parents)
+                    if target.exists() or _is_reparse_or_symlink(target):
+                        raise SyncError("FTS replica rollback absence unproved")
+                    _assert_no_sqlite_sidecars(target)
+                else:
+                    raise SyncError("FTS replica prior recovery image retired")
+                # phase: rollback-proved
+                committed[0]=False
+            elif mode_attempted:
+                # Only restore a still-bound original, not an unknown arrival.
+                if _fts_file_identity(target) != old_identity or _sha256(target) != old_hash:
+                    raise SyncError("FTS replica preinstall original changed")
+                os.chmod(target,original_mode)
+                if stat.S_IMODE(target.lstat().st_mode) != stat.S_IMODE(original_mode):
+                    raise SyncError("FTS replica original mode unproved")
+                _fts_check_parents(target_parents)
+        except BaseException as recovery_error:
+            interrupted = interrupted or not isinstance(recovery_error,Exception)
+            # Do not delete the original or its remaining recovery images when
+            # rollback/metadata restoration cannot be fully established.
+            committed[0]=True
+            preserve_recovery=True
+            raise
+        raise
+    finally:
+        try:
+            if previous is not None:
+                previous.close()
+        finally:
+            if not completed:
+                if committed[0] or preserve_recovery:
+                    # Retirement only: existing cleanup refuses unknown retained
+                    # children. It never gains authority over the external target.
+                    for leaf in (backup,old_leaf):
+                        if leaf is not None and leaf in owner.owned:
+                            owner.owned.remove(leaf)
+                owner.abort(interrupted=interrupted)
+
+
+def _fts_republica_import(sync: RepublicaTransit, node_id: str | None) -> list[RepublicaImport]:
+    def materialize() -> list[RepublicaImport]:
+        if node_id is not None and (type(node_id) is not str or _safe_identifier(node_id,"node")!=node_id):
+            raise SyncError("FTS replica selected identity invalid")
+        cipher = _load_fernet(sync.config.key_file)
+        newest = {}
+        for manifest in sync.available():
+            if node_id is not None and manifest["node_id"] != node_id:
+                continue
+            current = newest.get(manifest["node_id"])
+            if current is None or manifest["created_at"]>current["created_at"]:
+                newest[manifest["node_id"]]=manifest
+        return [sync._import_one(cipher,manifest,source) for source,manifest in sorted(newest.items())]
+    return _fts_call("replica-import", materialize)

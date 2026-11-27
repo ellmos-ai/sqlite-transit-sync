@@ -52,6 +52,37 @@ Anker kostet also keine Erkennung, sondern nur die Fehlalarme. Belegt durch Test
 Richtungen (`test_vendor_prefixes_do_not_match_inside_ordinary_words` und
 `…_still_match_a_real_key_in_context`).
 
+### C1: Gebundene Schema-/Wertabdeckung und ausdrückliche Verweigerung
+
+Implizite Rowids gewöhnlicher Tabellen und `sqlite_schema`-Rowids werden durch
+denselben Wertpfad geprüft. `table_list`-wr trennt `WITHOUT ROWID`; echtes
+`INTEGER PRIMARY KEY` mit genau einer normalen PK-Spalte und ohne PK-Index belegt
+den bereits gescannten Alias. `INT` und die indexierte inline-`DESC`-Form sind
+keine Aliasannahme. Case-insensitive Verdeckung von `rowid`/`_rowid_`/`oid` wird
+berücksichtigt; fehlt ein belegter Alias und sind alle Spezialnamen verdeckt,
+wird ausdrücklich verweigert.
+
+Der Scanner bindet `table_list` und `table_xinfo` an das vollständige `main.sqlite_schema`.
+Schemafelder und DDL (Defaults, Trigger und Views) werden mitgeprüft; beliebige Views
+werden nicht ausgeführt. Deklarierte numerische Typen sind keine Ausnahme: Jede
+normale Spalte einschließlich generated-Werten wird nach dem tatsächlichen
+SQLite-Werttyp geprüft. SQL-Vorfilterhinweise werden nicht als Erkennungsgate benutzt.
+TEXT wird ohne verlustbehaftete Ersetzung dekodiert. Normale Indizes werden mit
+`index_xinfo` an gescannte Tabellenspalten gebunden; ein vollständiger
+`integrity_check` bestätigt zusätzlich die Indexkonsistenz. Expression-Indizes werden
+verweigert.
+
+Nicht abgedeckte BLOB-Kodierungen und virtuelle/Shadow-Strukturen führen bei
+untypisiertem `TransitSync.push()` zu einem strukturierten `SyncError` (`[virtual-or-shadow]`).
+Für untypisiertes `RepublicaTransit` (`fts_contract=None`) gilt ein strikt
+abgesicherter Kompatibilitätspfad ausschließlich für nachgewiesenes
+External-Content-FTS5 (`content=<gewöhnliche Tabelle>`): ein isolierter
+Engine-Prototyp beweist die vollständige Virtual-/Shadow-Zuordnung,
+`'integrity-check'` weist veraltete oder verwaiste Tokens ab, redigierte
+Inhaltstabellen, inhaltsloses/internes FTS sowie FTS3/4 bleiben verweigert, und
+`_curated_dump` überträgt weder Shadow-Tabellen noch Roh-Indexzeilen, sondern
+baut auf dem Ziel per `'rebuild'` neu auf.
+
 ## ADR-004: Integrität ist nicht Authentizität
 
 SHA-256 und Manifest erkennen Übertragungsfehler. Ein feindlicher Transport benötigt
@@ -125,6 +156,13 @@ Index-Interna.
 **Grenze:** Ein Index ohne eigenen Inhalt (`content=''`) lässt sich nicht rekonstruieren, weil
 es nichts gibt, woraus `rebuild` lesen könnte. Solche Tabellen werden im Manifest unter
 `contentless_fts` gemeldet, statt stillschweigend leer anzukommen.
+
+**Aktive Scannergrenze:** Die Manifestmeldung von `contentless_fts` ist keine sichere
+Credential-Abnahme. Bei aktivem C1-Scan werden inhaltsloses FTS (`content=''`),
+internes FTS und FTS3/4 ohne typisierten Vertrag vor dem Payloadbau verweigert;
+nur verifiziertes External-Content-FTS5 ist für den kuratierten SQL-Dump-Pfad
+von `RepublicaTransit` zugelassen. Der frühere Dump-/Rebuildvertrag bleibt für
+explizit ausgenommenen Betrieb (`scan_snapshot_for_secrets=False`) bestehen.
 
 ## ADR-009: Sealed Envelope — Zugangsdaten als Datei, niemals in einer Datenbank
 
@@ -301,3 +339,21 @@ Keine neue Konfigurationsoption, Version oder Merge-Semantik. Nicht zugesagt:
 Isolation von Prozessen desselben OS-Kontos, zusätzlichen externen Syncwurzeln,
 Absturzresten, Windows-ACLs oder physischer Datenwiederherstellung. Bestehende
 Installationen und historische Artefakte werden nicht automatisch migriert.
+
+## ADR-FTS-02: Typed format-2 FTS5 receiver, Republica and observed merge
+
+Typed format-2 APIs (`FtsSnapshotContract`, `FtsMergeContract`,
+`FtsReceiveLimits`) reconstruct FTS5 snapshots in private local staging from
+validated ordinary tables and explicit FTS5 descriptors, verify complete
+schema/SQLite/layout/config/FK bindings, scan reconstructed logical content and
+schema DDL, and observe reference-policy row DML inside an owned transaction.
+
+`FtsCommittedPartialError` (`committed=True`) preserves committed database
+results when post-commit reopen or `last_pulled` checkpoint durability fails,
+avoiding silent rollback claims or false acknowledgements. Bound SQLite
+sidecars retired at the verified `closed=True` boundary are cleared from the
+live identity map while preserving main-file, parent, link and replacement
+checks. Retained binary input descriptors pass `getattr(os, "O_BINARY", 0)` so
+CRLF and Control-Z bytes stay intact on Windows. Combined with `origin/main`
+private-staging guards, `_FtsPreparedArtifactOwner` revalidates publication
+paths, identity and key containment across preparation, cleanup and link steps.

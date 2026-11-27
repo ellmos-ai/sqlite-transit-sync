@@ -175,3 +175,39 @@ exists; a future adapter can select one verified pending snapshot through `pull_
 without copying merge/state logic, and can replace duplicated generic mechanics only after
 every scenario's compatibility and migration tests pass. No BACH runtime or private
 implementation is imported here.
+
+
+## Explicit format-2 FTS5 receiver, Republica and direct merge (C-FTS-B)
+
+This revision integrates the typed format-2 FTS5 APIs (`FtsSnapshotContract`,
+`Fts5Descriptor`, `FtsSQLiteProfile`, `FtsReceiveLimits`, `FtsMergeContract`,
+`FtsVerificationReport`, `FtsMergeReport`, `FtsCommittedPartialError`) and
+re-validates configuration/key containment before and during private staging and
+publication. The original three positional `TransitSync` arguments, protocol-1
+reader, reference conflict policies, legacy Republica SQL dump and envelope APIs
+remain available.
+
+The local `FtsSnapshotContract` owns the complete schema, SQLite implementation,
+FTS5 descriptors/configuration, redactions and expected FK tuples. A private root
+must pre-exist outside Transit. Typed metadata discovery and dry-run do not
+create directories, open databases or manufacture payload proofs; `status()`
+reports `metadata-only` and `payload_checked=false`. A protocol-1 snapshot is
+never silently merged into a selected format-2 destination.
+
+One prepared-artifact owner composes the backup API, logical constructor,
+exact created-inode registry, sanitized private staging (with revalidated path,
+identity and key containment) and HMAC publisher. Both binary `push`/`pull` and
+gzip/Fernet `RepublicaTransit` reuse this owner and receiver. Bound SQLite
+sidecars that legitimately disappear at the verified `closed=True` boundary are
+retired from the live identity map without relaxing main-file, parent, link or
+replacement gates, and retained input FDs use `O_BINARY` on Windows.
+
+For untyped `RepublicaTransit` (`fts_contract=None`), `publish()` retains a
+security-verified compatibility path exclusively for external-content FTS5
+(`content=<ordinary_table>`): the scanner proves virtual/shadow table ownership
+against an isolated SQLite prototype, verifies `integrity-check` against stale
+or orphaned index tokens, forbids redacted FTS content tables, internal/contentless
+FTS or FTS3/4 without `fts_contract`, scans schema DDL, config entries and base
+table rows/rowids, and emits only curated DDL plus `'rebuild'` without shadow
+pages. Untyped `TransitSync.push()` continues to fail closed on any virtual or
+shadow table (`[virtual-or-shadow]`).
