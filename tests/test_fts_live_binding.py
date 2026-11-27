@@ -12,7 +12,7 @@ import sqlite_transit_sync.core as c
 class FtsLiveBindingTests(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
-        self.root = Path(self.tmp.name)
+        self.root = Path(self.tmp.name).resolve()
         self.path = self.root / "database.sqlite"
         db = sqlite3.connect(self.path)
         db.execute("CREATE TABLE value(id INTEGER PRIMARY KEY,value TEXT)")

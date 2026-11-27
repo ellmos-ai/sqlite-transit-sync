@@ -3,6 +3,7 @@
 import hashlib
 import inspect
 import json
+import os
 import re
 import shutil
 import sqlite3
@@ -19,8 +20,12 @@ def digest(path):
 
 
 def fixture(root):
+    root = Path(root).resolve()
     for name in ("transit", "source-private", "target-private", "source-state", "target-state", "replicas"):
-        (root / name).mkdir()
+        directory = root / name
+        directory.mkdir(mode=0o700)
+        if os.name != "nt":
+            directory.chmod(0o700)
     schema = (
         "CREATE TABLE entries(id INTEGER PRIMARY KEY,body TEXT NOT NULL,updated_at TEXT NOT NULL);"
         'CREATE TABLE "fts:ordinary"(id INTEGER PRIMARY KEY,body TEXT NOT NULL,updated_at TEXT NOT NULL);'
@@ -90,7 +95,7 @@ def fixture(root):
 class FtsLifecycleTests(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
-        self.root = Path(self.tmp.name)
+        self.root = Path(self.tmp.name).resolve()
 
     def tearDown(self):
         self.tmp.cleanup()
@@ -228,7 +233,9 @@ class FtsLifecycleTests(unittest.TestCase):
         )
         publisher.publish()
         destination = receiver._republica_path("source")
-        destination.parent.mkdir()
+        destination.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
+        if os.name != "nt":
+            destination.parent.chmod(0o700)
         shutil.copyfile(target.config.database, destination)
         destination.chmod(0o444)
         before, mode = digest(destination), destination.stat().st_mode

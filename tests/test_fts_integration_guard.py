@@ -14,7 +14,7 @@ import sqlite_transit_sync.republica as republica
 class FtsIntegrationGuardTests(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
-        self.root = Path(self.temp.name)
+        self.root = Path(self.temp.name).resolve()
 
     def tearDown(self):
         for path in self.root.rglob("*.sqlite"):
@@ -92,7 +92,7 @@ class UntypedRepublicaFtsSecurityTests(unittest.TestCase):
 
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
-        self.root = Path(self.temp.name)
+        self.root = Path(self.temp.name).resolve()
         self.transit = self.root / 'transit'
         self.key_file = self.root / 'keys' / 'replica.key'
         self.key_file.parent.mkdir(parents=True)
