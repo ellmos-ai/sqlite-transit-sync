@@ -8,7 +8,7 @@
 - Documentation languages checked: 2026-11-16
 - Module status: `development`; visibility projection: `public-candidate`; release gate: `LOCKED`.
 - Metadata contract: `METADATA_CONTRACT.md` (version, status and verification authority).
-- Security policy: `SECURITY.md` (Supported Versions 0.4.x, 48h SLA + 5 business days triage, GitHub private vulnerability reporting).
+- Security policy: `SECURITY.md` (Supported Versions 0.4.x, 48h best-effort acknowledgment + 5 business days triage target, GitHub private vulnerability reporting with detail-free "Security contact request" fallback).
 - License, Attribution & Dependency/License Inventory: `LICENSE`, `NOTICE`, `THIRD_PARTY_LICENSES.md`, `THIRD_PARTY_LICENSES.txt` (project-maintained package-license records; not an independent audit or certification).
 - Contributing Guide: `CONTRIBUTING.md` (Bilingual guidelines, Invariants INV-LOCAL-01..INV-SLA-10, Quality Gates, § 521 BGB statutory notice).
 - Discoverability & Marketing: `MARKETING-LOG.txt` (target personas, bilingual search queries, project capabilities and limits).
