@@ -162,4 +162,4 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ## Security Inquiries & Contact
 
-For questions or security disclosures regarding third-party components, consult [SECURITY.md](SECURITY.md) and use [GitHub Private Vulnerability Reporting](https://github.com/ellmos-ai/sqlite-transit-sync/security/advisories/new). There is currently no monitored security mailbox.
+For questions or security disclosures regarding third-party components, consult [SECURITY.md](SECURITY.md) and use [GitHub Private Vulnerability Reporting](https://github.com/ellmos-ai/sqlite-transit-sync/security/advisories/new). If that form is unavailable, follow the detail-free "Security contact request" fallback described in `SECURITY.md`. There is currently no monitored security mailbox.

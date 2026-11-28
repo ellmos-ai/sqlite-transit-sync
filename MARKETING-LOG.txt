@@ -197,7 +197,7 @@ Status: ACTIVE / AUDIT STATUS: VERIFIED / PFAD B DISCOVERABILITY VERIFIED
 ================================================================================
 - Bilingual CONTRIBUTING.md Guidelines:
   * Established comprehensive contributing guidelines in English and German (CONTRIBUTING.md).
-  * Codified 10 Governance and Architectural Invariants (INV-LOCAL-01 to INV-SLA-10), Unprivileged Execution (RunAsInvoker), Plan D Local Development Workflow (C:\_Local_DEV\repos\sqlite-transit-sync as Source of Truth), statutory disclaimer (§ 521 BGB Gefälligkeitsrecht), and binding 48h Security Response SLA (security@ellmos.ai, security@open-bricks.org, support@lukasgeiger.com).
+  * Codified 10 Governance and Architectural Invariants (INV-LOCAL-01 to INV-SLA-10), Unprivileged Execution (RunAsInvoker), Plan D Local Development Workflow (C:\_Local_DEV\repos\sqlite-transit-sync as Source of Truth), statutory disclaimer (§ 521 BGB Gefälligkeitsrecht), and 48h best-effort security response target (reporting via GitHub Private Vulnerability Reporting; mail addresses since retired).
 - CI/CD Lifecycle Workflows & Canonical Labels:
   * Provisioned .github/workflows/auto-assign.yml (actions/github-script@v7, timeout-minutes: 5, cancel-in-progress: true, pull-requests: write, issues: write) for automatic owner assignment.
   * Provisioned .github/workflows/label-sync.yml (EndBug/label-sync@v2, timeout-minutes: 5, cancel-in-progress: true, issues: write) and canonical .github/labels.yml with 11 standard labels per GOVERNANCE.md §4.2.

@@ -58,9 +58,10 @@ INV-SLA-10    | Prozessrechte & Sicherheitsrichtlinie  | Rechte des aufrufenden 
    Rechtsmängel bei unentgeltlicher Bereitstellung auf Vorsatz und grobe
    Fahrlässigkeit beschränkt.
 
-5. Verbindliche 48h Sicherheits-SLA:
-   Verbindliche Erstreaktionszeit von 48 Stunden bei Sicherheitsmeldungen über
-   GitHub Private Vulnerability Reporting (siehe SECURITY.md).
+5. Sicherheits-Reaktionsziel (Best-Effort):
+   Angestrebte Erstreaktion innerhalb von 48 Stunden bei Sicherheitsmeldungen
+   über GitHub Private Vulnerability Reporting oder den in SECURITY.md
+   beschriebenen detailfreien Ausweichweg; keine vertragliche Zusage.
 
 ===============================================================================
 4. LAUFZEIT-KOMPONENTEN
