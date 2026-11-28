@@ -114,9 +114,10 @@ redaction list.
 
 If you discover a security vulnerability, please report it responsibly:
 - **GitHub Private Vulnerability Reporting**: [Report a vulnerability](https://github.com/ellmos-ai/sqlite-transit-sync/security/advisories/new) (preferred and only monitored channel).
-- There is currently no monitored security mailbox; please do not report by e-mail and do not open public issues for vulnerabilities.
+- **Fallback if the link above shows no reporting form** (private reporting not enabled for this repository): open a [detail-free security contact request](https://github.com/ellmos-ai/sqlite-transit-sync/issues/new?title=Security%20contact%20request) that contains only the words "Security contact request" — no vulnerability details, logs, paths or data. A maintainer will then arrange a private channel.
+- There is currently no monitored security mailbox; please do not report by e-mail and never put vulnerability details into a public issue.
 
-We acknowledge receipt of valid reports within **48 hours** and provide triage assessments within **5 business days**, with regular progress updates until a patch is released.
+We aim to acknowledge receipt of valid reports within **48 hours** and to provide a triage assessment within **5 business days**, with regular progress updates until a patch is released. These are best-effort maintainer targets, not a contractual guarantee.
 Do not include live databases, actual credentials, or personal records in a report. Provide a minimal synthetic database and redacted manifest instead.
 
 ---
@@ -171,8 +172,9 @@ Die `cleanup`-Routine verifiziert jedes geplante Snapshot- und Manifestpaar einz
 
 Sicherheitsrelevante Schwachstellen bitte vertraulich melden:
 - **GitHub Private Vulnerability Reporting**: [Schwachstelle melden](https://github.com/ellmos-ai/sqlite-transit-sync/security/advisories/new) (bevorzugter und einziger überwachter Meldeweg).
-- Derzeit gibt es kein überwachtes Postfach für Sicherheitsmeldungen; bitte nicht per E-Mail und nicht über öffentliche Issues melden.
+- **Ausweichweg, falls der Link oben kein Meldeformular zeigt** (private Meldungen für dieses Repository nicht aktiviert): eine [detailfreie Sicherheitskontakt-Anfrage](https://github.com/ellmos-ai/sqlite-transit-sync/issues/new?title=Security%20contact%20request) eröffnen, die nur die Worte „Security contact request“ enthält – keine Schwachstellendetails, Logs, Pfade oder Daten. Ein Maintainer vereinbart dann einen vertraulichen Kanal.
+- Derzeit gibt es kein überwachtes Postfach für Sicherheitsmeldungen; bitte nicht per E-Mail melden und niemals Schwachstellendetails in ein öffentliches Issue schreiben.
 
-Wir bestätigen den Eingang valider Sicherheitsberichte innerhalb von **48 Stunden** und stellen eine verbindliche Triage-Einschätzung innerhalb von **5 Werktagen** bereit, begleitet von regelmäßigen Fortschrittsberichten bis zur Veröffentlichung eines Patches.
+Wir streben an, den Eingang valider Sicherheitsberichte innerhalb von **48 Stunden** zu bestätigen und innerhalb von **5 Werktagen** eine Triage-Einschätzung zu geben, begleitet von regelmäßigen Fortschrittsberichten bis zur Veröffentlichung eines Patches. Dies sind Best-Effort-Ziele der Maintainer, keine vertragliche Zusage.
 Fügen Sie Meldungen niemals Live-Datenbanken, echte Zugangsdaten oder persönliche Daten bei. Nutzen Sie stattdessen eine minimale synthetische Testdatenbank und ein anonymisiertes Manifest.
 

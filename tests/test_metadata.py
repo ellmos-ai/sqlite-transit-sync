@@ -90,6 +90,8 @@ class TestMetadata(unittest.TestCase):
         self.assertIn("48 hours", content)
         self.assertIn("48 Stunden", content)
         self.assertIn("security/advisories/new", content)
+        # Fallback stays usable while private vulnerability reporting is disabled.
+        self.assertEqual(content.count("title=Security%20contact%20request"), 2)
         self.assert_no_dead_security_contacts()
 
     def assert_no_dead_security_contacts(self):
@@ -98,6 +100,7 @@ class TestMetadata(unittest.TestCase):
         dead = ("security@ellmos.ai", "security@open-bricks.org", "lukas@open-bricks.org", "support@lukasgeiger.com")
         files = ["SECURITY.md", "CONTRIBUTING.md", "THIRD_PARTY_LICENSES.md", "THIRD_PARTY_LICENSES.txt", "llms.txt"]
         files += sorted(p.name for p in ROOT.glob("README*.md"))
+        files += [name for name in ("MARKETING-LOG.txt",) if (ROOT / name).is_file()]
         for rel in files:
             text = (ROOT / rel).read_text(encoding="utf-8")
             for address in dead:
